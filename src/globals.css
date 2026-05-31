@@ -1,0 +1,2723 @@
+/*
+ * Polyglot AEO — global styles.
+ *
+ * We intentionally rely on Framer's own theme tokens (`--framer-color-*`)
+ * imported via `framer-plugin/framer.css`. Framer toggles theme via the
+ * `[data-framer-theme="dark"]` / `[data-framer-theme="light"]` attribute
+ * on a root element; consuming the variables directly means we get
+ * perfect light/dark support for free, with zero JavaScript.
+ *
+ * The framer.css file ships some opinionated defaults we have to work
+ * around:
+ *   • `button { width: 100%; height: 30px; }` — every button stretches
+ *     full width by default. We use `flex: 1` or explicit width on
+ *     containers to opt out.
+ *   • `input { width: 134px; height: 30px; }` — fixed 134px width. We
+ *     set `width: 100%` on `.pa-input` to override.
+ *   • `* { margin: 0; padding: 0; }` — no element margins by default.
+ *     We restore spacing via flex `gap`, not margins.
+ */
+
+:root {
+  --pa-accent: #7c5cff;
+  --pa-radius-card: 10px;
+  --pa-radius-control: 8px;
+}
+
+#root {
+  height: 100%;
+}
+
+main.pa-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* -------- Top bar (used in detail views for back nav) -------- */
+
+.pa-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 15px 8px 15px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--framer-color-divider);
+  /* Allow children with min-width:0 (the title) to actually shrink. */
+  min-width: 0;
+}
+
+.pa-topbar-back {
+  width: auto;
+  height: 24px;
+  padding: 0 8px 0 4px;
+  background: transparent;
+  color: var(--framer-color-text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  /* Don't let a long localized "Back" / "戻る" / "返回" steal width from
+     the title. These labels are short by design but the rule guards the
+     contract. */
+  flex-shrink: 0;
+}
+
+.pa-topbar-back:hover,
+.pa-topbar-back:focus {
+  background: var(--framer-color-bg-tertiary);
+}
+
+.pa-topbar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--framer-color-text);
+  flex: 1;
+  /* Long titles in zh / ja (e.g. "AI 本地化 Meta 标签生成") would otherwise
+     push the LocaleSwitcher / gear off the right edge. Truncate instead. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Clustered icon controls in the top-right of TopBar (LocaleSwitcher +
+ * gear). flex-shrink:0 protects the icons from being squeezed by long
+ * titles. */
+.pa-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Bare icon button — square, 22px, transparent background, used for the
+ * gear icon in TopBar AND the same gear in Dashboard's hero. Mirrors the
+ * LocaleSwitcher button's visual weight so the cluster reads as one
+ * group of utility actions. */
+.pa-topbar-icon-button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  color: var(--framer-color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.pa-topbar-icon-button:hover,
+.pa-topbar-icon-button:focus-visible {
+  background: var(--framer-color-bg-tertiary);
+  color: var(--framer-color-text);
+}
+
+/* Inline text link styling — used for outbound docs CTAs (Framer
+ * localization guide, etc.). Restrained color so it doesn't compete with
+ * primary buttons; underline on hover for affordance. */
+.pa-link {
+  display: inline-block;
+  color: var(--framer-color-tint);
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+  margin-top: 6px;
+}
+
+.pa-link:hover,
+.pa-link:focus-visible {
+  text-decoration: underline;
+}
+
+/* -------- Click-to-copy field -------- */
+
+/* Used by Meta AI generation results so designers can grab a localized
+ * title or description with one click. The field looks like a read-only
+ * input but the entire row is the click target — caller flips
+ * data-copied=true for ~1.2s after copy succeeds, swapping the trailing
+ * label from "Copy" to "Copied". */
+.pa-copyable {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--framer-color-bg-secondary);
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  color: var(--framer-color-text);
+  font-size: 11px;
+  transition: border-color 120ms ease;
+  min-width: 0;
+}
+
+.pa-copyable:hover {
+  border-color: var(--framer-color-text-secondary);
+}
+
+.pa-copyable[data-copied="true"] {
+  border-color: var(--framer-color-success, #16a34a);
+}
+
+.pa-copyable-content {
+  flex: 1;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pa-copyable-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--framer-color-text-tertiary);
+}
+
+.pa-copyable-value {
+  font-size: 11px;
+  color: var(--framer-color-text);
+  /* Long generated descriptions can wrap to 2-3 lines. Keep them readable
+   * but cap height so the card doesn't blow up. */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.pa-copyable-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--framer-color-text-secondary);
+  border-left: 1px solid var(--framer-color-divider);
+  flex-shrink: 0;
+  min-width: 56px;
+}
+
+.pa-copyable[data-copied="true"] .pa-copyable-action {
+  color: var(--framer-color-success, #16a34a);
+}
+
+/* -------- Scroll body -------- */
+
+.pa-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 15px 15px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* -------- Sticky footer for primary action -------- */
+
+.pa-footer {
+  flex-shrink: 0;
+  padding: 10px 15px 15px 15px;
+  border-top: 1px solid var(--framer-color-divider);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Scan-only state: one full-width primary directly inside .pa-footer */
+.pa-footer > .pa-button-primary:only-child {
+  flex: 1;
+  width: 100%;
+}
+
+.pa-footer-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.pa-footer-stack > .pa-button-primary {
+  width: 100%;
+}
+
+.pa-footer-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.pa-footer-row > .pa-button-primary,
+.pa-footer-row > .pa-footer-primary-col > .pa-button-primary {
+  flex: 1;
+  min-width: 0;
+}
+
+.pa-footer-row > .pa-footer-primary-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.pa-footer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.pa-footer-toolbar-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pa-footer-toolbar button.pa-link {
+  width: auto;
+  height: auto;
+  min-height: 28px;
+  padding: 4px 0;
+  background: none;
+  border: none;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.pa-footer-toolbar button.pa-link:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button.pa-footer-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  width: auto;
+  flex-shrink: 0;
+  padding: 0 10px;
+  border-radius: var(--pa-radius-control);
+  background: var(--framer-color-bg-tertiary);
+  color: var(--framer-color-text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+}
+
+button.pa-footer-secondary:hover,
+button.pa-footer-secondary:focus-visible {
+  background: var(--framer-color-bg-secondary);
+  color: var(--framer-color-text);
+  outline: none;
+}
+
+button.pa-footer-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pa-footer-status {
+  flex: 0 0 auto;
+}
+
+/* -------- Cards & sections -------- */
+
+.pa-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pa-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--framer-color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  /* Section titles often share a row with HelpIcon or a status pill; let
+     the title wrap rather than overflow the section. */
+  word-break: break-word;
+}
+
+.pa-section-helper {
+  color: var(--framer-color-text-tertiary);
+  font-size: 11px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Inline variant: helper sits *inside* a card next to the field that triggered it
+ * (e.g. "no collections found" under the Collection select). Tighter top margin
+ * and a left rail keeps it visually anchored to the input above. */
+.pa-section-helper--inline {
+  margin: 4px 0 0;
+  padding: 6px 0 0;
+  border-top: 1px solid var(--framer-color-divider);
+}
+
+/* Card title — used for in-card hero/heading copy that should NOT pick up
+ * `.pa-section-title`'s uppercase + tracking transform. Section titles are
+ * tiny eyebrow labels (e.g. "AI 设置"); card titles are full sentences and
+ * mix CJK/English freely, where uppercase mangles the latter. */
+.pa-card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--framer-color-text);
+  word-break: break-word;
+}
+
+/* Vertical stack used inside checkbox rows or list cells where we want a
+ * bold label on top and a smaller, secondary helper underneath. Replaces
+ * the `<strong><br/><span>` pattern that mis-aligned with section helper
+ * borders. */
+.pa-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pa-stack-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--framer-color-text);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.pa-stack-help {
+  font-size: 11px;
+  color: var(--framer-color-text-tertiary);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Deployment guide block — used after llms.txt generation to walk the user
+ * through Framer's Static Files upload flow (the only path to actually serve
+ * /llms.txt from a Framer-hosted site since March 2026). */
+.pa-deploy-guide {
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--framer-color-bg-tertiary);
+  border: 1px solid var(--framer-color-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pa-deploy-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pa-deploy-guide-header > .pa-deploy-guide-title {
+  min-width: 0;
+}
+
+.pa-deploy-guide-header > .pa-pill {
+  flex-shrink: 0;
+}
+
+.pa-deploy-guide-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--framer-color-text);
+}
+
+.pa-deploy-guide-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--framer-color-text-secondary);
+  word-break: break-word;
+}
+
+.pa-deploy-guide-steps li::marker {
+  color: var(--framer-color-text-tertiary);
+}
+
+/* Meta page step — guided load → select → content flow */
+.pa-meta-page-flow {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pa-meta-page-flow > li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--framer-color-text-tertiary);
+}
+
+.pa-meta-page-flow > li[data-active="true"] {
+  color: var(--framer-color-text);
+}
+
+.pa-meta-page-flow > li[data-done="true"]:not([data-active="true"]) {
+  color: var(--framer-color-text-secondary);
+}
+
+.pa-meta-page-flow-step {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--framer-color-bg-tertiary);
+  border: 1px solid var(--framer-color-divider);
+  color: var(--framer-color-text-secondary);
+}
+
+.pa-meta-page-flow > li[data-active="true"] .pa-meta-page-flow-step {
+  border-color: var(--framer-color-tint);
+  color: var(--framer-color-tint);
+}
+
+.pa-meta-page-flow > li[data-done="true"] .pa-meta-page-flow-step {
+  background: var(--framer-color-tint);
+  border-color: var(--framer-color-tint);
+  color: var(--framer-color-text-reversed, #fff);
+}
+
+.pa-meta-page-phase {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.pa-footer-primary-col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pa-footer-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--framer-color-text-tertiary);
+  text-align: center;
+}
+
+.pa-ai-panel-same[data-tone="info"] {
+  border-color: color-mix(in srgb, var(--framer-color-tint) 35%, transparent);
+}
+
+.pa-meta-apply-guide {
+  margin-bottom: 0;
+}
+
+/*
+ * Action row inside a deploy-guide `<li>`. Used to host the
+ * download-all button (step 1) and the dashboard / docs links
+ * (step 2) on a row of their OWN, BELOW the step's instruction
+ * text — instead of inline within the running text.
+ *
+ * Why it exists:
+ *   The previous layout placed buttons inline (text … button …
+ *   `· ` … link). That works in English where the step text fits
+ *   on one line, but breaks visually for CJK locales: long
+ *   wrapped sentences push the buttons onto a new line, and the
+ *   `· ` separator orphans at the start of that line, looking
+ *   like a stray bullet point that designers misread as "step
+ *   3.5". Putting the actions in a dedicated row eliminates the
+ *   wrap unpredictability and lets gap (not a literal `·`) handle
+ *   spacing.
+ *
+ * Layout choices:
+ *   - `flex-wrap: wrap` — narrow plugin panel (≈260px) means two
+ *     long buttons may need to stack; we never want them clipped.
+ *   - `gap: 6px 8px` — slightly tighter row gap than column to
+ *     keep stacked buttons feeling grouped.
+ *   - `margin-top: 6px` — matches the gap between sibling list
+ *     items so the row visually belongs to its `<li>`, not the
+ *     next one.
+ */
+.pa-deploy-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-top: 6px;
+  align-items: center;
+}
+
+.pa-link {
+  color: var(--pa-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.pa-link:hover,
+.pa-link:focus {
+  text-decoration: underline;
+}
+
+[data-framer-theme="dark"] .pa-link {
+  color: #a48dff;
+}
+
+.pa-card {
+  background: var(--framer-color-bg-tertiary);
+  border-radius: var(--pa-radius-card);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pa-card--inset {
+  background: var(--framer-color-bg-secondary);
+}
+
+.pa-card[data-disabled="true"] {
+  opacity: 0.55;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   AI suggest panel — visual container for the inline ✨ helper.
+   Distinct from `.pa-card` because it sits INSIDE a label/card and
+   needs to read as "this is a tool, not the content you're editing".
+   The left accent border + mini-header tag work in concert: even at
+   a glance it's clear which input the panel belongs to and where
+   the panel ends. The accent color picks up the same brand-tone the
+   ✨ pill button uses, so the visual association is hard to miss.
+   ────────────────────────────────────────────────────────────────── */
+.pa-ai-panel {
+  margin-top: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--framer-color-bg-secondary);
+  border-radius: var(--pa-radius-card);
+  border-left: 2px solid var(--framer-color-tint);
+}
+
+.pa-ai-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--framer-color-tint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* The "AI suggestion" preview block inside the panel. Slightly
+ * indented background distinguishes "AI's answer" from "panel
+ * controls" above it. */
+.pa-ai-result {
+  background: var(--framer-color-bg-tertiary);
+  border-radius: var(--pa-radius-card);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pa-ai-result pre {
+  margin: 0;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Hint text shown alongside an input — distinct from
+ * `.pa-section-helper` because it lives directly under a textarea
+ * (no border, tighter spacing) and serves as a "what to write here"
+ * cue rather than section-level explanation. */
+.pa-input-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--framer-color-text-tertiary);
+  line-height: 1.5;
+}
+
+.pa-truncate {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.pa-progress {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  appearance: none;
+  border: none;
+  background: var(--framer-color-bg-secondary);
+  overflow: hidden;
+}
+
+.pa-progress::-webkit-progress-bar {
+  background: var(--framer-color-bg-secondary);
+  border-radius: 3px;
+}
+
+.pa-progress::-webkit-progress-value {
+  background: var(--framer-color-tint);
+  border-radius: 3px;
+  transition: width 120ms linear;
+}
+
+.pa-progress::-moz-progress-bar {
+  background: var(--framer-color-tint);
+  border-radius: 3px;
+}
+
+/* -------- Filter / search row (audit list) -------- */
+
+/* Vertical stack: search input on top, segmented status filter below.
+ * Stacking instead of inlining keeps the search input full-width even at
+ * 320px window widths, where 4 segments + a search input side-by-side
+ * would be unreadable. */
+.pa-filter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pa-filter-input {
+  /* Override pa-input's flex:1 to ensure the input takes full row width
+   * when it's the only child in its container. */
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pa-filter-segments {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+}
+
+.pa-filter-segment {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 24px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--framer-color-text-secondary);
+  cursor: pointer;
+  /* Keep CJK / EN labels from breaking line at narrow widths. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    background 100ms ease,
+    color 100ms ease,
+    border-color 100ms ease;
+}
+
+.pa-filter-segment:hover {
+  background: var(--framer-color-bg-tertiary);
+}
+
+.pa-filter-segment[data-active="true"] {
+  background: var(--framer-color-tint);
+  color: var(--framer-color-tint-text, #fff);
+  border-color: var(--framer-color-tint);
+}
+
+/* Locale preview tabs (Schema audit JSON-LD preview). Horizontal
+ * chips — NOT full-width stacked buttons. Framer's global
+ * `button { width: 100% }` is overridden per-tab. */
+.pa-locale-tab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+
+button.pa-locale-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  width: auto;
+  height: 28px;
+  padding: 0 10px;
+  background: var(--framer-color-bg-secondary);
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--framer-color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 100ms ease,
+    color 100ms ease,
+    border-color 100ms ease;
+}
+
+button.pa-locale-tab:hover {
+  background: var(--framer-color-bg-tertiary);
+  color: var(--framer-color-text);
+}
+
+button.pa-locale-tab[data-active="true"] {
+  background: var(--framer-color-tint);
+  color: var(--framer-color-tint-text, #fff);
+  border-color: var(--framer-color-tint);
+}
+
+button.pa-locale-tab .pa-locale-tab-flag {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* llms.txt wizard — compact step indicator */
+.pa-llms-step-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0 15px 8px;
+}
+
+.pa-llms-step-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+button.pa-llms-step-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--framer-color-divider);
+  background: var(--framer-color-bg-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+button.pa-llms-step-dot[data-done="true"] {
+  background: var(--framer-color-text-tertiary);
+  border-color: var(--framer-color-text-tertiary);
+}
+
+button.pa-llms-step-dot[data-active="true"] {
+  width: 10px;
+  height: 10px;
+  background: var(--framer-color-tint);
+  border-color: var(--framer-color-tint);
+}
+
+button.pa-llms-step-dot:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pa-llms-step-caption {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--framer-color-text-secondary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -------- Disclosure toggle (Settings → providers) -------- */
+
+/* Subtle full-width row that toggles a hidden block. Mirrors the
+ * Tools-row affordance but with no icon — just a label and a chevron.
+ * Used to collapse "Available providers" so first-time users aren't
+ * scrolling through 9 cards before they find Brand voice. */
+.pa-disclosure {
+  width: 100%;
+  height: 32px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border: 1px dashed var(--framer-color-divider);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--framer-color-text-secondary);
+  cursor: pointer;
+}
+
+.pa-disclosure:hover,
+.pa-disclosure:focus-visible {
+  background: var(--framer-color-bg-tertiary);
+  color: var(--framer-color-text);
+  border-color: var(--framer-color-text-secondary);
+}
+
+/* -------- Inline proposal editor (Schema audit) -------- */
+
+/* Indented well that visually nests the form inside its parent
+ * ProposalCard. The left border doubles as a "you're now editing
+ * this card" affordance so designers don't lose track when scrolling. */
+.pa-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--framer-color-tint);
+  background: var(--framer-color-bg-secondary);
+  border-radius: 0 6px 6px 0;
+}
+
+/* FAQ rows get their own container so the question/answer pair reads
+ * as a single unit even with multiple rows stacked. */
+.pa-editor-faq-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--framer-color-bg);
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 4px;
+}
+
+/* -------- Header / hero (dashboard) -------- */
+
+.pa-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pa-hero-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--framer-color-text);
+  /* Brand name is fixed ("Polyglot AEO") so no truncation here, but allow
+     shrink so flex siblings on the right don't get bullied. */
+  min-width: 0;
+}
+
+.pa-hero-subtitle {
+  font-size: 11.5px;
+  color: var(--framer-color-text-tertiary);
+  line-height: 1.5;
+}
+
+/* Secondary tagline — emphasises "everything happens in Framer" so users
+ * understand they don't need to export code or move to another tool. Sits
+ * one row under the subtitle and uses the accent color subtly. */
+.pa-hero-tagline {
+  margin: 4px 0 0;
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--pa-accent);
+  word-break: break-word;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pa-hero-tagline::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--pa-accent);
+  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.18);
+}
+
+[data-framer-theme="dark"] .pa-hero-tagline {
+  color: #a48dff;
+}
+
+[data-framer-theme="dark"] .pa-hero-tagline::before {
+  background: #a48dff;
+  box-shadow: 0 0 0 3px rgba(164, 141, 255, 0.22);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   LocaleSwitcher — globe icon in Dashboard hero / TopBar
+   Popover anchored to the button, positioned via `position: absolute`
+   on the wrapper, so it correctly overlays subsequent content even
+   inside scrollable parents.
+   ────────────────────────────────────────────────────────────────── */
+
+.pa-locale-switcher {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.pa-locale-switcher-button {
+  width: auto;
+  height: 22px;
+  padding: 0 6px;
+  background: transparent;
+  color: var(--framer-color-text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+
+.pa-locale-switcher-button:hover,
+.pa-locale-switcher-button:focus-visible {
+  background: var(--framer-color-bg-tertiary);
+  color: var(--framer-color-text);
+}
+
+.pa-locale-switcher-code {
+  /* CJK glyphs render slightly larger than EN — bump the latter so the
+     button width stays stable as the user switches between them. */
+  min-width: 1.2em;
+  text-align: center;
+}
+
+.pa-locale-switcher-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 100;
+  /* `width: max-content` lets the popover size to its widest item without
+     forcing wrap, capped so it never exceeds the plugin window. The cap
+     accounts for the plugin's typical 320px width minus 16px padding. */
+  width: max-content;
+  min-width: 140px;
+  max-width: calc(100vw - 32px);
+  padding: 4px;
+  background: var(--framer-color-bg);
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pa-locale-switcher-divider {
+  height: 1px;
+  background: var(--framer-color-divider);
+  margin: 2px 0;
+}
+
+.pa-locale-switcher-item {
+  width: 100%;
+  height: 26px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--framer-color-text);
+  font-size: 11.5px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  /* Native locale names are short (English, 简体中文, 日本語) so single-line
+     enforcement keeps row heights uniform. */
+  white-space: nowrap;
+}
+
+.pa-locale-switcher-item:hover,
+.pa-locale-switcher-item:focus-visible {
+  background: var(--framer-color-bg-tertiary);
+}
+
+.pa-locale-switcher-item[data-selected="true"] {
+  color: var(--framer-color-tint);
+}
+
+.pa-locale-switcher-check {
+  display: inline-block;
+  width: 10px;
+  font-size: 10px;
+  color: var(--framer-color-tint);
+  flex-shrink: 0;
+}
+
+.pa-locale-switcher-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.pa-locale-switcher-sublabel {
+  color: var(--framer-color-text-tertiary);
+  font-size: 10.5px;
+  margin-left: 8px;
+}
+
+/* -------- Pills -------- */
+
+.pa-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--framer-color-bg-secondary);
+  color: var(--framer-color-text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  height: 18px;
+  line-height: 1;
+}
+
+/*
+ * `.pa-pill-button` is a pill that is also a clickable `<button>`. We need
+ * explicit overrides because framer.css ships `button { width: 100%;
+ * height: 30px; background: var(--framer-color-bg-tertiary) }` defaults
+ * that would otherwise stretch and recolor it.
+ */
+button.pa-pill-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--framer-color-bg-secondary);
+  color: var(--framer-color-text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  height: 18px;
+  line-height: 1;
+  width: auto;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: none;
+}
+
+button.pa-pill-button:hover,
+button.pa-pill-button:focus {
+  background: var(--framer-color-bg-tertiary);
+  color: var(--framer-color-text);
+}
+
+button.pa-pill-button:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+button.pa-pill-button[data-tone="accent"] {
+  background: rgba(124, 92, 255, 0.16);
+  color: var(--pa-accent);
+}
+
+button.pa-pill-button[data-tone="accent"]:hover,
+button.pa-pill-button[data-tone="accent"]:focus {
+  background: rgba(124, 92, 255, 0.24);
+  color: var(--pa-accent);
+}
+
+[data-framer-theme="dark"] button.pa-pill-button[data-tone="accent"] {
+  color: #a48dff;
+}
+
+/* Translation health: clickable (page × locale) issue queue */
+.pa-issue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+button.pa-issue-jump {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  margin: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pa-text);
+  font-size: 12px;
+  line-height: 1.35;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+button.pa-issue-jump:hover,
+button.pa-issue-jump:focus-visible {
+  background: var(--pa-surface-raised, rgba(0, 0, 0, 0.04));
+  outline: none;
+}
+
+button.pa-issue-jump[data-active="true"] {
+  background: var(--pa-accent-soft, rgba(108, 79, 245, 0.12));
+  color: var(--pa-accent);
+  font-weight: 600;
+}
+
+/*
+ * `.pa-inline-action` is a SOLID-FILLED action chip used inline next
+ * to status pills. The point is contrast: pills are read-only
+ * annotations and look identical regardless of whether you can click
+ * them. Designers (rightly) report that a `pa-pill-button` rendered
+ * next to a `.pa-pill[data-tone="warning"]` reads as just another
+ * tag. This class breaks the illusion with three visual cues:
+ *
+ *   1. Rectangular (4px radius) — pills are 999px / capsule.
+ *   2. Filled accent background with white text — pills are tinted.
+ *   3. Slightly larger height + heavier weight — feels primary.
+ *
+ * Use for any short, scoped action that lives among status
+ * decorations: "Retry", "Edit", "Reset". Keep label ≤ 8 chars so the
+ * chip stays compact.
+ */
+button.pa-inline-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border-radius: 4px;
+  background: var(--pa-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  height: 20px;
+  line-height: 1;
+  width: auto;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: none;
+  transition:
+    background 0.12s ease,
+    transform 0.06s ease;
+}
+
+button.pa-inline-action:hover,
+button.pa-inline-action:focus-visible {
+  background: #6c4ff5;
+  outline: none;
+}
+
+button.pa-inline-action:active {
+  transform: translateY(1px);
+}
+
+button.pa-inline-action:disabled {
+  opacity: 0.45;
+  cursor: progress;
+  transform: none;
+}
+
+/* Busy state: button is mid-operation. We DO NOT fade the background
+ * (unlike the plain :disabled state) — the goal here is "alive and
+ * working", not "blocked". Pair with the spinning glyph for a clear
+ * indeterminate-progress affordance. The cursor is `progress` to
+ * reinforce that the click was accepted and time is passing. */
+button.pa-inline-action[data-busy] {
+  opacity: 1;
+  cursor: progress;
+  background: var(--pa-accent);
+}
+
+/* Single-glyph spinner. We render the existing ↻ glyph and rotate it
+ * via transform; no extra DOM, no SVG asset, and the typography
+ * follows the button's font weight/size automatically. The
+ * `transform-origin: center` is critical — without it, the glyph
+ * orbits its own baseline and reads as a wobble. */
+.pa-inline-action-spin {
+  display: inline-block;
+  transform-origin: 50% 55%;
+  animation: pa-spin 0.9s linear infinite;
+}
+
+@keyframes pa-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Honor the OS-level "reduce motion" preference. The text label
+   * ("Translating…") still communicates the busy state, so we lose
+   * nothing functionally — just the visual reinforcement. */
+  .pa-inline-action-spin {
+    animation: none;
+  }
+}
+
+.pa-pill[data-tone="success"] {
+  background: rgba(26, 171, 115, 0.14);
+  color: #1aab73;
+}
+
+.pa-pill[data-tone="warning"] {
+  background: rgba(255, 176, 32, 0.16);
+  color: #d99000;
+}
+
+.pa-pill[data-tone="accent"] {
+  background: rgba(124, 92, 255, 0.16);
+  color: var(--pa-accent);
+}
+
+[data-framer-theme="dark"] .pa-pill[data-tone="warning"] {
+  color: #ffc35c;
+}
+
+[data-framer-theme="dark"] .pa-pill[data-tone="accent"] {
+  color: #a48dff;
+}
+
+/* -------- Rows -------- */
+
+.pa-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pa-row-spread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  /* The first text-bearing child should shrink; the right-side controls
+     (pills, buttons, locale switcher) should not. min-width:0 lets ellipsis
+     work on flex children. */
+  min-width: 0;
+}
+
+.pa-row-spread > .pa-pill,
+.pa-row-spread > .pa-locale-switcher,
+.pa-row-spread > .pa-pill-button {
+  flex-shrink: 0;
+}
+
+.pa-row-spread > :first-child {
+  min-width: 0;
+}
+
+/* -------- Inputs (override framer.css defaults) -------- */
+
+.pa-input,
+.pa-textarea,
+.pa-select {
+  width: 100%;
+  flex-shrink: 1;
+}
+
+.pa-textarea {
+  /* Fixed scrollport — `height: auto` grew with content so wheel
+   * events scrolled `.pa-scroll` instead of the field. */
+  min-height: 60px;
+  max-height: 160px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.pa-textarea--tall {
+  min-height: 96px;
+  max-height: 220px;
+}
+
+/* Collapsible blocks on llms setup (long description, AI). */
+details.pa-llms-fold {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--framer-color-divider);
+}
+
+details.pa-llms-fold > summary {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--framer-color-text-secondary);
+  list-style: none;
+  user-select: none;
+}
+
+details.pa-llms-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.pa-llms-fold > summary::before {
+  content: "▸ ";
+  display: inline-block;
+  transition: transform 100ms ease;
+}
+
+details.pa-llms-fold[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+details.pa-llms-fold .pa-llms-fold-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+details.pa-llms-fold--nested {
+  margin-top: 0;
+  padding-top: 6px;
+  border-top: none;
+}
+
+details.pa-llms-fold--nested > summary {
+  font-weight: 500;
+  font-size: 10px;
+}
+
+.pa-llms-cms-list,
+.pa-llms-pages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 200px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pa-llms-cms-row {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--framer-color-divider);
+}
+
+.pa-llms-cms-row:last-child {
+  border-bottom: none;
+}
+
+.pa-llms-page-row .pa-stack-help {
+  font-size: 10px;
+}
+
+.pa-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--framer-color-text-secondary);
+  width: 100%;
+}
+
+.pa-label-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pa-field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 12px;
+}
+
+/* -------- Buttons -------- */
+
+.pa-button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.pa-button-row > button {
+  flex: 1;
+}
+
+.pa-button-icon {
+  width: 30px;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.pa-button-primary {
+  background-color: var(--pa-accent);
+  color: #ffffff;
+}
+
+.pa-button-primary:hover,
+.pa-button-primary:focus {
+  background-color: #6a48ff;
+}
+
+.pa-button-primary:disabled {
+  opacity: 0.5;
+  background-color: var(--pa-accent);
+}
+
+.pa-button-danger {
+  color: #e5484d;
+}
+
+[data-framer-theme="dark"] .pa-button-danger {
+  color: #ff6369;
+}
+
+/* -------- Tool list (vertical drilldown rows) -------- */
+
+.pa-tool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pa-tool-row {
+  width: 100%;
+  height: auto;
+  padding: 12px;
+  background: var(--framer-color-bg-tertiary);
+  border-radius: var(--pa-radius-card);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 120ms ease;
+}
+
+.pa-tool-row:hover,
+.pa-tool-row:focus {
+  background: var(--framer-color-bg-secondary);
+}
+
+.pa-tool-row-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(124, 92, 255, 0.14);
+  color: var(--pa-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+[data-framer-theme="dark"] .pa-tool-row-icon {
+  background: rgba(124, 92, 255, 0.22);
+}
+
+.pa-tool-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pa-tool-row-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--framer-color-text);
+  line-height: 1.3;
+  /* Long localizations like "Per-locale schema" → "JSON-LD Schema 每语言版本"
+     should ellipsis rather than break the row layout. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pa-tool-row-desc {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--framer-color-text-tertiary);
+  line-height: 1.45;
+  /* Allow descriptions to wrap to at most 2 lines — predictable row
+     height across all three UI languages. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.pa-tool-row-chevron {
+  color: var(--framer-color-text-tertiary);
+  flex-shrink: 0;
+}
+
+/* -------- Locale grid -------- */
+
+.pa-locale-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+}
+
+.pa-locale-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--framer-color-bg-tertiary);
+  border-radius: var(--pa-radius-control);
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.pa-locale-cell:hover {
+  background: var(--framer-color-bg-secondary);
+}
+
+.pa-locale-cell[data-checked="true"] {
+  border-color: var(--pa-accent);
+  background: rgba(124, 92, 255, 0.08);
+}
+
+[data-framer-theme="dark"] .pa-locale-cell[data-checked="true"] {
+  background: rgba(124, 92, 255, 0.16);
+}
+
+.pa-locale-cell-name {
+  color: var(--framer-color-text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* -------- Type chooser (segmented chips) -------- */
+
+.pa-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.pa-chip {
+  width: 100%;
+  height: auto;
+  padding: 10px;
+  background: var(--framer-color-bg-tertiary);
+  border-radius: var(--pa-radius-control);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  border: 1px solid transparent;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.pa-chip:hover,
+.pa-chip:focus {
+  background: var(--framer-color-bg-secondary);
+}
+
+.pa-chip[data-selected="true"] {
+  border-color: var(--pa-accent);
+  background: rgba(124, 92, 255, 0.08);
+}
+
+[data-framer-theme="dark"] .pa-chip[data-selected="true"] {
+  background: rgba(124, 92, 255, 0.18);
+}
+
+.pa-chip-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--framer-color-text);
+}
+
+.pa-chip-desc {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--framer-color-text-tertiary);
+  line-height: 1.4;
+  white-space: normal;
+}
+
+/* -------- Code block -------- */
+
+.pa-code-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pa-code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pa-code-block-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--framer-color-text-tertiary);
+}
+
+.pa-copy-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 6px;
+  background: var(--framer-color-bg-secondary);
+  color: var(--framer-color-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.pa-copy-icon-btn:hover {
+  border-color: var(--framer-color-text-secondary);
+  color: var(--framer-color-text);
+}
+
+.pa-copy-icon-btn[data-copied="true"] {
+  border-color: var(--framer-color-success, #16a34a);
+  color: var(--framer-color-success, #16a34a);
+}
+
+.pa-code {
+  background: var(--framer-color-bg-secondary);
+  border-radius: var(--pa-radius-control);
+  padding: 10px;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 10.5px;
+  line-height: 1.5;
+  white-space: pre;
+  overflow-x: auto;
+  max-height: 220px;
+  overflow-y: auto;
+  color: var(--framer-color-text);
+}
+
+/* -------- Empty / loading state -------- */
+
+.pa-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  padding: 32px 16px;
+  color: var(--framer-color-text-tertiary);
+}
+
+.pa-empty-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--framer-color-text);
+}
+
+/* -------- Provider segmented control -------- */
+
+.pa-segmented {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--framer-color-bg-secondary);
+  border-radius: var(--pa-radius-control);
+}
+
+.pa-segmented > button {
+  flex: 1;
+  height: 26px;
+  background: transparent;
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--framer-color-text-secondary);
+}
+
+.pa-segmented > button[data-selected="true"] {
+  background: var(--framer-color-bg);
+  color: var(--framer-color-text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+[data-framer-theme="dark"] .pa-segmented > button[data-selected="true"] {
+  background: var(--framer-color-bg-tertiary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* -------- Inline checkbox row -------- */
+
+.pa-checkbox-row {
+  display: flex;
+  /* Top-align so the checkbox sits next to the FIRST line of the label,
+   * not visually centered against multi-line helper text. Single-line uses
+   * are unaffected (only one line — alignment is moot). */
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--framer-color-text-secondary);
+  cursor: pointer;
+}
+
+.pa-checkbox-row input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  /* Lift the checkbox a hair so it optically aligns with cap-height of
+   * the bold label sibling rather than the descender baseline. */
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* -------- Result KV (Meta AI tab) -------- */
+
+.pa-kv {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pa-kv-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--framer-color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pa-kv-value {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--framer-color-text);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Quick Start onboarding panel
+   ────────────────────────────────────────────────────────────────── */
+
+.pa-quickstart {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 8px;
+  background: var(--framer-color-bg-secondary);
+  overflow: hidden;
+}
+
+.pa-quickstart-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.pa-quickstart-header:hover,
+.pa-quickstart-header:focus {
+  background: var(--framer-color-bg-tertiary);
+}
+
+.pa-quickstart-header-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pa-quickstart-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--framer-color-text);
+}
+
+.pa-quickstart-progress-bar {
+  height: 3px;
+  width: 100%;
+  border-radius: 2px;
+  background: var(--framer-color-divider);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.pa-quickstart-progress-fill {
+  height: 100%;
+  background: var(--framer-color-tint);
+  border-radius: 2px;
+  transition: width 200ms ease;
+}
+
+/* -------- Dashboard health score -------- */
+
+.pa-health-meta-hint {
+  margin: 8px 0 0;
+}
+
+.pa-health-card {
+  gap: 10px;
+}
+
+.pa-health-list {
+  display: grid;
+  gap: 6px;
+}
+
+button.pa-health-item {
+  width: 100%;
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 6px;
+  background: var(--framer-color-bg);
+  color: var(--framer-color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+button.pa-health-item:hover,
+button.pa-health-item:focus-visible {
+  background: var(--framer-color-bg-tertiary);
+  outline: none;
+}
+
+button.pa-health-item[data-state="done"] {
+  color: var(--framer-color-text-secondary);
+}
+
+.pa-health-marker {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 176, 32, 0.16);
+  color: #d99000;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+button.pa-health-item[data-state="done"] .pa-health-marker {
+  background: rgba(26, 171, 115, 0.14);
+  color: #1aab73;
+}
+
+.pa-health-title {
+  min-width: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.pa-verify-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 6px;
+  background: var(--framer-color-bg);
+}
+
+.pa-verify-item[data-state="warn"] .pa-health-marker {
+  background: rgba(255, 176, 32, 0.16);
+  color: #d99000;
+}
+
+.pa-verify-item[data-state="fail"] .pa-health-marker {
+  background: rgba(255, 73, 73, 0.14);
+  color: #d33;
+}
+
+.pa-quickstart-chevron {
+  flex-shrink: 0;
+  color: var(--framer-color-text-tertiary);
+  transition: transform 150ms ease;
+}
+
+.pa-quickstart[data-collapsed="true"] .pa-quickstart-chevron {
+  transform: rotate(-90deg);
+}
+
+.pa-quickstart-body {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--framer-color-divider);
+}
+
+.pa-quickstart[data-collapsed="true"] .pa-quickstart-body {
+  display: none;
+}
+
+.pa-quickstart-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--framer-color-divider);
+}
+
+.pa-quickstart-step:last-child {
+  border-bottom: none;
+}
+
+.pa-quickstart-step-marker {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--framer-color-divider);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  font-size: 10px;
+  color: var(--framer-color-text-tertiary);
+}
+
+.pa-quickstart-step[data-state="done"] .pa-quickstart-step-marker {
+  background: var(--framer-color-tint);
+  border-color: var(--framer-color-tint);
+  color: var(--framer-color-tint-text, #fff);
+}
+
+.pa-quickstart-step[data-state="optional"] .pa-quickstart-step-marker {
+  border-style: dashed;
+}
+
+.pa-quickstart-step-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pa-quickstart-step-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--framer-color-text);
+  /* Long step titles in zh / ja can otherwise force a horizontal scroll
+     bar inside the narrow plugin window. */
+  word-break: break-word;
+}
+
+.pa-quickstart-step[data-state="done"] .pa-quickstart-step-title {
+  color: var(--framer-color-text-tertiary);
+  text-decoration: line-through;
+  text-decoration-color: var(--framer-color-divider);
+}
+
+.pa-quickstart-step-desc {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--framer-color-text-secondary);
+  word-break: break-word;
+}
+
+.pa-quickstart-step-action {
+  flex-shrink: 0;
+  align-self: flex-start;
+  height: 24px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--framer-color-divider);
+  background: var(--framer-color-bg);
+  color: var(--framer-color-text);
+  cursor: pointer;
+  white-space: nowrap;
+  width: auto;
+}
+
+.pa-quickstart-step-action:hover,
+.pa-quickstart-step-action:focus {
+  border-color: var(--framer-color-tint);
+  color: var(--framer-color-tint);
+}
+
+.pa-quickstart-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-top: 1px solid var(--framer-color-divider);
+  background: var(--framer-color-bg);
+}
+
+.pa-quickstart-footer-status {
+  font-size: 11px;
+  color: var(--framer-color-text-secondary);
+}
+
+.pa-quickstart-footer-status[data-tone="success"] {
+  color: var(--framer-color-tint);
+  font-weight: 500;
+}
+
+.pa-quickstart-dismiss {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--framer-color-divider);
+  background: transparent;
+  color: var(--framer-color-text-secondary);
+  cursor: pointer;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.pa-quickstart-dismiss:hover,
+.pa-quickstart-dismiss:focus {
+  color: var(--framer-color-text);
+  border-color: var(--framer-color-text-secondary);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   HelpIcon — clickable (?) with inline expandable panel
+   ────────────────────────────────────────────────────────────────── */
+
+.pa-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  position: relative;
+}
+
+.pa-help-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  margin: 0 0 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--framer-color-text-tertiary);
+  cursor: pointer;
+  vertical-align: middle;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pa-help-trigger:hover,
+.pa-help-trigger:focus {
+  color: var(--framer-color-tint);
+  background: var(--framer-color-bg-tertiary);
+}
+
+.pa-help-trigger[aria-expanded="true"] {
+  color: var(--framer-color-tint);
+}
+
+.pa-help-panel {
+  display: block;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--framer-color-tint);
+  border-radius: 0 6px 6px 0;
+  background: var(--framer-color-bg-tertiary);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--framer-color-text-secondary);
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* When help icon sits next to a section title, collapse to inline-flex
+   so the panel breaks onto the next line with full container width. */
+.pa-section-title .pa-help,
+.pa-label .pa-help {
+  position: static;
+}
+
+.pa-section-title .pa-help-panel,
+.pa-label .pa-help-panel {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Default-locale badge
+   ────────────────────────────────────────────────────────────────── */
+
+.pa-default-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  background: var(--framer-color-tint);
+  color: var(--framer-color-tint-text, #fff);
+  flex-shrink: 0;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Modal-style confirm dialog
+   ────────────────────────────────────────────────────────────────── */
+
+.pa-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.pa-confirm-dialog {
+  background: var(--framer-color-bg);
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 8px;
+  padding: 16px;
+  max-width: 280px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.pa-confirm-message {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--framer-color-text);
+  margin: 0;
+}
+
+.pa-confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.pa-confirm-actions > button {
+  width: auto;
+  padding: 0 12px;
+  height: 28px;
+  font-size: 11.5px;
+  flex: 0 0 auto;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Keyboard shortcut overlay
+   ────────────────────────────────────────────────────────────────── */
+
+/* Same scrim treatment as the confirm dialog so the modal weight is
+ * consistent across the plugin. Click on the scrim closes. */
+.pa-overlay-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.pa-overlay-panel {
+  background: var(--framer-color-bg);
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 8px;
+  padding: 16px;
+  max-width: 300px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.pa-shortcut-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pa-shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--framer-color-text);
+}
+
+/* OS-style key cap. Mono font + small uppercase letterspacing so a
+ * "Cmd + Enter" combo and a single "?" both look like keys. */
+.pa-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: var(--framer-color-bg-secondary);
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 4px;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, "Cascadia Code",
+    "Roboto Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--framer-color-text-secondary);
+  flex: 0 0 auto;
+}
+
+/*
+ * ─── Site Identity Card (V2) ──────────────────────────────────────
+ *
+ * Compact, always-visible card above the audit list. Surfaces the
+ * single canonical brand identity used to populate Article publisher
+ * / author / Organization fields across every JSON-LD block. Three
+ * states share most styling; differences are gated by modifier
+ * classes so future redesigns can re-skin one state without
+ * touching the others.
+ */
+.pa-identity-card {
+  background: var(--framer-color-bg-tertiary);
+  border-radius: var(--pa-radius-card);
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pa-identity-card--warning {
+  border-left: 3px solid var(--pa-warning, #f5a623);
+  padding-left: 9px;
+}
+
+.pa-identity-card--editing {
+  background: var(--framer-color-bg-secondary);
+}
+
+.pa-identity-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pa-identity-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pa-identity-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* `flex-wrap` lets the source badge drop to its own line if the
+   * viewport is unusually narrow, instead of forcing the whole row to
+   * shrink-wrap one character at a time. `min-width: 0` is the standard
+   * fix for "flex child won't shrink below its content's intrinsic
+   * width" — required so the brand line below ellipses cleanly. */
+  flex-wrap: wrap;
+  min-width: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--framer-color-text-secondary);
+}
+
+.pa-identity-source {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--framer-color-bg-secondary);
+  color: var(--framer-color-text-secondary);
+  /* Keep the badge as a single horizontal pill even if the
+   * `.pa-identity-title` row wraps. Without this, narrow viewports
+   * collapse the badge into vertical-text mode (the originally
+   * reported bug). */
+  white-space: nowrap;
+}
+
+.pa-identity-source--ai {
+  background: rgba(124, 92, 255, 0.12);
+  color: var(--pa-accent);
+}
+
+.pa-identity-source--user-edit {
+  background: rgba(46, 184, 110, 0.14);
+  color: #2eb86e;
+}
+
+.pa-identity-source--hostname-fallback {
+  background: rgba(245, 166, 35, 0.14);
+  color: #b76e00;
+}
+
+[data-framer-theme="dark"] .pa-identity-source--hostname-fallback {
+  color: #f5a623;
+}
+
+.pa-identity-brand {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--framer-color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pa-identity-meta {
+  font-size: 11px;
+  color: var(--framer-color-text-secondary);
+}
+
+/* The card-level Edit button. framer.css forces `button { width: 100% }`
+ * by default, which (paired with `flex-shrink: 0`) was crushing the
+ * summary column to ~20 px and word-breaking the brand name down to one
+ * character per line. We pin width:auto + a sensible min-width so the
+ * button hugs its label and the summary keeps the horizontal space it
+ * needs. Same pattern as `.pa-confirm-actions > button`. */
+.pa-identity-edit-btn {
+  width: auto;
+  min-width: 56px;
+  padding: 0 12px;
+  height: 28px;
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.pa-identity-warning {
+  font-size: 11.5px;
+  color: var(--framer-color-text-secondary);
+  padding-top: 4px;
+  border-top: 1px dashed var(--framer-color-divider);
+}
+
+/* Edit mode form. Re-uses .pa-field styles when present; otherwise
+ * the inline declaration below gives it a sensible default. */
+.pa-identity-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pa-identity-form .pa-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pa-identity-form .pa-field span {
+  font-size: 11px;
+  color: var(--framer-color-text-secondary);
+}
+
+.pa-identity-form .pa-field input {
+  /* framer.css ships `input { width: 134px }` — we need full-row inputs
+   * inside the card. Ditto `box-sizing: border-box` so the padding
+   * doesn't push the right edge past the card. */
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--framer-color-bg);
+  border: 1px solid var(--framer-color-divider);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--framer-color-text);
+}
+
+.pa-identity-form .pa-field input:focus {
+  outline: none;
+  border-color: var(--pa-accent);
+}
+
+.pa-identity-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Same width:auto + min-width discipline as the card-level Edit button.
+ * Without it, framer.css' `button { width: 100% }` would make Save and
+ * Cancel each consume half the row regardless of their label, and the
+ * `gap: 8px` would push the second button outside the card. */
+.pa-identity-form-actions > button {
+  width: auto;
+  min-width: 64px;
+  padding: 0 12px;
+  height: 28px;
+  flex: 0 0 auto;
+}
+
+/* Skeleton-with-spinner state. Phase 0 in flight. */
+.pa-identity-card--deriving {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.pa-identity-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--framer-color-divider);
+  border-top-color: var(--pa-accent);
+  border-radius: 50%;
+  animation: pa-spin 0.9s linear infinite;
+  flex-shrink: 0;
+}
+
+.pa-identity-deriving-text {
+  font-size: 12px;
+  color: var(--framer-color-text-secondary);
+}
+
+/* -------- License / upgrade modal -------- */
+
+.pa-upgrade-dialog {
+  max-width: 296px;
+  gap: 10px;
+}
+
+.pa-upgrade-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--framer-color-text);
+  margin: 0;
+}
+
+.pa-upgrade-bullets {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 11px;
+  color: var(--framer-color-text-secondary);
+  line-height: 1.5;
+  list-style: disc;
+}
+
+.pa-upgrade-bullets li + li {
+  margin-top: 4px;
+}
+
+/* Stacked full-width actions — overrides framer.css `button { width: 100% }`
+ * fighting a horizontal flex row (which crushed the primary CTA text). */
+.pa-upgrade-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.pa-upgrade-actions > a.pa-button,
+.pa-upgrade-actions > button {
+  width: 100%;
+  height: auto;
+  min-height: 32px;
+  padding: 8px 12px;
+  flex: none;
+  box-sizing: border-box;
+  font-size: 11.5px;
+  line-height: 1.35;
+  white-space: normal;
+  text-align: center;
+}
+
+.pa-upgrade-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-decoration: none;
+  color: #ffffff;
+}
+
+.pa-upgrade-cta-main {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pa-upgrade-cta-sub {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.92;
+}
+
+.pa-upgrade-pricing-hint {
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--framer-color-text-secondary);
+  margin: 0;
+  text-align: center;
+}
+
+.pa-pro-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--pa-accent);
+  color: #fff;
+  border: none;
+  width: auto;
+  height: auto;
+  cursor: default;
+}
+
+button.pa-pro-badge {
+  cursor: pointer;
+}
+
+.pa-license-section {
+  border-top: 1px solid var(--framer-color-divider);
+  padding-top: 12px;
+}
+
+/* License Settings — stacked buttons (avoids framer.css width:100% row crush). */
+.pa-license-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.pa-license-actions > .pa-button {
+  width: 100%;
+  height: auto;
+  min-height: 30px;
+  padding: 6px 12px;
+  flex: none;
+  box-sizing: border-box;
+  font-size: 11.5px;
+  line-height: 1.35;
+  white-space: normal;
+  text-align: center;
+}
+
+.pa-upgrade-banner {
+  padding: 10px 12px;
+  margin: 0 12px 8px;
+  border-radius: var(--pa-radius-card);
+  background: var(--framer-color-bg-tertiary);
+  border: 1px solid var(--framer-color-divider);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.pa-upgrade-banner button.pa-link-button {
+  margin-top: 6px;
+}
+
+.pa-success-text {
+  font-size: 11px;
+  color: var(--framer-color-text-secondary);
+  margin-top: 6px;
+}
+
+.pa-error-text {
+  font-size: 11px;
+  color: #e5484d;
+  margin-top: 6px;
+}
+
+.pa-button-danger {
+  color: #e5484d;
+}

@@ -1,0 +1,15 @@
+{
+  "version": "2026-05-29",
+  "allowedSchemaKinds": [
+    "WebSite",
+    "Organization",
+    "WebPage",
+    "Article",
+    "FAQPage",
+    "Product",
+    "LocalBusiness",
+    "BreadcrumbList",
+    "SoftwareApplication"
+  ],
+  "promptVersion": "v2.1"
+}

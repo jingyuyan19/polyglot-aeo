@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+/.pnp
+.pnp.js
+.yarn
+
+# misc
+.DS_Store
+*.pem
+
+# build artifacts
+dist
+.next
+plugin.zip
+
+# debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+
+# editor
+.vscode/
+.idea/
+
+# Netlify local state
+.netlify/

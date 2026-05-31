@@ -1,0 +1,13 @@
+name = "polyglot-license"
+main = "worker.js"
+compatibility_date = "2024-12-01"
+
+[vars]
+CREEM_PRODUCT_MONTHLY = "prod_bcBjS641fdpc7R7IPMDSQ"
+CREEM_PRODUCT_YEARLY = "prod_26WFDeCASuir74jHgH3Kv2"
+CREEM_SUCCESS_URL = "https://polyglotaeo.com/success"
+CREEM_TEST_PRODUCT_MONTHLY = "prod_5XtwOdU3HaSDrB9B5I6cyx"
+CREEM_TEST_PRODUCT_YEARLY = "prod_537xx0G3DBLLUhM2FAOnt0"
+
+# wrangler secret put CREEM_API_KEY
+# wrangler secret put CREEM_TEST_API_KEY
