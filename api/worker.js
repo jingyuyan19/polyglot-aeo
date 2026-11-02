@@ -112,9 +112,8 @@ function readLicenseProductId(data) {
   return ""
 }
 
-function licenseProductError(data, env, testMode) {
-  const allowed = configuredProductIds(env, testMode)
-  if (allowed.length === 0) {
+function licenseProductConfigurationError(env, testMode) {
+  if (configuredProductIds(env, testMode).length === 0) {
     return {
       status: 500,
       error: testMode
@@ -122,6 +121,13 @@ function licenseProductError(data, env, testMode) {
         : "Server configuration error: product id not set",
     }
   }
+  return null
+}
+
+function licenseProductError(data, env, testMode) {
+  const configurationError = licenseProductConfigurationError(env, testMode)
+  if (configurationError) return configurationError
+  const allowed = configuredProductIds(env, testMode)
   const productId = readLicenseProductId(data)
   if (!productId) {
     return { status: 403, error: "License product could not be verified" }
@@ -130,6 +136,23 @@ function licenseProductError(data, env, testMode) {
     return { status: 403, error: "License is not valid for this product" }
   }
   return null
+}
+
+async function rejectCreatedActivation({ data, key, apiKey, baseUrl, rejection }) {
+  const instanceId = licenseInstanceId(data)
+  if (instanceId) {
+    const cleanup = await callCreemAPI(`${baseUrl}/licenses/deactivate`, apiKey, {
+      key,
+      instance_id: instanceId,
+    })
+    if (cleanup.success) return errorResponse(rejection.error, rejection.status)
+  }
+  return jsonResponse({
+    ok: false,
+    error: "License could not be accepted and activation cleanup could not be confirmed. Contact support before trying again.",
+    activation_cleanup_required: true,
+    ...(instanceId ? { recovery_instance_id: instanceId } : {}),
+  }, 502)
 }
 
 function isAllowedHost(hostname) {
@@ -1101,6 +1124,10 @@ export default {
     const expiresAt = Date.now() + CACHE_MS
 
     if (path === "/activate") {
+      const configurationError = licenseProductConfigurationError(env, testMode)
+      if (configurationError) {
+        return errorResponse(configurationError.error, configurationError.status)
+      }
       const creemBody = {
         key: key.trim(),
         instance_name: instance_name || project_id || "Framer project",
@@ -1118,7 +1145,9 @@ export default {
 
       const productError = licenseProductError(result.data, env, testMode)
       if (productError) {
-        return errorResponse(productError.error, productError.status)
+        return rejectCreatedActivation({
+          data: result.data, key: key.trim(), apiKey, baseUrl, rejection: productError,
+        })
       }
 
       const active = licenseActive(result.data)

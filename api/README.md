@@ -53,6 +53,16 @@ CREEM_TEST_MODE=true
 `CREEM_TEST_PRODUCT_YEARLY`. `/activate` and `/validate` reject a license whose
 `product_id` is missing or is not one of those configured product ids (403).
 
+## Rejected activation cleanup
+
+Product configuration is checked before creating an activation. If Creem creates
+an instance but its product cannot be accepted, the Worker deactivates that new
+instance before returning the product rejection. Cleanup uses the same live or
+sandbox API and credentials as activation. A failed or unverifiable cleanup
+returns 502 with `activation_cleanup_required: true` and, when available,
+`recovery_instance_id`. Do not automatically retry activation after that response;
+support can use the reference to release the retained slot.
+
 ## Plugin env (release build)
 
 ```bash
