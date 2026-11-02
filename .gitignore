@@ -12,6 +12,8 @@ node_modules/
 dist
 .next
 plugin.zip
+*.zip
+.claude/settings.local.json
 .tmp/
 
 # local design previews / generated mockups

@@ -8,6 +8,14 @@ pattern = "license.polyglotaeo.com"
 custom_domain = true
 
 [vars]
+# Production. Client test_mode is ignored. Do not set CREEM_TEST_MODE here.
+# Test Creem mode requires both of the following, and only on a non-production
+# Worker (local wrangler dev or a staging environment — never this deploy):
+#   ENVIRONMENT = "development"   # or dev, staging, preview, test, local
+#   CREEM_TEST_MODE = "true"
+# A missing ENVIRONMENT is treated as production, so the flag alone cannot
+# turn on test checkout or test-license AI sessions.
+ENVIRONMENT = "production"
 CREEM_PRODUCT_MONTHLY = "prod_bcBjS641fdpc7R7IPMDSQ"
 CREEM_PRODUCT_YEARLY = "prod_26WFDeCASuir74jHgH3Kv2"
 CREEM_SUCCESS_URL = "https://polyglotaeo.com/success"

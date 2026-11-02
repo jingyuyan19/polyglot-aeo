@@ -4,10 +4,14 @@
  * Same pattern as Loka: plugin never holds CREEM_API_KEY.
  *
  * GET  /checkout?plan=monthly|yearly&project_id=...
- * POST /activate  { key, instance_name?, project_id?, test_mode? }
- * POST /validate  { key, instance_id, test_mode? }
- * POST /deactivate { key, instance_id, test_mode? }
- * POST /ai/session { key, instance_id, project_id?, test_mode? }
+ * POST /activate  { key, instance_name?, project_id? }
+ * POST /validate  { key, instance_id }
+ * POST /deactivate { key, instance_id }
+ * POST /ai/session { key, instance_id, project_id? }
+ *
+ * Client-supplied test_mode is ignored. Creem test mode is used only when
+ * CREEM_TEST_MODE=true and ENVIRONMENT is an explicit non-production value.
+ * A missing ENVIRONMENT is treated as production.
  * POST /ai/generate { feature, prompt, max_tokens?, idempotency_key? }
  * GET  /health
  * GET  /verify-fetch?url=https://example.com/path
@@ -50,6 +54,82 @@ function redirectResponse(location, status = 302) {
 
 function creemBaseUrl(testMode) {
   return testMode ? "https://test-api.creem.io/v1" : "https://api.creem.io/v1"
+}
+
+const NON_PRODUCTION_ENVIRONMENTS = new Set([
+  "development",
+  "dev",
+  "staging",
+  "preview",
+  "test",
+  "local",
+])
+
+function deploymentEnvironment(env) {
+  const raw =
+    env && typeof env.ENVIRONMENT === "string"
+      ? env.ENVIRONMENT.trim().toLowerCase()
+      : ""
+  return raw || "production"
+}
+
+function envFlagEnabled(value) {
+  return (
+    value === true ||
+    (typeof value === "string" && value.trim().toLowerCase() === "true")
+  )
+}
+
+/**
+ * Test Creem credentials are never selected from a client test_mode flag.
+ * They are used only when this Worker is opted in, and only outside production.
+ */
+function serverTestModeEnabled(env) {
+  if (!envFlagEnabled(env?.CREEM_TEST_MODE)) return false
+  return NON_PRODUCTION_ENVIRONMENTS.has(deploymentEnvironment(env))
+}
+
+function configuredProductIds(env, testMode) {
+  const keys = testMode
+    ? ["CREEM_TEST_PRODUCT_MONTHLY", "CREEM_TEST_PRODUCT_YEARLY"]
+    : ["CREEM_PRODUCT_MONTHLY", "CREEM_PRODUCT_YEARLY"]
+  return keys
+    .map((key) => (typeof env?.[key] === "string" ? env[key].trim() : ""))
+    .filter(Boolean)
+}
+
+function readLicenseProductId(data) {
+  if (!data || typeof data !== "object") return ""
+  for (const candidate of [data.product_id, data.productId]) {
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim()
+  }
+  const product = data.product
+  if (typeof product === "string" && product.trim()) return product.trim()
+  if (product && typeof product === "object") {
+    const nested = product.id ?? product.product_id ?? product.productId
+    if (typeof nested === "string" && nested.trim()) return nested.trim()
+  }
+  return ""
+}
+
+function licenseProductError(data, env, testMode) {
+  const allowed = configuredProductIds(env, testMode)
+  if (allowed.length === 0) {
+    return {
+      status: 500,
+      error: testMode
+        ? "Server configuration error: test product id not set"
+        : "Server configuration error: product id not set",
+    }
+  }
+  const productId = readLicenseProductId(data)
+  if (!productId) {
+    return { status: 403, error: "License product could not be verified" }
+  }
+  if (!allowed.includes(productId)) {
+    return { status: 403, error: "License is not valid for this product" }
+  }
+  return null
 }
 
 function isAllowedHost(hostname) {
@@ -427,6 +507,10 @@ async function validateActiveLicense({ key, instanceId, testMode, env }) {
   if (!result.success) {
     return { ok: false, status: 403, error: "License validation failed" }
   }
+  const productError = licenseProductError(result.data, env, testMode)
+  if (productError) {
+    return { ok: false, status: productError.status, error: productError.error }
+  }
   if (!licenseActive(result.data)) {
     return { ok: false, status: 403, error: "Active Pro license required" }
   }
@@ -443,7 +527,7 @@ async function createAiSession({ body, env }) {
     typeof body.instance_id === "string" ? body.instance_id.trim() : ""
   const projectId =
     typeof body.project_id === "string" ? body.project_id.trim().slice(0, 160) : ""
-  const testMode = body.test_mode === true || body.test_mode === "true"
+  const testMode = serverTestModeEnabled(env)
 
   if (!key || !instanceId) {
     return errorResponse("License key and instance_id are required", 400)
@@ -970,7 +1054,10 @@ export default {
     }
 
     if (path === "/checkout" && request.method === "GET") {
-      const testMode = url.searchParams.get("test_mode") === "true"
+      const testMode = serverTestModeEnabled(env)
+      if (url.searchParams.get("test_mode") === "true" && !testMode) {
+        return errorResponse("Test checkout is disabled", 403)
+      }
       return createCheckout({ request, env, url, testMode })
     }
 
@@ -997,18 +1084,19 @@ export default {
       return generateAi({ request, body, env })
     }
 
-    const { key, instance_id, instance_name, project_id, test_mode } = body
+    const { key, instance_id, instance_name, project_id } = body
 
     if (!key || typeof key !== "string") {
       return errorResponse("License key is required")
     }
 
-    const apiKey = test_mode ? env.CREEM_TEST_API_KEY : env.CREEM_API_KEY
+    const testMode = serverTestModeEnabled(env)
+    const apiKey = testMode ? env.CREEM_TEST_API_KEY : env.CREEM_API_KEY
     if (!apiKey) {
       return errorResponse("Server configuration error: API key not set", 500)
     }
 
-    const baseUrl = creemBaseUrl(test_mode)
+    const baseUrl = creemBaseUrl(testMode)
 
     const expiresAt = Date.now() + CACHE_MS
 
@@ -1026,6 +1114,11 @@ export default {
 
       if (!result.success) {
         return errorResponse(result.error)
+      }
+
+      const productError = licenseProductError(result.data, env, testMode)
+      if (productError) {
+        return errorResponse(productError.error, productError.status)
       }
 
       const active = licenseActive(result.data)
@@ -1058,6 +1151,11 @@ export default {
           tier: "free",
           error: result.error,
         })
+      }
+
+      const productError = licenseProductError(result.data, env, testMode)
+      if (productError) {
+        return errorResponse(productError.error, productError.status)
       }
 
       const active = licenseActive(result.data)

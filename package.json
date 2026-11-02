@@ -16,7 +16,7 @@
     "release:plugin-check": "node tools/release/check-plugin-package.mjs",
     "release:marketplace-brief": "node tools/release/framer-marketplace-update.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run && node --test tools/lead-finder/*.test.mjs",
+    "test": "vitest run && node --test api/*.test.mjs tools/lead-finder/*.test.mjs",
     "test:watch": "vitest",
     "test:live": "vitest run --config vitest.live.config.ts",
     "lead:discover": "node tools/lead-finder/lead-discover.mjs",

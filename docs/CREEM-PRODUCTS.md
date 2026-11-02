@@ -75,7 +75,7 @@ Create both as **percentage** coupons in Creem and attach to the Pro product.
 
 ## Sandbox checklist
 
-- [ ] Test mode API key in `polyglotaeo-web` (`CREEM_TEST_MODE=true`)
+- [ ] Non-production Worker only: `ENVIRONMENT=development` and `CREEM_TEST_MODE=true` (never on the production deploy)
 - [ ] Test purchase → email with license key
 - [ ] Plugin activate with key + open Framer project
 - [ ] Pro features unlock (multi-locale Meta, llms AI, schema translate)

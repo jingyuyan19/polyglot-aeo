@@ -61,14 +61,18 @@ No license API on Next.js — see `polyglotaeo-web/README.md`.
 
 ### 1. Sandbox purchase
 
-1. Open plugin Settings → Polyglot AEO Pro.
-2. Switch **Checkout and license environment** to **Test**.
-3. Click **Get Pro** / **Upgrade** inside the plugin.
-4. Complete checkout; copy license key from email.
+1. Point the plugin at a non-production Worker with `ENVIRONMENT=development`
+   (or `dev` / `staging` / `preview` / `test` / `local`) and `CREEM_TEST_MODE=true`.
+   The production Worker ignores client `test_mode` and rejects
+   `/checkout?test_mode=true`.
+2. Open plugin Settings → Polyglot AEO Pro.
+3. Switch **Checkout and license environment** to **Test**.
+4. Click **Get Pro** / **Upgrade** inside the plugin.
+5. Complete checkout; copy license key from email.
 
 ### 2. Plugin activate
 
-1. Set `VITE_LICENSE_API_BASE` to your Worker (or `wrangler dev` + localhost).
+1. Set `VITE_LICENSE_API_BASE` to a non-production Worker with `CREEM_TEST_MODE=true` (or `wrangler dev` with that flag and a non-production `ENVIRONMENT`).
 2. Keep the Settings environment switched to **Test** while testing sandbox keys.
 3. Settings → Polyglot AEO Pro → paste key → Activate.
 4. Pro badge; Meta generate on 2+ locales.
