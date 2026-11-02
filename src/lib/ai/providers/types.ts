@@ -87,6 +87,7 @@ export function ensureJsonKeywordPrompt(
  * `custom:<uuid>` so they never collide with these.
  */
 export type BuiltinProviderId =
+  | "polyglot-managed"
   | "anthropic"
   | "openai"
   | "gemini"

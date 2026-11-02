@@ -1,6 +1,11 @@
 name = "polyglot-license"
 main = "worker.js"
 compatibility_date = "2024-12-01"
+workers_dev = false
+
+[[routes]]
+pattern = "license.polyglotaeo.com"
+custom_domain = true
 
 [vars]
 CREEM_PRODUCT_MONTHLY = "prod_bcBjS641fdpc7R7IPMDSQ"
@@ -8,6 +13,26 @@ CREEM_PRODUCT_YEARLY = "prod_26WFDeCASuir74jHgH3Kv2"
 CREEM_SUCCESS_URL = "https://polyglotaeo.com/success"
 CREEM_TEST_PRODUCT_MONTHLY = "prod_5XtwOdU3HaSDrB9B5I6cyx"
 CREEM_TEST_PRODUCT_YEARLY = "prod_537xx0G3DBLLUhM2FAOnt0"
+MINIMAX_BASE_URL = "https://api.minimaxi.com/v1"
+MINIMAX_MODEL = "MiniMax-M3"
+MINIMAX_INPUT_RMB_PER_M = "2.10"
+MINIMAX_OUTPUT_RMB_PER_M = "8.40"
+AI_LICENSE_DAY_RMB_CAP = "1.5"
+AI_LICENSE_MONTH_RMB_CAP = "8"
+AI_GLOBAL_DAY_RMB_CAP = "80"
+AI_GLOBAL_MONTH_RMB_CAP = "500"
+AI_REQUESTS_PER_MINUTE = "6"
+
+[[durable_objects.bindings]]
+name = "AI_USAGE_LIMITER"
+class_name = "AiUsageLimiter"
+
+[[migrations]]
+tag = "v1-ai-usage-limiter"
+new_sqlite_classes = ["AiUsageLimiter"]
 
 # wrangler secret put CREEM_API_KEY
 # wrangler secret put CREEM_TEST_API_KEY
+# wrangler secret put MINIMAX_API_KEY
+# wrangler secret put AI_SESSION_SECRET
+# wrangler secret put AI_USAGE_SALT

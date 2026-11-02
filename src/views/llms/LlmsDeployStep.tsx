@@ -13,16 +13,33 @@ export function LlmsDeployStep({
   onOpenFramerProject,
 }: Props) {
   const { t } = useI18n()
+  const defaultPath = formatDeployPath("llms.txt")
+  const localizedExample =
+    generated.find((file) => file.filename !== "llms.txt")?.filename ??
+    "llms-<locale>.txt"
+  const readyLabel =
+    generated.length === 1
+      ? t("llms.deployFileReady")
+      : t("llms.deployFilesReady", { n: generated.length })
 
   return (
     <section className="pa-section">
       <span className="pa-section-title">{t("llms.deployTitle")}</span>
       <div className="pa-deploy-guide">
         <div className="pa-deploy-guide-header">
-          <span className="pa-deploy-guide-title">{t("llms.deployTitle")}</span>
+          <span className="pa-deploy-guide-title">
+            {readyLabel}
+          </span>
           <span className="pa-pill" data-tone="accent">
             {t("llms.deployPlanBadge")}
           </span>
+        </div>
+        <div className="pa-deploy-file-list" aria-label={t("llms.deployFilesLabel")}>
+          {generated.map((file) => (
+            <span key={file.filename} className="pa-chip">
+              {file.filename}
+            </span>
+          ))}
         </div>
         <ol className="pa-deploy-guide-steps">
           <li>
@@ -71,11 +88,15 @@ export function LlmsDeployStep({
         </ol>
         <p className="pa-section-helper">
           {t("llms.deployOtherHosting", {
-            default: "/llms.txt",
-            localized: "/llms-zh-cn.txt",
+            default: defaultPath,
+            localized: formatDeployPath(localizedExample),
           })}
         </p>
       </div>
     </section>
   )
+}
+
+function formatDeployPath(filename: string) {
+  return `/${filename.replace(/^\/+/, "")}`
 }

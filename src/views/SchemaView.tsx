@@ -7,6 +7,7 @@ import { SchemaManualView } from "./SchemaManualView"
 interface Props {
   onBack: () => void
   onOpenSettings: () => void
+  onOpenOnboarding?: () => void
   restoredAuditSession: SchemaAuditSession | null
   onPersistAuditSession: (session: SchemaAuditSession | null) => void
 }
@@ -26,6 +27,7 @@ type Mode = "audit" | "manual"
 export function SchemaView({
   onBack,
   onOpenSettings,
+  onOpenOnboarding,
   restoredAuditSession,
   onPersistAuditSession,
 }: Props) {
@@ -36,6 +38,7 @@ export function SchemaView({
       <SchemaManualView
         onBack={onBack}
         onOpenSettings={onOpenSettings}
+        onOpenOnboarding={onOpenOnboarding}
         onSwitchToAudit={() => setMode("audit")}
       />
     )
@@ -44,6 +47,7 @@ export function SchemaView({
     <SchemaAuditView
       onBack={onBack}
       onOpenSettings={onOpenSettings}
+      onOpenOnboarding={onOpenOnboarding}
       onSwitchToManual={() => setMode("manual")}
       restoredSession={restoredAuditSession}
       onPersistSession={onPersistAuditSession}

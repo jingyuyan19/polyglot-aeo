@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 
 import { useI18n } from "../../i18n"
+import { LlmsIcon } from "../../components/icons"
 import type { LlmsTranslateQualityReason } from "../../lib/ai/llms-translate"
 import { localeFlagEmoji } from "../../lib/framer/locales"
 import {
@@ -39,17 +40,25 @@ export function LlmsReviewStep({
     generated.find((g) => g.localeCode === resultLocaleCode) ?? generated[0]
 
   const summaryLine = useMemo(() => {
-    const parts = [t("llms.reviewFileCount", { n: generated.length })]
+    const parts = [
+      generated.length === 1
+        ? t("llms.reviewFileCountOne")
+        : t("llms.reviewFileCount", { n: generated.length }),
+    ]
     for (const g of generated) {
       const partitioned = partitionLocaleIssues(g)
       if (partitioned.hasIssues) {
         const cmsCount =
           g.aiFailed.length + partitioned.missingLocalized.length
         parts.push(
-          t("llms.reviewLocaleNeedsAttention", {
-            locale: g.localeCode,
-            n: cmsCount,
-          }),
+          cmsCount > 0
+            ? t("llms.reviewLocaleNeedsAttention", {
+                locale: g.localeCode,
+                n: cmsCount,
+              })
+            : t("llms.reviewLocaleNeedsAttentionNoCount", {
+                locale: g.localeCode,
+              }),
         )
       }
     }
@@ -63,6 +72,13 @@ export function LlmsReviewStep({
   }
 
   const issues = partitionLocaleIssues(active)
+  const activeIssueCount =
+    active.aiFailed.length +
+    issues.missingLocalized.length +
+    issues.missingDefault.length +
+    active.duplicateTitles.length +
+    (active.headerFlag ? 1 : 0) +
+    (active.longDescriptionFlag ? 1 : 0)
   const isDefaultLocale = active.localeCode === defaultLocaleCode
   const canRetryItems =
     useAiTranslate &&
@@ -107,10 +123,32 @@ export function LlmsReviewStep({
         })}
       </div>
 
-      <div className="pa-card">
-        <div className="pa-row-spread">
-          <span style={{ fontWeight: 600 }}>{active.filename}</span>
-          <div className="pa-button-row" style={{ flex: "0 0 auto" }}>
+      <div className="pa-card pa-file-card">
+        <div className="pa-file-card-header">
+          <div className="pa-file-title-stack">
+            <span className="pa-file-title">
+              <LlmsIcon size={15} /> {active.filename}
+            </span>
+            <span className="pa-section-helper" style={{ margin: 0 }}>
+              {active.localeName} · {active.content.split("\n").length} lines
+            </span>
+            <div className="pa-row" style={{ flexWrap: "wrap", gap: 6 }}>
+              <span
+                className="pa-pill"
+                data-tone={issues.hasIssues ? "warning" : "success"}
+              >
+                {issues.hasIssues
+                  ? t("llms.issuesTitle")
+                  : t("llms.reviewNoIssues")}
+              </span>
+              {activeIssueCount > 0 && (
+                <span className="pa-pill" data-tone="warning">
+                  {activeIssueCount}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="pa-file-actions">
             {canRetry && (
               <button
                 type="button"
@@ -127,11 +165,16 @@ export function LlmsReviewStep({
                   : t("llms.regenerateLocale")}
               </button>
             )}
-            <button type="button" onClick={() => onCopy(active.content)}>
+            <button
+              type="button"
+              className="pa-pill-button"
+              onClick={() => onCopy(active.content)}
+            >
               {t("common.copy")}
             </button>
             <button
               type="button"
+              className="pa-pill-button"
               onClick={() => onDownload(active.filename, active.content)}
             >
               {t("common.download")}

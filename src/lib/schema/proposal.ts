@@ -420,7 +420,10 @@ export function buildProposal(
     fallbackContent,
   )
 
-  let enabled = confidence >= 0.4
+  // Fail closed for launch automation: below 70% the plugin should
+  // still surface the proposal, but not include it in one-click install
+  // until the user explicitly opts in.
+  let enabled = confidence >= 0.7
   let rationale =
     typeof aiJson.rationale === "string" && aiJson.rationale.trim()
       ? aiJson.rationale.trim()

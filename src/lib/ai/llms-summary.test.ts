@@ -119,6 +119,47 @@ describe("generateLlmsSummary — happy paths", () => {
 })
 
 describe("generateLlmsSummary — quality validation", () => {
+  it("automatically retries once when the first optimize pass is near-identical", async () => {
+    const ai = vi
+      .fn()
+      .mockResolvedValueOnce({
+        rawText: "",
+        parsed: {
+          summary:
+            "Independent brand studio designing identities, naming, and creative strategy.",
+        },
+        estimatedCostUsd: 0.0001,
+      })
+      .mockResolvedValueOnce({
+        rawText: "",
+        parsed: {
+          summary:
+            "Brand studio for identity design, naming, and creative strategy.",
+        },
+        estimatedCostUsd: 0.0001,
+      }) as unknown as (opts: AiCallOptions) => Promise<AiCallResult>
+
+    const out = await generateLlmsSummary(
+      {
+        siteName: "LYNIQ",
+        draft:
+          "Independent brand studio designing identities, naming, and creative strategy.",
+        keywords: "Make it shorter and tighter",
+        targetLanguage: "en-US",
+        ai: AI,
+      },
+      ai,
+    )
+
+    expect(ai).toHaveBeenCalledTimes(2)
+    expect(out.summary).toBe(
+      "Brand studio for identity design, naming, and creative strategy.",
+    )
+    expect(out.changed).toBe(true)
+    expect(out.qualityOk).toBe(true)
+    expect(out.costUsd).toBeCloseTo(0.0002)
+  })
+
   it("flags qualityOk=false when AI returns the source draft verbatim (optimize mode)", async () => {
     const ai = fakeAi({
       parsed: {
@@ -138,6 +179,7 @@ describe("generateLlmsSummary — quality validation", () => {
     )
     // Still returns the AI text — the user can read and decide.
     expect(out.summary).toBeTruthy()
+    expect(out.changed).toBe(false)
     expect(out.qualityOk).toBe(false)
   })
 

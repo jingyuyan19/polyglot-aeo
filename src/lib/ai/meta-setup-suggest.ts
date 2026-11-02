@@ -102,6 +102,7 @@ export async function generateMetaSetupSuggestion(
     providerId: params.ai.providerId as AiProvider,
     modelId: params.ai.modelId,
     apiKey: params.ai.apiKey,
+    feature: "meta_ai_suggest",
     prompt,
     customProvider: params.ai.customProvider,
     maxTokens: 800,

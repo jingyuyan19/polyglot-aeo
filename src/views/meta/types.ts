@@ -36,6 +36,15 @@ export interface MetaDraft {
   selectedPagePath?: string
 }
 
+/** In-memory wizard state (survives Dashboard ↔ Meta navigation). */
+export interface MetaWizardSession {
+  draftSignature: string
+  selectedPageId?: string
+  step: MetaStep
+  resultLocaleId: string
+  results: MetaResult[]
+}
+
 export interface PersistedMetaResults {
   savedAt: number
   selectedPageId?: string

@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import type { Dispatch, SetStateAction } from "react"
 
 import { useFeatureGate } from "../../components/entitlement-hooks"
@@ -30,40 +31,80 @@ export function LlmsAiTranslateFold({
 }: Props) {
   const { t } = useI18n()
   const gate = useFeatureGate()
+  const hasNonDefaultLocale = locales.some((l) => !l.isDefault)
+  const canUseAiTranslate = gate.isPro
 
-  if (!locales.some((l) => !l.isDefault)) return null
+  useEffect(() => {
+    if (!hasNonDefaultLocale || canUseAiTranslate || !config.useAiTranslate) {
+      return
+    }
+    setConfig((prev) =>
+      prev.useAiTranslate ? { ...prev, useAiTranslate: false } : prev,
+    )
+  }, [
+    canUseAiTranslate,
+    config.useAiTranslate,
+    hasNonDefaultLocale,
+    setConfig,
+  ])
+
+  if (!hasNonDefaultLocale) return null
 
   return (
-    <details className="pa-llms-fold" open={config.useAiTranslate}>
+    <details
+      className="pa-llms-fold pa-llms-fold--source pa-llms-ai-fold"
+      open={canUseAiTranslate && config.useAiTranslate}
+    >
       <summary>
         {t("llms.aiTranslateTitle")}
-        {config.useAiTranslate ? ` · ${t("llms.setupAiEnabled")}` : ""}
+        {canUseAiTranslate && config.useAiTranslate
+          ? ` · ${t("llms.setupAiEnabled")}`
+          : ""}
+        {!canUseAiTranslate && (
+          <span className="pa-pill" data-tone="accent">
+            Pro
+          </span>
+        )}
       </summary>
       <div className="pa-llms-fold-body">
-        <label className="pa-checkbox-row">
-          <input
-            type="checkbox"
-            checked={config.useAiTranslate}
-            onChange={(e) => {
-              const checked = e.target.checked
-              if (
-                checked &&
-                !gate.check("llms_ai_translate", {
+        {!canUseAiTranslate ? (
+          <div className="pa-llms-ai-pro-card">
+            <div>
+              <span className="pa-pill" data-tone="accent">
+                Pro
+              </span>
+              <strong>{t("llms.aiTranslateProTitle")}</strong>
+              <p>{t("llms.aiTranslateProHelper")}</p>
+            </div>
+            <button
+              type="button"
+              className="pa-pill-button"
+              onClick={() =>
+                gate.check("llms_ai_translate", {
                   localeCount: locales.length,
                 })
-              ) {
-                return
               }
-              setConfig({
-                ...config,
-                useAiTranslate: checked,
-              })
-            }}
-          />
-          <span>{t("llms.aiTranslateToggle")}</span>
-        </label>
+            >
+              {t("llms.aiTranslateUnlock")}
+            </button>
+          </div>
+        ) : (
+          <label className="pa-checkbox-row">
+            <input
+              type="checkbox"
+              checked={config.useAiTranslate}
+              onChange={(e) => {
+                setConfig({
+                  ...config,
+                  useAiTranslate: e.target.checked,
+                })
+              }}
+            />
+            <span>{t("llms.aiTranslateToggle")}</span>
+          </label>
+        )}
 
-        {config.useAiTranslate && (
+        {canUseAiTranslate && config.useAiTranslate && (
           <>
             <div className="pa-label-row">
               <label className="pa-label">

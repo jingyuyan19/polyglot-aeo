@@ -1,3 +1,4 @@
+import { OnboardingNavButton } from "./OnboardingNavButton"
 import { SettingsIcon } from "./icons"
 import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut"
 import { useI18n } from "../i18n"
@@ -16,9 +17,11 @@ interface Props {
    * a "go where you already are" button.
    */
   onOpenSettings?: () => void
+  /** Re-open the setup wizard (clipboard icon left of Settings). */
+  onOpenOnboarding?: () => void
 }
 
-export function TopBar({ title, onBack, onOpenSettings }: Props) {
+export function TopBar({ title, onBack, onOpenSettings, onOpenOnboarding }: Props) {
   const { t } = useI18n()
   // ESC anywhere outside text inputs returns to the previous view. Inside
   // an input, ESC defers to the browser's clear-field behavior.
@@ -40,6 +43,9 @@ export function TopBar({ title, onBack, onOpenSettings }: Props) {
       <span className="pa-topbar-title">{title}</span>
       <div className="pa-topbar-actions">
         <LocaleSwitcher />
+        {onOpenOnboarding && (
+          <OnboardingNavButton onClick={onOpenOnboarding} />
+        )}
         {onOpenSettings && (
           <button
             type="button"

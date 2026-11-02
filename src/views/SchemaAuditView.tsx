@@ -1,9 +1,17 @@
 import { framer } from "framer-plugin"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react"
 
 import { useFeatureGate } from "../components/entitlement-hooks"
 import { CopyIconButton } from "../components/CopyIconButton"
 import { HelpIcon } from "../components/HelpIcon"
+import { SchemaIcon, VerifyIcon } from "../components/icons"
 import { ProposalEditor } from "../components/ProposalEditor"
 import { SiteIdentityCard } from "../components/SiteIdentityCard"
 import { TopBar } from "../components/TopBar"
@@ -79,12 +87,12 @@ import {
   countDistinctInstallPages,
   FREE_SCHEMA_INSTALL_PAGE_LIMIT,
 } from "../lib/license/entitlements"
-import { writeAuditWorkspacePersist } from "../lib/schema/audit-persist"
 import { readJson, readString, StorageKeys, writeJson, writeString } from "../lib/storage"
 
 interface Props {
   onBack: () => void
   onOpenSettings: () => void
+  onOpenOnboarding?: () => void
   onSwitchToManual: () => void
   /** App-level session cache — restored after Back / Settings within one panel open. */
   restoredSession: SchemaAuditSession | null
@@ -175,11 +183,56 @@ function safeHostname(baseUrl: string): string | null {
   }
 }
 
+function formatElapsed(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  if (minutes === 0) return `${seconds}s`
+  return `${minutes}m ${seconds.toString().padStart(2, "0")}s`
+}
+
+function normalizeProgressLabel(
+  label: string,
+  fallback: string,
+  homepage: string,
+): string {
+  const trimmed = label.trim()
+  if (!trimmed) return fallback
+  if (trimmed === "/" || trimmed.toLowerCase() === "home") return homepage
+  try {
+    const url = new URL(trimmed)
+    return url.pathname === "/" ? homepage : url.pathname
+  } catch {
+    return trimmed
+  }
+}
+
+function confidenceTone(
+  confidencePct: number,
+): "success" | "accent" | "warning" | undefined {
+  if (confidencePct >= 85) return "success"
+  if (confidencePct >= 70) return "accent"
+  if (confidencePct >= 40) return "warning"
+  return undefined
+}
+
 type Phase =
   | { kind: "idle" }
-  | { kind: "scanning-site" }
-  | { kind: "scanning-ai"; current: number; total: number; label: string }
-  | { kind: "translating"; current: number; total: number; label: string }
+  | { kind: "scanning-site"; startedAt: number }
+  | {
+      kind: "scanning-ai"
+      current: number
+      total: number
+      label: string
+      startedAt: number
+    }
+  | {
+      kind: "translating"
+      current: number
+      total: number
+      label: string
+      startedAt: number
+    }
   | { kind: "installing" }
 
 /**
@@ -193,6 +246,7 @@ type Phase =
 export function SchemaAuditView({
   onBack,
   onOpenSettings,
+  onOpenOnboarding,
   onSwitchToManual,
   restoredSession,
   onPersistSession,
@@ -212,6 +266,8 @@ export function SchemaAuditView({
   )
   const [snapshot, setSnapshot] = useState<InstallSnapshot | null>(null)
   const [phase, setPhase] = useState<Phase>({ kind: "idle" })
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  const progressPanelRef = useRef<HTMLElement | null>(null)
   // Which proposal is currently retrying its translations. Drives the
   // inline "Translating…" affordance on that card. We need this in
   // addition to the global `phase` because all cards otherwise share
@@ -332,6 +388,11 @@ export function SchemaAuditView({
       // V2: OrganizationDefaults was reserved-but-unused in V1 and
       // is fully replaced by the Identity bundle. Free the bytes.
       void writeJson(StorageKeys.OrganizationDefaults, null).catch(() => {})
+      // Earlier Pro builds attempted to persist a compact workspace,
+      // but in practice it duplicated install snapshot data and could
+      // still push Framer's combined plugin-data budget over 4 KB.
+      void writeJson(StorageKeys.AuditWorkspacePersist, null).catch(() => {})
+      void writeJson(StorageKeys.LastSchemaSnapshot, null).catch(() => {})
 
       const [
         persistedSnapshot,
@@ -412,8 +473,8 @@ export function SchemaAuditView({
 
       // Resolve the initial provider AFTER customs load, so user-defined
       // providers participate in the "first configured" search. If the
-      // user has any key set anywhere, we pick that provider so the BYOK
-      // warning doesn't appear with their key already in storage.
+      // user has a managed provider available, we pick that provider so the
+      // unavailable-warning does not appear on first load.
       const candidates: ProviderId[] = [
         ...BUILTIN_PROVIDERS.map((p) => p.id),
         ...customs.map((c) => c.id),
@@ -439,6 +500,36 @@ export function SchemaAuditView({
     // UI language between launching and the (rare) first toast.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (
+      phase.kind !== "scanning-site" &&
+      phase.kind !== "scanning-ai" &&
+      phase.kind !== "translating"
+    ) {
+      return
+    }
+    setNowMs(Date.now())
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [phase.kind])
+
+  useEffect(() => {
+    if (
+      phase.kind !== "scanning-site" &&
+      phase.kind !== "scanning-ai" &&
+      phase.kind !== "translating"
+    ) {
+      return
+    }
+    const frame = requestAnimationFrame(() => {
+      progressPanelRef.current?.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [phase.kind])
 
   // Re-check API-key presence whenever provider changes.
   useEffect(() => {
@@ -695,7 +786,8 @@ export function SchemaAuditView({
       customProvider: currentProvider.custom ? currentProvider : undefined,
     }
 
-    setPhase({ kind: "scanning-site" })
+    const scanStartedAt = Date.now()
+    setPhase({ kind: "scanning-site", startedAt: scanStartedAt })
     let map: SiteMap
     try {
       map = await scanSite()
@@ -782,6 +874,7 @@ export function SchemaAuditView({
       current: 0,
       total: map.pages.length,
       label: "",
+      startedAt: scanStartedAt,
     })
 
     const identityTranslationTargets = pickIdentityTranslationTargets(
@@ -809,6 +902,7 @@ export function SchemaAuditView({
           current: done,
           total,
           label: label ?? "",
+          startedAt: scanStartedAt,
         })
       },
     })
@@ -832,9 +926,10 @@ export function SchemaAuditView({
       if (!prev) return p
       const contentUnchanged = prev.sourceHash === p.sourceHash
       const wasEdited = isEditedFromOriginal(prev.inputs, prev.originalInputs)
+      const shouldFailClosed = Boolean(p.aiError) || p.confidence < 0.7
       return {
         ...p,
-        enabled: prev.enabled,
+        enabled: shouldFailClosed ? false : prev.enabled,
         inputs: contentUnchanged && wasEdited ? prev.inputs : p.inputs,
       }
     })
@@ -876,17 +971,10 @@ export function SchemaAuditView({
 
     setPhase({ kind: "idle" })
 
-    if (gate.isPro) {
-      const sourceHash = map.pages.map((p) => hashPageContent(p)).join("|")
-      void writeAuditWorkspacePersist({
-        sourceHash,
-        pageCount: map.pages.length,
-        enabledPageIds: merged
-          .filter((p) => p.enabled)
-          .map((p) => p.pageId),
-        snapshot,
-      })
-    }
+    // Keep the freshly scanned proposal queue in memory only. Framer's
+    // plugin data has a 4 KB combined budget, so persisting even a
+    // compact workspace alongside the install snapshot can break later
+    // dashboard/control-center writes and leave users stuck on loading.
   }
 
   const applyInstallUndo = async (undo: NonNullable<typeof installUndo>) => {
@@ -940,11 +1028,13 @@ export function SchemaAuditView({
     let freshUntranslated: UntranslatedCell[] = []
     if (translateContent && targetLocales.length > 0) {
       const totalTranslations = enabledProposals.length * targetLocales.length
+      const translationStartedAt = Date.now()
       setPhase({
         kind: "translating",
         current: 0,
         total: totalTranslations,
         label: "",
+        startedAt: translationStartedAt,
       })
       const brandVoice = (await readString(StorageKeys.BrandVoice)) ?? undefined
       const result = await orchestrateTranslate({
@@ -960,6 +1050,7 @@ export function SchemaAuditView({
             current: done,
             total,
             label: label ?? "",
+            startedAt: translationStartedAt,
           })
         },
       })
@@ -1093,7 +1184,15 @@ export function SchemaAuditView({
     ) {
       return
     }
-    setProposals((prev) => prev.map((p) => ({ ...p, enabled: enable })))
+    setProposals((prev) =>
+      prev.map((p) => ({
+        ...p,
+        enabled:
+          enable && (Boolean(p.aiError) || p.confidence < 0.7)
+            ? false
+            : enable,
+      })),
+    )
   }
 
   /**
@@ -1176,11 +1275,13 @@ export function SchemaAuditView({
       customProvider: currentProvider.custom ? currentProvider : undefined,
     }
 
+    const retryStartedAt = Date.now()
     setPhase({
       kind: "translating",
       current: 0,
       total: cellsToRetry.length,
       label: "",
+      startedAt: retryStartedAt,
     })
     const brandVoice = (await readString(StorageKeys.BrandVoice)) ?? undefined
     const result = await orchestrateTranslate({
@@ -1200,6 +1301,7 @@ export function SchemaAuditView({
           current: done,
           total,
           label: label ?? "",
+          startedAt: retryStartedAt,
         })
       },
     })
@@ -1321,6 +1423,9 @@ export function SchemaAuditView({
   const isWorking = phase.kind !== "idle"
   const totalLocales = locales.length || 1
   const totalBlocks = enabledProposals.length * totalLocales
+  const selectedReviewCount = enabledProposals.filter(
+    (p) => Boolean(p.aiError) || p.confidence < 0.7,
+  ).length
 
   // Adaptive install-button copy. Computed against the ENABLED proposal
   // set (not the full siteMap) so the label can never overpromise:
@@ -1433,6 +1538,162 @@ export function SchemaAuditView({
     : 0
   const estimatedTotalCost = perCallEstimate * (detectCalls + translateCalls)
   const showCostEstimate = perCallEstimate > 0 && (detectCalls + translateCalls) > 0
+  const activeProgress =
+    phase.kind === "scanning-site" ||
+    phase.kind === "scanning-ai" ||
+    phase.kind === "translating"
+      ? {
+          title:
+            phase.kind === "scanning-site"
+              ? t("schema.audit.progressSiteTitle")
+              : phase.kind === "scanning-ai"
+                ? t("schema.audit.progressAiTitle")
+                : t("schema.audit.progressTranslateTitle"),
+          helper:
+            phase.kind === "scanning-site"
+              ? t("schema.audit.progressSiteHelper")
+              : phase.kind === "scanning-ai"
+                ? t("schema.audit.progressAiHelper")
+                : t("schema.audit.progressTranslateHelper"),
+          current:
+            phase.kind === "scanning-site"
+              ? t("schema.audit.progressReadingFramer")
+              : normalizeProgressLabel(
+                  phase.label,
+                  t("schema.audit.progressWaitingForProvider"),
+                  t("schema.audit.homepageLabel"),
+                ),
+          currentCount:
+            phase.kind === "scanning-site"
+              ? null
+              : t("schema.audit.scanProgress", {
+                  current: phase.current,
+                  total: phase.total,
+                }),
+          elapsedLabel: formatElapsed(nowMs - phase.startedAt),
+          isSlow: nowMs - phase.startedAt > 45_000,
+          value: phase.kind === "scanning-site" ? undefined : phase.current,
+          max: phase.kind === "scanning-site" ? undefined : phase.total,
+        }
+      : null
+  const readyProposalCount = proposals.filter(
+    (p) => p.enabled && !p.aiError && p.confidence >= 0.7,
+  ).length
+  const reviewProposalCount = proposals.filter(
+    (p) =>
+      Boolean(p.aiError) ||
+      p.confidence < 0.7 ||
+      Object.keys(untranslatedByPageId[p.pageId] ?? {}).length > 0,
+  ).length
+  const disabledProposalCount = proposals.filter((p) => !p.enabled).length
+  const hasNoEnabledProposals =
+    proposals.length > 0 && enabledProposals.length === 0
+  const isSnapshotOnly = Boolean(snapshot && proposals.length === 0)
+  const auditSummaryTone =
+    isSnapshotOnly
+      ? "accent"
+      : hasNoEnabledProposals ||
+          !hasApiKey ||
+          reviewProposalCount > 0 ||
+          untranslated.length > 0
+      ? "warning"
+      : "accent"
+  const auditSummaryScore =
+    isSnapshotOnly
+      ? 100
+      : hasNoEnabledProposals
+        ? 0
+      : proposals.length > 0
+      ? Math.max(
+          0,
+          Math.round(
+            ((readyProposalCount + disabledProposalCount * 0.25) /
+              proposals.length) *
+              100,
+          ),
+        )
+      : 0
+  const auditRingValue = isSnapshotOnly
+    ? String(snapshot?.totalBlocks ?? 0)
+    : String(auditSummaryScore)
+  const auditRingLabel = isSnapshotOnly
+    ? t("schema.audit.blocksRingLabel")
+    : "AEO"
+  const auditScanMetricValue = isSnapshotOnly
+    ? (snapshot?.totalBlocks ?? 0)
+    : detectCalls
+  const auditScanMetricLabel = isSnapshotOnly
+    ? t("schema.audit.installedBlocksMetric")
+    : t("schema.audit.scanCalls")
+  const auditTranslateMetricValue = isSnapshotOnly
+    ? (snapshot?.locales.length ?? 0)
+    : translateCalls
+  const auditTranslateMetricLabel = isSnapshotOnly
+    ? t("schema.audit.localeVariantsMetric")
+    : t("schema.audit.translateCalls")
+  const auditEnabledMetricValue = isSnapshotOnly
+    ? t("schema.audit.scanNeededMetricValue")
+    : enabledProposals.length
+  const auditEnabledMetricLabel = isSnapshotOnly
+    ? t("schema.audit.reviewQueueMetric")
+    : t("schema.audit.enabledPagesMetric")
+  const auditSummaryStatus =
+    phase.kind === "scanning-site" || phase.kind === "scanning-ai"
+      ? t("schema.audit.summaryScanning")
+      : proposals.length > 0
+        ? hasNoEnabledProposals
+          ? t("schema.audit.summaryNoInstallable")
+          : reviewProposalCount > 0 || untranslated.length > 0
+          ? t("schema.audit.summaryNeedsReview")
+          : t("schema.audit.summaryReady")
+        : snapshot
+          ? t("schema.audit.summaryInstalled")
+          : t("schema.audit.summaryNotScanned")
+  const auditSummaryLine =
+    proposals.length > 0
+      ? t("schema.audit.summaryLine", {
+          enabled: enabledProposals.length,
+          ready: readyProposalCount,
+          review: reviewProposalCount,
+          disabled: disabledProposalCount,
+        })
+      : snapshot
+        ? t("schema.audit.summarySnapshotLine", {
+            blocks: snapshot.totalBlocks,
+            locales: snapshot.locales.length,
+          })
+        : t("schema.audit.summaryEmptyLine")
+  const installScopeLabel =
+    installState.kind === "disabled"
+      ? t("schema.audit.installScopeDisabled")
+      : selectedReviewCount > 0
+        ? t("schema.audit.installScopeWithReview", {
+            n: totalBlocks,
+            proposals: enabledProposals.length,
+            locales: totalLocales,
+            review: selectedReviewCount,
+          })
+      : t("schema.audit.installScope", {
+          n: totalBlocks,
+          proposals: enabledProposals.length,
+          locales: totalLocales,
+        })
+  const installFooterActionLabel =
+    phase.kind === "translating" || phase.kind === "installing"
+      ? installFooterShortLabel
+      : installState.kind === "first-install"
+        ? t("schema.audit.footerInstallSelected", {
+            n: enabledProposals.length,
+          })
+        : installState.kind === "reinstall"
+          ? t("schema.audit.footerReinstallSelected", {
+              n: enabledProposals.length,
+            })
+          : installState.kind === "update"
+            ? t("schema.audit.footerUpdateSelected", {
+                n: enabledProposals.length,
+              })
+            : installFooterShortLabel
 
   return (
     <>
@@ -1440,8 +1701,9 @@ export function SchemaAuditView({
         title={t("schema.audit.title")}
         onBack={onBack}
         onOpenSettings={onOpenSettings}
+        onOpenOnboarding={onOpenOnboarding}
       />
-      <div className="pa-scroll">
+      <div className="pa-scroll pa-scroll--with-footer">
         {/* Hero block — first-time-only intro. We show this when there
           * is no in-memory site map AND no snapshot from a prior
           * install. Returning users who already have a snapshot get
@@ -1457,9 +1719,19 @@ export function SchemaAuditView({
           * proposals, switching modes would discard curation work. */}
         {!siteMap && !snapshot && (
           <section className="pa-section">
-            <div className="pa-card">
-              <h2 className="pa-card-title">{t("schema.audit.heroTitle")}</h2>
+            <div className="pa-card pa-control-hero">
+              <div className="pa-row-spread">
+                <div className="pa-section-headline">
+                  <span className="pa-section-title">{t("schema.audit.title")}</span>
+                  <h2 className="pa-card-title">{t("schema.audit.heroTitle")}</h2>
+                </div>
+                <span className="pa-pill" data-tone="accent">
+                  <SchemaIcon size={14} />
+                  JSON-LD
+                </span>
+              </div>
               <p className="pa-section-helper">{t("schema.audit.heroBody")}</p>
+              <p className="pa-stack-help">{t("schema.audit.wizardTimeHint")}</p>
               <button
                 type="button"
                 className="pa-link"
@@ -1472,46 +1744,119 @@ export function SchemaAuditView({
           </section>
         )}
 
-        {/* AI provider picker. Always visible — user adjusts before scan. */}
+        {/* Readiness summary + AI provider picker. Always visible — user adjusts
+          * before scan, but the first visual answer is now "what will happen and
+          * how risky is this run?", not a raw provider form. */}
         <section className="pa-section">
-          <span className="pa-section-title">
-            {t("common.aiSettingsTitle")}
-            <HelpIcon termId="byok" />
-          </span>
-          <div className="pa-card">
-            <label className="pa-label">
-              {t("schema.audit.providerLabel")}
-              <select
-                className="pa-select"
-                value={providerId}
-                disabled={isWorking}
-                onChange={(e) => setProviderId(e.target.value as ProviderId)}
-              >
-                {allProviders.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="pa-label">
-              {t("schema.audit.modelLabel")}
-              <select
-                className="pa-select"
-                value={modelId || currentProvider.models[0].id}
-                disabled={isWorking}
-                onChange={(e) => setModelId(e.target.value)}
-              >
-                {currentProvider.models.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                    {m.pricePerMTokenInput > 0
-                      ? ` · $${m.pricePerMTokenInput}/$${m.pricePerMTokenOutput}/M`
-                      : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="pa-row-spread">
+            <span className="pa-section-title">
+              {t("schema.audit.auditSetupTitle")}
+              <HelpIcon termId="managedAi" />
+            </span>
+            <span className="pa-pill" data-tone={hasApiKey ? "success" : "warning"}>
+              {hasApiKey ? currentProvider.name : t("common.apiKeyMissing")}
+            </span>
+          </div>
+          <div
+            className="pa-card pa-console-card pa-schema-audit-summary"
+            data-tone={auditSummaryTone}
+          >
+            <div className="pa-control-hero-main">
+              <div
+                className="pa-score-ring"
+                style={
+	                  {
+	                    "--pa-score": `${auditSummaryScore}%`,
+	                  } as CSSProperties
+	                }
+	              >
+	                <span className="pa-score-ring-value">{auditRingValue}</span>
+	                <span className="pa-score-ring-label">{auditRingLabel}</span>
+	              </div>
+	              <div className="pa-control-hero-copy">
+	                <span className="pa-section-title pa-schema-audit-eyebrow">
+	                  {isSnapshotOnly
+	                    ? t("schema.audit.auditSetupSnapshotEyebrow")
+	                    : t("schema.audit.auditSetupEyebrow")}
+	                </span>
+                <h2 className="pa-card-title">{auditSummaryStatus}</h2>
+                <p className="pa-control-summary-line">{auditSummaryLine}</p>
+                <p className="pa-section-helper pa-schema-audit-summary-copy">
+                  {isSnapshotOnly
+                    ? t("schema.audit.auditSetupSnapshotHelper")
+                    : t("schema.audit.auditSetupHelper")}
+                </p>
+              </div>
+            </div>
+            <div className="pa-metric-grid">
+	              <span className="pa-metric-tile">
+	                <SchemaIcon size={15} />
+	                <span>
+	                  <strong>{auditScanMetricValue}</strong>
+	                  <small>{auditScanMetricLabel}</small>
+	                </span>
+	              </span>
+	              <span className="pa-metric-tile">
+	                <VerifyIcon size={15} />
+	                <span>
+	                  <strong>{auditTranslateMetricValue}</strong>
+	                  <small>{auditTranslateMetricLabel}</small>
+	                </span>
+	              </span>
+	              <span className="pa-metric-tile">
+	                <SchemaIcon size={15} />
+	                <span>
+	                  <strong>{auditEnabledMetricValue}</strong>
+	                  <small>{auditEnabledMetricLabel}</small>
+	                </span>
+	              </span>
+              <span className="pa-metric-tile">
+                <VerifyIcon size={15} />
+                <span>
+                  <strong>
+                    {showCostEstimate
+                      ? `~$${estimatedTotalCost.toFixed(3)}`
+                      : "—"}
+                  </strong>
+                  <small>{t("schema.audit.estimatedCostMetric")}</small>
+                </span>
+              </span>
+            </div>
+            <div className="pa-schema-audit-config-grid">
+              <label className="pa-label">
+                {t("schema.audit.providerLabel")}
+                <select
+                  className="pa-select"
+                  value={providerId}
+                  disabled={isWorking}
+                  onChange={(e) => setProviderId(e.target.value as ProviderId)}
+                >
+                  {allProviders.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="pa-label">
+                {t("schema.audit.modelLabel")}
+                <select
+                  className="pa-select"
+                  value={modelId || currentProvider.models[0].id}
+                  disabled={isWorking}
+                  onChange={(e) => setModelId(e.target.value)}
+                >
+                  {currentProvider.models.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                      {m.pricePerMTokenInput > 0
+                        ? ` · $${m.pricePerMTokenInput}/$${m.pricePerMTokenOutput}/M`
+                        : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <label className="pa-checkbox-row">
               <input
                 type="checkbox"
@@ -1553,44 +1898,40 @@ export function SchemaAuditView({
               {t("schema.audit.aiNeeded")}
             </p>
           )}
-          {showCostEstimate && (
-            <p className="pa-section-helper">
-              {t("meta.estimatedCost")}:{" "}
-              <strong>~${estimatedTotalCost.toFixed(4)}</strong>
-              {" · "}
-              {detectCalls} {t("schema.audit.scanCalls")}
-              {translateCalls > 0
-                ? ` + ${translateCalls} ${t("schema.audit.translateCalls")}`
-                : ""}
-            </p>
-          )}
         </section>
 
-        {/* Snapshot summary — shown whenever a snapshot exists, even
-          * before the user has scanned in this session. siteMap (which
-          * powers the diff) is no longer persisted (it doesn't fit in
-          * Framer's 4 KB combined plugin-data budget), so the diff
-          * pills only appear once the user re-scans. The "Last
-          * installed" line itself is durable and serves as the user's
-          * primary anchor: it reassures them that prior work survived
-          * the plugin reopening even though the audit list looks
-          * empty until re-scan. */}
-        {snapshot && (
-          <section className="pa-section">
-            <span className="pa-section-title">
-              {t("schema.audit.snapshotTitle")}
-            </span>
-            <div className="pa-card">
-              <p className="pa-section-helper">
-                {t("schema.audit.snapshotInstalledAt", {
-                  time: relativeTime(snapshot.installedAt, t),
-                  n: snapshot.totalBlocks,
-                  locales: snapshot.locales.length,
-                })}
-              </p>
-              {diff &&
-                (diff.needsReinstall ? (
-                  <div className="pa-row" style={{ flexWrap: "wrap", gap: 6 }}>
+        {/* Durable status cards. Keeping "Last installed" and brand identity
+          * side-by-side turns this from a long settings page into a compact
+          * audit console: what is installed, and which canonical identity will
+          * be used across every JSON-LD block. */}
+        {(snapshot || identity || identityDeriving) && (
+          <section className="pa-section pa-schema-status-grid">
+            {snapshot && (
+              <div className="pa-card pa-schema-status-card">
+                <div className="pa-row-spread">
+                  <span className="pa-section-title">
+                    {t("schema.audit.snapshotTitle")}
+                  </span>
+                  {diff &&
+                    (diff.needsReinstall ? (
+                      <span className="pa-pill" data-tone="warning">
+                        {t("schema.audit.snapshotNeedsUpdate")}
+                      </span>
+                    ) : (
+                      <span className="pa-pill" data-tone="success">
+                        {t("schema.audit.snapshotUpToDate")}
+                      </span>
+                    ))}
+                </div>
+                <p className="pa-section-helper">
+                  {t("schema.audit.snapshotInstalledAt", {
+                    time: relativeTime(snapshot.installedAt, t),
+                    n: snapshot.totalBlocks,
+                    locales: snapshot.locales.length,
+                  })}
+                </p>
+                {diff?.needsReinstall && (
+                  <div className="pa-status-pill-row">
                     {diff.added.length > 0 && (
                       <span className="pa-pill" data-tone="accent">
                         {t("schema.audit.snapshotAdded", {
@@ -1613,20 +1954,35 @@ export function SchemaAuditView({
                       </span>
                     )}
                   </div>
-                ) : (
-                  <span className="pa-pill" data-tone="success">
-                    {t("schema.audit.snapshotUpToDate")}
-                  </span>
-                ))}
-              {/* Cold-reopen hint: snapshot present but no in-memory
-                * site map to diff against. Tells the user the empty
-                * proposal list below is normal and what to do next. */}
-              {!siteMap && (
-                <p className="pa-section-helper">
-                  {t("schema.audit.snapshotSessionListHint")}
-                </p>
-              )}
-            </div>
+                )}
+                {!siteMap && (
+                  <p className="pa-stack-help">
+                    {t("schema.audit.snapshotRestoreHintShort")}
+                  </p>
+                )}
+              </div>
+            )}
+            {(identity || identityDeriving) && (
+              <SiteIdentityCard
+                identity={identity}
+                translations={identityTranslations}
+                deriving={identityDeriving}
+                onSave={(next) => {
+                  const owned: SiteIdentity = {
+                    ...next,
+                    confidence: 1,
+                    source: "user-edit",
+                    derivedAt: Date.now(),
+                  }
+                  setIdentity(owned)
+                  setIdentityTranslations({})
+                  setIdentityHash(null)
+                  void writeJson(StorageKeys.Identity, owned)
+                  void writeJson(StorageKeys.IdentityTranslations, {})
+                  void writeString(StorageKeys.IdentitySourceHash, null)
+                }}
+              />
+            )}
           </section>
         )}
 
@@ -1724,81 +2080,80 @@ export function SchemaAuditView({
           </section>
         )}
 
-        {/* In-progress: scanning Framer canvas. */}
-        {phase.kind === "scanning-site" && (
-          <section className="pa-section">
-            <p className="pa-section-helper">{t("schema.audit.scanning")}</p>
+        {activeProgress && (
+          <section
+            ref={progressPanelRef}
+            className="pa-section pa-debug-progress"
+          >
+            <div className="pa-debug-progress-head">
+              <div>
+                <p className="pa-section-eyebrow">{activeProgress.title}</p>
+                <p className="pa-section-helper">{activeProgress.helper}</p>
+              </div>
+              <span className="pa-pill">{activeProgress.elapsedLabel}</span>
+            </div>
+            <div className="pa-debug-progress-grid">
+              <div>
+                <span className="pa-stack-help">
+                  {t("schema.audit.progressCurrentItem")}
+                </span>
+                <strong>{activeProgress.current}</strong>
+              </div>
+              <div>
+                <span className="pa-stack-help">
+                  {t("schema.audit.progressProvider")}
+                </span>
+                <strong>{currentProvider.name}</strong>
+              </div>
+              <div>
+                <span className="pa-stack-help">
+                  {t("schema.audit.progressModel")}
+                </span>
+                <strong className="pa-truncate">{currentModel?.name}</strong>
+              </div>
+              <div>
+                <span className="pa-stack-help">
+                  {t("schema.audit.progressCalls")}
+                </span>
+                <strong>
+                  {activeProgress.currentCount ??
+                    t("schema.audit.progressPreparing")}
+                </strong>
+              </div>
+            </div>
+            {activeProgress.max !== undefined && (
+              <progress
+                className="pa-progress"
+                value={activeProgress.value}
+                max={activeProgress.max}
+              />
+            )}
+            {activeProgress.isSlow && (
+              <div className="pa-debug-progress-note">
+                <strong>{t("schema.audit.progressSlowTitle")}</strong>
+                <p>{t("schema.audit.progressSlowHelper")}</p>
+              </div>
+            )}
           </section>
-        )}
-
-        {/* In-progress: AI proposing per page. */}
-        {phase.kind === "scanning-ai" && (
-          <section className="pa-section">
-            <p className="pa-section-helper">
-              {t("schema.audit.scanProgress", {
-                current: phase.current,
-                total: phase.total,
-              })}
-              {phase.label ? ` — ${phase.label}` : ""}
-            </p>
-            <progress
-              className="pa-progress"
-              value={phase.current}
-              max={phase.total}
-            />
-          </section>
-        )}
-
-        {/* In-progress: translating per locale. */}
-        {phase.kind === "translating" && (
-          <section className="pa-section">
-            <p className="pa-section-helper">
-              {t("schema.audit.translateProgress", {
-                current: phase.current,
-                total: phase.total,
-              })}
-              {phase.label ? ` — ${phase.label}` : ""}
-            </p>
-            <progress
-              className="pa-progress"
-              value={phase.current}
-              max={phase.total}
-            />
-          </section>
-        )}
-
-        {/* Site identity card — V2 anchor for cross-page consistency.
-            Visible whenever we have an identity (always, after the
-            first scan) OR while Phase 0 is in flight. */}
-        {(identity || identityDeriving) && (
-          <SiteIdentityCard
-            identity={identity}
-            translations={identityTranslations}
-            deriving={identityDeriving}
-            onSave={(next) => {
-              const owned: SiteIdentity = {
-                ...next,
-                confidence: 1,
-                source: "user-edit",
-                derivedAt: Date.now(),
-              }
-              setIdentity(owned)
-              setIdentityTranslations({})
-              setIdentityHash(null)
-              void writeJson(StorageKeys.Identity, owned)
-              void writeJson(StorageKeys.IdentityTranslations, {})
-              void writeString(StorageKeys.IdentitySourceHash, null)
-            }}
-          />
         )}
 
         {/* Audit list — shown once we have proposals. */}
         {proposals.length > 0 && (
-          <section className="pa-section">
-            <div className="pa-row-spread">
-              <span className="pa-section-title">
-                {t("schema.audit.proposalsTitle")}
-              </span>
+          <section className="pa-section pa-schema-review-section">
+            <div className="pa-schema-review-head">
+              <div className="pa-section-headline">
+                <span className="pa-section-title">
+                  {t("schema.audit.proposalsTitle")}
+                </span>
+                <p className="pa-section-helper">
+                  {t("schema.audit.reviewQueueSummary", {
+                    enabled: enabledProposals.length,
+                    ready: readyProposalCount,
+                    review: reviewProposalCount,
+                    disabled: disabledProposalCount,
+                  })}
+                </p>
+              </div>
               <span className="pa-pill">
                 {t("schema.audit.proposalsCount", {
                   enabled: enabledProposals.length,
@@ -1806,23 +2161,26 @@ export function SchemaAuditView({
                 })}
               </span>
             </div>
-            <div className="pa-row" style={{ gap: 6 }}>
-              <button
-                type="button"
-                className="pa-pill-button"
-                onClick={() => toggleAll(true)}
-                disabled={isWorking}
-              >
-                {t("schema.audit.enableAll")}
-              </button>
-              <button
-                type="button"
-                className="pa-pill-button"
-                onClick={() => toggleAll(false)}
-                disabled={isWorking}
-              >
-                {t("schema.audit.disableAll")}
-              </button>
+            <div className="pa-schema-review-toolbar">
+              <span className="pa-stack-help">{installScopeLabel}</span>
+              <div className="pa-row" style={{ gap: 6 }}>
+                <button
+                  type="button"
+                  className="pa-pill-button"
+                  onClick={() => toggleAll(true)}
+                  disabled={isWorking}
+                >
+                  {t("schema.audit.enableAll")}
+                </button>
+                <button
+                  type="button"
+                  className="pa-pill-button"
+                  onClick={() => toggleAll(false)}
+                  disabled={isWorking}
+                >
+                  {t("schema.audit.disableAll")}
+                </button>
+              </div>
             </div>
 
             {/* Filter / search row — appears only when the list is long
@@ -1859,28 +2217,30 @@ export function SchemaAuditView({
                 {t("schema.audit.filterNoMatch")}
               </p>
             ) : (
-              filteredProposals.map((p) => (
-                <ProposalCard
-                  key={p.pageId}
-                  proposal={p}
-                  diffStatus={diffByPageId[p.pageId]}
-                  installed={Boolean(snapshot?.pageHashes[p.pageId])}
-                  untranslatedByLocale={untranslatedByPageId[p.pageId] ?? {}}
-                  pageTranslations={lastTranslations[p.pageId]}
-                  locales={locales}
-                  focusIssue={focusIssue}
-                  canRetry={!isWorking && hasApiKey}
-                  isRetrying={retryingPageId === p.pageId}
-                  onToggle={() => toggleProposal(p.pageId)}
-                  onRetry={() => {
-                    void handleRetryTranslations([p.pageId])
-                  }}
-                  isEditing={editingPageId === p.pageId}
-                  onStartEdit={() => setEditingPageId(p.pageId)}
-                  onCancelEdit={() => setEditingPageId(null)}
-                  onSaveEdit={(next) => saveProposalEdits(p.pageId, next)}
-                />
-              ))
+              <div className="pa-schema-review-list">
+                {filteredProposals.map((p) => (
+                  <ProposalCard
+                    key={p.pageId}
+                    proposal={p}
+                    diffStatus={diffByPageId[p.pageId]}
+                    installed={Boolean(snapshot?.pageHashes[p.pageId])}
+                    untranslatedByLocale={untranslatedByPageId[p.pageId] ?? {}}
+                    pageTranslations={lastTranslations[p.pageId]}
+                    locales={locales}
+                    focusIssue={focusIssue}
+                    canRetry={!isWorking && hasApiKey}
+                    isRetrying={retryingPageId === p.pageId}
+                    onToggle={() => toggleProposal(p.pageId)}
+                    onRetry={() => {
+                      void handleRetryTranslations([p.pageId])
+                    }}
+                    isEditing={editingPageId === p.pageId}
+                    onStartEdit={() => setEditingPageId(p.pageId)}
+                    onCancelEdit={() => setEditingPageId(null)}
+                    onSaveEdit={(next) => saveProposalEdits(p.pageId, next)}
+                  />
+                ))}
+              </div>
             )}
           </section>
         )}
@@ -1900,6 +2260,20 @@ export function SchemaAuditView({
               ? t("schema.audit.scanning")
               : t("schema.audit.scanButton")}
           </button>
+        ) : installState.kind === "disabled" ? (
+          <div className="pa-footer-stack">
+            <button
+              type="button"
+              className="pa-button-primary"
+              onClick={handleScan}
+              disabled={isWorking || !hasApiKey}
+            >
+              {t("schema.audit.rescan")}
+            </button>
+            {!isWorking && (
+              <p className="pa-footer-hint">{installScopeLabel}</p>
+            )}
+          </div>
         ) : showFooterRetry ? (
           <div className="pa-footer-stack">
             <button
@@ -1923,10 +2297,10 @@ export function SchemaAuditView({
               </button>
               <div className="pa-footer-toolbar-end">
                 <button
-                  type="button"
-                  className="pa-link"
-                  onClick={handleInstall}
-                  disabled={isWorking || installState.kind === "disabled"}
+	                  type="button"
+	                  className="pa-link"
+	                  onClick={handleInstall}
+	                  disabled={isWorking}
                   title={`${installFooterTitle ?? ""} ${t("schema.audit.footerRetryHint")}`.trim()}
                 >
                   {t("schema.audit.footerReinstallShort")}
@@ -1967,20 +2341,61 @@ export function SchemaAuditView({
             >
               {t("schema.audit.rescan")}
             </button>
-            <button
-              type="button"
-              className="pa-button-primary"
-              onClick={handleInstall}
-              disabled={isWorking || installState.kind === "disabled"}
-              title={installFooterTitle}
-            >
-              {installFooterShortLabel}
-            </button>
+            <div className="pa-footer-primary-col">
+              <button
+	                type="button"
+	                className="pa-button-primary"
+	                onClick={handleInstall}
+	                disabled={isWorking}
+                title={installFooterTitle}
+              >
+                {installFooterActionLabel}
+              </button>
+              {!isWorking && (
+                <p className="pa-footer-hint">{installScopeLabel}</p>
+              )}
+            </div>
           </div>
         )}
       </div>
     </>
   )
+}
+
+const PROPOSAL_AI_ERROR_DETAIL_MAX = 96
+
+function proposalAiErrorLines(
+  aiError: string,
+  t: (key: TranslationKey) => string,
+): { summary: string; detail: string } {
+  const summary = t("schema.audit.proposalAiError")
+  if (aiError === "no-response") {
+    return { summary, detail: t("schema.audit.proposalAiErrorNoResponse") }
+  }
+  const trimmed = aiError.trim()
+  if (/insufficient\s+balance|402/i.test(trimmed)) {
+    return {
+      summary: t("schema.audit.proposalAiProviderBilling"),
+      detail: summarizeProviderAiError(trimmed),
+    }
+  }
+  const detail =
+    trimmed.length > PROPOSAL_AI_ERROR_DETAIL_MAX
+      ? `${trimmed.slice(0, PROPOSAL_AI_ERROR_DETAIL_MAX)}…`
+      : trimmed
+  return { summary, detail: detail || t("schema.audit.proposalAiErrorNoResponse") }
+}
+
+function summarizeProviderAiError(error: string): string {
+  const status = error.match(/\bAPI error\s+(\d{3})\b/i)?.[1]
+  const message = error.match(/"message"\s*:\s*"([^"]+)"/)?.[1]
+  const provider = error.match(/^([A-Za-z][A-Za-z0-9 _.-]+?)\s+API error/i)?.[1]
+  const parts = [
+    provider ? provider.trim() : null,
+    status ? `HTTP ${status}` : null,
+    message ? message.trim() : "Insufficient Balance",
+  ].filter(Boolean)
+  return parts.join(" · ")
 }
 
 interface ProposalCardProps {
@@ -2111,17 +2526,26 @@ function ProposalCard({
   )
   const confidencePct = Math.round(proposal.confidence * 100)
   const isEdited = isEditedFromOriginal(proposal.inputs, proposal.originalInputs)
+  const needsReview =
+    Boolean(proposal.aiError) ||
+    confidencePct < 70 ||
+    untranslatedLocales.length > 0
+  const isCompact = !needsReview && !showPreview && !isEditing && !isEdited
+  const aiErrorLines = proposal.aiError
+    ? proposalAiErrorLines(proposal.aiError, t)
+    : null
 
   return (
     <div
       id={`audit-card-${proposal.pageId}`}
-      className="pa-card"
+      className="pa-card pa-proposal-card"
       data-disabled={!proposal.enabled}
+      data-review={needsReview ? "true" : undefined}
+      data-compact={isCompact ? "true" : undefined}
     >
-      <div className="pa-row-spread">
+      <div className="pa-proposal-card-head">
         <label
-          className="pa-checkbox-row"
-          style={{ flex: 1, minWidth: 0 }}
+          className="pa-checkbox-row pa-proposal-card-checkbox"
         >
           <input
             type="checkbox"
@@ -2136,8 +2560,7 @@ function ProposalCard({
           </span>
         </label>
         <div
-          className="pa-row"
-          style={{ gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}
+          className="pa-row pa-proposal-card-badges"
         >
           {installed && diffStatus === "unchanged" && (
             <span className="pa-pill" data-tone="success">
@@ -2156,19 +2579,13 @@ function ProposalCard({
           )}
         </div>
       </div>
-      <div className="pa-row" style={{ gap: 6, flexWrap: "wrap" }}>
+      <div className="pa-proposal-meta-row">
         <span className="pa-pill" data-tone="accent">
           {proposal.kind}
         </span>
         <span
           className="pa-pill"
-          data-tone={
-            confidencePct >= 70
-              ? "success"
-              : confidencePct >= 40
-                ? "warning"
-                : undefined
-          }
+          data-tone={confidenceTone(confidencePct)}
         >
           {t("schema.audit.proposalConfidence", { n: confidencePct })}
         </span>
@@ -2176,7 +2593,7 @@ function ProposalCard({
           * users see at a glance why this row was auto-skipped (or why
           * we'd rather they review before enabling). The italic rationale
           * line below explains in detail. */}
-        {(proposal.aiError || confidencePct < 40) && (
+        {(proposal.aiError || confidencePct < 70) && (
           <span className="pa-pill" data-tone="warning">
             {t("schema.audit.proposalReviewBadge")}
           </span>
@@ -2224,41 +2641,52 @@ function ProposalCard({
                   {t("schema.audit.cardRetry", {
                     n: untranslatedLocales.length,
                   })}
-                </>
-              )}
-            </button>
-          </>
-        )}
+              </>
+            )}
+          </button>
+        </>
+      )}
       </div>
-      <p
-        className="pa-section-helper--inline"
-        style={{ fontStyle: "italic" }}
-      >
-        {proposal.aiError
-          ? t("schema.audit.proposalAiError")
-          : confidencePct < 40
-            ? t("schema.audit.proposalLowConfidence")
-            : proposal.rationale}
-      </p>
-      <div className="pa-row" style={{ gap: 10, flexWrap: "wrap" }}>
+      {!isCompact &&
+        (aiErrorLines ? (
+          <div className="pa-proposal-rationale-block">
+            <p
+              className="pa-section-helper--inline"
+              style={{ fontStyle: "italic", margin: 0 }}
+            >
+              {aiErrorLines.summary}
+            </p>
+            <p className="pa-proposal-ai-error-detail">{aiErrorLines.detail}</p>
+          </div>
+        ) : (
+          <p
+            className="pa-section-helper--inline"
+            style={{ fontStyle: "italic" }}
+          >
+            {confidencePct < 70
+              ? t("schema.audit.proposalLowConfidence")
+              : proposal.rationale}
+          </p>
+        ))}
+      <div className="pa-proposal-actions">
         <button
           type="button"
-          className="pa-link"
+          className="pa-link pa-proposal-link"
           onClick={() => setShowPreview((v) => !v)}
         >
-          {showPreview
-            ? t("common.hide")
-            : previewLocales.length > 0
-              ? t("schema.audit.previewToggleTranslated")
-              : t("schema.audit.previewToggle")}
+            {showPreview
+              ? t("common.hide")
+              : previewLocales.length > 0
+                ? t("schema.audit.previewToggleTranslated")
+                : t("schema.audit.previewToggle")}
         </button>
         {!isEditing && (
           <button
             type="button"
-            className="pa-link"
+            className="pa-link pa-proposal-link"
             onClick={onStartEdit}
           >
-            {t("schema.audit.editorOpen")}
+            {t(needsReview ? "schema.audit.editorReview" : "schema.audit.editorOpen")}
           </button>
         )}
         {isEdited && (

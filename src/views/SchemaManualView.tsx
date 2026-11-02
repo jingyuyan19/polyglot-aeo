@@ -23,6 +23,7 @@ import { StorageKeys } from "../lib/storage"
 interface Props {
   onBack: () => void
   onOpenSettings: () => void
+  onOpenOnboarding?: () => void
   onSwitchToAudit: () => void
 }
 
@@ -60,6 +61,7 @@ function urlIsSuspicious(url: string): boolean {
 export function SchemaManualView({
   onBack,
   onOpenSettings,
+  onOpenOnboarding,
   onSwitchToAudit,
 }: Props) {
   const { t } = useI18n()
@@ -198,8 +200,9 @@ export function SchemaManualView({
         title={t("schema.manual.title")}
         onBack={onBack}
         onOpenSettings={onOpenSettings}
+        onOpenOnboarding={onOpenOnboarding}
       />
-      <div className="pa-scroll">
+      <div className="pa-scroll pa-scroll--with-footer">
         <section className="pa-section">
           <div className="pa-card pa-card--inset">
             <p className="pa-section-helper">{t("schema.manual.helper")}</p>

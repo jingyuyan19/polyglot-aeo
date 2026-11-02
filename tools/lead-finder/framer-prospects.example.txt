@@ -1,0 +1,5 @@
+# One URL per line. Copy this file to framer-prospects.local.txt for real outreach research.
+# Keep the local file small and manually curated so outreach stays personal.
+https://polyglotaeo.com
+https://jimmyjing.framer.website
+https://example.com

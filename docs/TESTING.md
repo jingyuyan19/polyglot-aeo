@@ -66,12 +66,12 @@ npm test
 
 ```bash
 # 单家：MiniMax 国内
-MINIMAX_CN_KEY=sk-cp-xxxxx npm run test:live
+MINIMAX_CN_KEY=<redacted-minimax-key> npm run test:live
 
 # 多家一起：导出 → 跑
-export ANTHROPIC_KEY=sk-ant-xxx
-export DEEPSEEK_KEY=sk-xxx
-export MINIMAX_CN_KEY=sk-cp-xxx
+export ANTHROPIC_KEY=<redacted-anthropic-key>
+export DEEPSEEK_KEY=<redacted-deepseek-key>
+export MINIMAX_CN_KEY=<redacted-minimax-key>
 npm run test:live
 ```
 

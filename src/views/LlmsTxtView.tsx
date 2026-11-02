@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { LlmsStepBar } from "../components/LlmsStepBar"
 import { useFeatureGate } from "../components/entitlement-hooks"
 import { TopBar } from "../components/TopBar"
-import { openCurrentFramerProject } from "../lib/framer/project"
+import { openFramerProjectsHub } from "../lib/framer/project"
 import { useCollections } from "../hooks/useCollections"
 import { useLocales } from "../hooks/useLocales"
 import { useI18n } from "../i18n"
@@ -53,11 +53,15 @@ import {
   type LlmsTxtSection,
   type SkippedItem,
 } from "../lib/llms/generator"
+import { buildLlmsDeployReadme } from "../lib/llms/deploy-readme"
+import { FRAMER_STATIC_FILES_DOCS } from "../lib/links"
 import {
-  readJson,
+  readProjectJsonCache,
+  writeProjectJsonCache,
+} from "../lib/project-cache"
+import {
   readString,
   StorageKeys,
-  writeJson,
   writeString,
 } from "../lib/storage"
 import { LlmsDeployStep } from "./llms/LlmsDeployStep"
@@ -76,6 +80,7 @@ import type { LlmsTranslateQualityReason } from "../lib/ai/llms-translate"
 interface Props {
   onBack: () => void
   onOpenSettings: () => void
+  onOpenOnboarding?: () => void
 }
 
 const LLMS_AI_CONCURRENCY = 3
@@ -153,7 +158,7 @@ const DEFAULTS: LlmsConfig = {
   pageIds: [],
   collectionFieldOverrides: {},
   useAiTranslate: false,
-  aiProviderId: "anthropic",
+  aiProviderId: BUILTIN_PROVIDERS[0].id,
   aiModelId: BUILTIN_PROVIDERS[0].models[0].id,
 }
 
@@ -179,6 +184,15 @@ function migrateConfig(raw: unknown): LlmsConfig {
     typeof r.collectionFieldOverrides === "object"
       ? r.collectionFieldOverrides
       : {}
+  const providerIds = new Set(BUILTIN_PROVIDERS.map((p) => p.id))
+  const aiProviderId =
+    r.aiProviderId && providerIds.has(r.aiProviderId)
+      ? r.aiProviderId
+      : DEFAULTS.aiProviderId
+  const currentProvider =
+    BUILTIN_PROVIDERS.find((p) => p.id === aiProviderId) ??
+    BUILTIN_PROVIDERS[0]
+  const modelIds = new Set(currentProvider.models.map((m) => m.id))
   return {
     siteName: r.siteName ?? DEFAULTS.siteName,
     siteSummary: r.siteSummary ?? DEFAULTS.siteSummary,
@@ -189,8 +203,11 @@ function migrateConfig(raw: unknown): LlmsConfig {
     pageIds: Array.isArray(r.pageIds) ? r.pageIds : DEFAULTS.pageIds,
     collectionFieldOverrides: overrides,
     useAiTranslate: r.useAiTranslate ?? DEFAULTS.useAiTranslate,
-    aiProviderId: r.aiProviderId ?? DEFAULTS.aiProviderId,
-    aiModelId: r.aiModelId ?? DEFAULTS.aiModelId,
+    aiProviderId,
+    aiModelId:
+      r.aiModelId && modelIds.has(r.aiModelId)
+        ? r.aiModelId
+        : currentProvider.models[0]?.id ?? DEFAULTS.aiModelId,
   }
 }
 
@@ -219,7 +236,11 @@ function llmsConfigSignature(config: LlmsConfig): string {
  */
 type SuggestTarget = "summary" | "longDescription"
 
-export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
+export function LlmsTxtView({
+  onBack,
+  onOpenSettings,
+  onOpenOnboarding,
+}: Props) {
   const { t } = useI18n()
   const { locales } = useLocales()
   const gate = useFeatureGate()
@@ -257,8 +278,11 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
   const [suggestion, setSuggestion] = useState<{
     text: string
     qualityOk: boolean
+    changed: boolean
     target: SuggestTarget
   } | null>(null)
+  const suggestPanelRef = useRef<HTMLDivElement | null>(null)
+  const suggestResultRef = useRef<HTMLDivElement | null>(null)
   const configLoadedRef = useRef(false)
   const configSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -268,7 +292,7 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
 
   useEffect(() => {
     let cancelled = false
-    void readJson(StorageKeys.LastLlmsTxt, DEFAULTS).then((raw) => {
+    void readProjectJsonCache(StorageKeys.LastLlmsTxt, DEFAULTS).then((raw) => {
       if (cancelled) return
       const migrated = migrateConfig(raw)
       setConfig(migrated)
@@ -298,7 +322,9 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
       const signature = llmsConfigSignature(config)
       if (signature === lastSavedConfigSignatureRef.current) return true
 
-      const ok = await writeJson(StorageKeys.LastLlmsTxt, config)
+      const ok = await writeProjectJsonCache(StorageKeys.LastLlmsTxt, config, {
+        pluginDataMaxBytes: 900,
+      })
       if (ok) {
         lastSavedConfigSignatureRef.current = signature
       } else if (options?.notifyError) {
@@ -512,15 +538,21 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
       return
     }
 
+    const useAiTranslateForRun = config.useAiTranslate && gate.isPro
+    if (config.useAiTranslate && !gate.isPro) {
+      setConfig((prev) =>
+        prev.useAiTranslate ? { ...prev, useAiTranslate: false } : prev,
+      )
+    }
     if (
-      config.useAiTranslate &&
+      useAiTranslateForRun &&
       !gate.check("llms_ai_translate", { localeCount: locales.length })
     ) {
       return
     }
 
     let aiApiKey: string | null = null
-    if (config.useAiTranslate) {
+    if (useAiTranslateForRun) {
       aiApiKey = await readProviderKey(config.aiProviderId)
       if (!aiApiKey) {
         framer.notify(
@@ -543,7 +575,7 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
 
     if (!gate.isPro) {
       const hasNonDefault = targetLocales.some((l) => !l.isDefault)
-      if (hasNonDefault) {
+      if (onlyLocale && hasNonDefault) {
         if (
           !gate.check("llms_multi_locale", {
             localeCount: locales.length,
@@ -558,7 +590,7 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
         if (
           !gate.check("llms_generate", {
             localeCount: locales.length,
-            nonDefaultLocale: true,
+            nonDefaultLocale: Boolean(onlyLocale),
           })
         ) {
           return
@@ -665,7 +697,7 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
         pagesByLocale.set(locale.code, selectedPages)
       }
 
-      if (config.useAiTranslate && aiCredentials) {
+      if (useAiTranslateForRun && aiCredentials) {
         const translateTargets = targetLocales.filter(
           (locale) => !locale.isDefault,
         )
@@ -927,7 +959,7 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
 
       // ---------- Site summary translation ----------
       if (
-        config.useAiTranslate &&
+        useAiTranslateForRun &&
         aiCredentials &&
         config.siteSummary.trim()
       ) {
@@ -959,7 +991,7 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
 
       // ---------- Long description translation ----------
       if (
-        config.useAiTranslate &&
+        useAiTranslateForRun &&
         aiCredentials &&
         config.longDescription.trim()
       ) {
@@ -1083,14 +1115,18 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
               )
             : config.pageIds,
         }
-        const persisted = await writeJson(StorageKeys.LastLlmsTxt, prunedConfig)
+        const persisted = await writeProjectJsonCache(
+          StorageKeys.LastLlmsTxt,
+          prunedConfig,
+          { pluginDataMaxBytes: 900 },
+        )
         if (persisted) {
           lastSavedConfigSignatureRef.current = llmsConfigSignature(prunedConfig)
           if (llmsConfigSignature(config) !== llmsConfigSignature(prunedConfig)) {
             setConfig(prunedConfig)
           }
         }
-        if (config.useAiTranslate) {
+        if (useAiTranslateForRun) {
           void writeString(StorageKeys.PreferredProvider, config.aiProviderId)
           void writeString(StorageKeys.PreferredModel, config.aiModelId)
         }
@@ -1146,7 +1182,32 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
     }
   }
 
-  const requestSuggestion = async () => {
+  const scrollSuggestPanelIntoView = (block: ScrollLogicalPosition = "nearest") => {
+    requestAnimationFrame(() => {
+      suggestPanelRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block,
+      })
+    })
+  }
+
+  useEffect(() => {
+    if (suggestTarget) {
+      scrollSuggestPanelIntoView("center")
+    }
+  }, [suggestTarget])
+
+  useEffect(() => {
+    if (!suggestion || suggestion.target !== suggestTarget) return
+    requestAnimationFrame(() => {
+      suggestResultRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      })
+    })
+  }, [suggestTarget, suggestion])
+
+  const requestSuggestion = async (keywordsOverride?: string) => {
     if (suggestBusy) return
     if (!suggestTarget) return
     if (!defaultLocale) {
@@ -1167,12 +1228,15 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
     }
     setSuggestBusy(true)
     setSuggestion(null)
+    scrollSuggestPanelIntoView("center")
+    const effectiveKeywords =
+      keywordsOverride !== undefined ? keywordsOverride : suggestKeywords
     try {
       if (suggestTarget === "summary") {
         const result = await generateLlmsSummary({
           siteName: config.siteName,
           draft: config.siteSummary || undefined,
-          keywords: suggestKeywords || undefined,
+          keywords: effectiveKeywords || undefined,
           targetLanguage: defaultLocale.code,
           brandVoice: brandVoice || undefined,
           ai: {
@@ -1185,6 +1249,7 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
         setSuggestion({
           text: result.summary,
           qualityOk: result.qualityOk,
+          changed: result.changed,
           target: "summary",
         })
       } else {
@@ -1201,7 +1266,7 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
           siteName: config.siteName,
           siteSummary: config.siteSummary || undefined,
           draft: config.longDescription || undefined,
-          keywords: suggestKeywords || undefined,
+          keywords: effectiveKeywords || undefined,
           knownPaths,
           targetLanguage: defaultLocale.code,
           brandVoice: brandVoice || undefined,
@@ -1215,6 +1280,7 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
         setSuggestion({
           text: result.longDescription,
           qualityOk: result.qualityOk,
+          changed: result.changed,
           target: "longDescription",
         })
       }
@@ -1259,6 +1325,18 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
   const downloadAll = () => {
     if (generated.length === 0) return
     const entries: Record<string, [Uint8Array, { level: 0 }]> = {}
+    const filenames = generated.map((f) => f.filename)
+    entries["DEPLOY.md"] = [
+      strToU8(
+        buildLlmsDeployReadme({
+          siteName: config.siteName || "Site",
+          baseUrl: config.baseUrl || "https://example.com",
+          filenames,
+          framerStaticFilesUrl: FRAMER_STATIC_FILES_DOCS,
+        }),
+      ),
+      { level: 0 },
+    ]
     for (const f of generated) {
       entries[f.filename] = [strToU8(f.content), { level: 0 }]
     }
@@ -1272,13 +1350,14 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
     a.download = "polyglot-aeo-llms-txt.zip"
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 0)
+    void writeString(StorageKeys.LlmsDeployAcknowledged, "true")
     framer.notify(t("llms.downloadAllSuccess", { n: generated.length }), {
       variant: "success",
     })
   }
 
   const openFramerProject = () => {
-    void openCurrentFramerProject()
+    openFramerProjectsHub()
   }
 
   const handleBack = async () => {
@@ -1290,6 +1369,13 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
     locales.length === 1
       ? t("llms.generateButton", { n: 1 })
       : t("llms.generateButtonPlural", { n: locales.length })
+  const defaultOnlyGenerate =
+    !gate.isPro && locales.some((locale) => !locale.isDefault)
+  const defaultOnlyReview =
+    !gate.isPro &&
+    generated.length === 1 &&
+    generated[0]?.localeCode === defaultLocale?.code &&
+    locales.some((locale) => !locale.isDefault)
 
   const configChangedSinceGenerate = useMemo(() => {
     if (generated.length === 0 || !lastGenerateConfigSignatureRef.current) {
@@ -1348,24 +1434,71 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
       target === "summary"
         ? t("llms.siteSummary")
         : t("llms.longDescription")
+    const currentDraft =
+      target === "summary" ? config.siteSummary : config.longDescription
+    const suggestionHasNoUsefulChange =
+      Boolean(suggestion && suggestion.target === target && !suggestion.changed)
+    const quickDirections = [
+      {
+        label: t("llms.aiQuickTighter"),
+        value: t("llms.aiQuickTighterInstruction"),
+      },
+      {
+        label: t("llms.aiQuickAeo"),
+        value: t("llms.aiQuickAeoInstruction"),
+      },
+      {
+        label: t("llms.aiQuickBrand"),
+        value: t("llms.aiQuickBrandInstruction"),
+      },
+    ]
+    const runQuickDirection = (value: string) => {
+      const trimmed = suggestKeywords.trim()
+      const nextKeywords = !trimmed
+        ? value
+        : trimmed.includes(value)
+          ? trimmed
+          : `${trimmed}; ${value}`
+      setSuggestKeywords(nextKeywords)
+      void requestSuggestion(nextKeywords)
+    }
+
     return (
-      <div className="pa-ai-panel">
+      <div className="pa-ai-panel" ref={suggestPanelRef}>
         <div className="pa-ai-panel-header">
-          <span>✨ {t("llms.aiPanelHeader", { field: targetLabel })}</span>
+          <div>
+            <span>{t("llms.aiPanelHeader", { field: targetLabel })}</span>
+            <p>
+              {target === "summary"
+                ? isOptimize
+                  ? t("llms.suggestPanelHelperOptimize")
+                  : t("llms.suggestPanelHelperGenerate")
+                : isOptimize
+                  ? t("llms.longSuggestPanelHelperOptimize")
+                  : t("llms.longSuggestPanelHelperGenerate")}
+            </p>
+          </div>
+          <span className="pa-pill" data-tone="success">
+            {currentProvider.name}
+          </span>
         </div>
-        <p className="pa-input-hint" style={{ margin: 0 }}>
-          {target === "summary"
-            ? isOptimize
-              ? t("llms.suggestPanelHelperOptimize")
-              : t("llms.suggestPanelHelperGenerate")
-            : isOptimize
-              ? t("llms.longSuggestPanelHelperOptimize")
-              : t("llms.longSuggestPanelHelperGenerate")}
-        </p>
+        <div className="pa-ai-quick-row" aria-label={t("llms.aiQuickLabel")}>
+          {quickDirections.map((direction) => (
+            <button
+              key={direction.label}
+              type="button"
+              className="pa-ai-chip-button"
+              onClick={() => runQuickDirection(direction.value)}
+              disabled={suggestBusy}
+            >
+              {direction.label}
+            </button>
+          ))}
+        </div>
         <label className="pa-label">
           {t("llms.aiPanelKeywordsLabel")}
           <textarea
-            className="pa-textarea"
+            className="pa-textarea pa-ai-keywords-input"
             value={suggestKeywords}
             onChange={(e) => setSuggestKeywords(e.target.value)}
             placeholder={
@@ -1377,82 +1510,106 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
             disabled={suggestBusy}
           />
         </label>
-        <div className="pa-label-row">
-          <label className="pa-label">
-            {t("meta.providerTitle")}
-            <select
-              className="pa-select"
-              value={config.aiProviderId}
-              onChange={(e) =>
-                setConfig({
-                  ...config,
-                  aiProviderId: e.target.value as ProviderId,
-                })
-              }
-              disabled={suggestBusy}
-            >
-              {allProviders.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="pa-label">
-            {t("meta.modelTitle")}
-            <select
-              className="pa-select"
-              value={config.aiModelId}
-              onChange={(e) =>
-                setConfig({ ...config, aiModelId: e.target.value })
-              }
-              disabled={suggestBusy}
-            >
-              {currentProvider.models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                  {m.badge ? ` · ${m.badge}` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <p className="pa-input-hint" style={{ margin: 0 }}>
-          {t("llms.suggestModelHint")}
-        </p>
+        <details className="pa-ai-settings-details">
+          <summary>
+            {t("llms.aiAdvancedSettings")}
+            <span>{currentProvider.name} · {currentModel.name}</span>
+          </summary>
+          <div className="pa-label-row">
+            <label className="pa-label">
+              {t("meta.providerTitle")}
+              <select
+                className="pa-select"
+                value={config.aiProviderId}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    aiProviderId: e.target.value as ProviderId,
+                  })
+                }
+                disabled={suggestBusy}
+              >
+                {allProviders.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="pa-label">
+              {t("meta.modelTitle")}
+              <select
+                className="pa-select"
+                value={config.aiModelId}
+                onChange={(e) =>
+                  setConfig({ ...config, aiModelId: e.target.value })
+                }
+                disabled={suggestBusy}
+              >
+                {currentProvider.models.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                    {m.badge ? ` · ${m.badge}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="pa-input-hint" style={{ margin: 0 }}>
+            {t("llms.suggestModelHint")}
+          </p>
+        </details>
         {suggestion && suggestion.target === target && (
-          <div className="pa-ai-result">
-            <span style={{ fontWeight: 600, fontSize: 12 }}>
+          <div className="pa-ai-result" ref={suggestResultRef}>
+            <span className="pa-ai-result-title">
               {t("llms.suggestResultTitle")}
             </span>
-            <pre className="pa-code" style={{ margin: 0 }}>
-              {suggestion.text}
-            </pre>
+            <div className="pa-ai-result-compare">
+              <div>
+                <span>{t("llms.aiResultCurrent")}</span>
+                <pre>{currentDraft || "—"}</pre>
+              </div>
+              <div data-suggested="true">
+                <span>{t("llms.aiResultSuggested")}</span>
+                <pre>{suggestion.text}</pre>
+              </div>
+            </div>
             {!suggestion.qualityOk && (
               <p className="pa-section-helper">
                 <span className="pa-pill" data-tone="warning">
                   {t("llms.suggestLowQualityPill")}
                 </span>{" "}
-                {t("llms.suggestLowQualityHint")}
+                {suggestionHasNoUsefulChange
+                  ? t("llms.suggestNoChangeHint")
+                  : t("llms.suggestLowQualityHint")}
               </p>
             )}
             <div className="pa-button-row" style={{ marginTop: 2 }}>
               <button
                 type="button"
-                className="pa-button-primary"
-                onClick={acceptSuggestion}
-              >
-                {t("llms.suggestUse")}
-              </button>
-              <button
-                type="button"
+                className={!suggestion.qualityOk ? "pa-button-primary" : undefined}
                 onClick={() => void requestSuggestion()}
                 disabled={suggestBusy}
               >
                 {t("llms.suggestRetry")}
               </button>
+              <button
+                type="button"
+                className={suggestion.qualityOk ? "pa-button-primary" : undefined}
+                onClick={acceptSuggestion}
+                disabled={!suggestion.qualityOk || suggestBusy}
+                title={
+                  !suggestion.qualityOk
+                    ? t("llms.suggestNotUsableHint")
+                    : undefined
+                }
+              >
+                {suggestion.qualityOk
+                  ? t("llms.suggestUse")
+                  : t("llms.suggestNotUsable")}
+              </button>
               <button type="button" onClick={dismissSuggestion}>
-                {t("common.cancel")}
+                {t("llms.aiKeepOriginal")}
               </button>
             </div>
           </div>
@@ -1486,13 +1643,14 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
         title={t("llms.title")}
         onBack={() => void handleBack()}
         onOpenSettings={onOpenSettings}
+        onOpenOnboarding={onOpenOnboarding}
       />
       <LlmsStepBar
         step={step}
         hasGenerated={generated.length > 0}
         onStepChange={handleStepChange}
       />
-      <div className="pa-scroll">
+      <div className="pa-scroll pa-scroll--with-footer">
         {configChangedSinceGenerate &&
           (step === "setup" || step === "sources") && (
             <p className="pa-section-helper" style={{ margin: "0 0 8px" }}>
@@ -1506,6 +1664,7 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
           <LlmsSetupStep
             config={config}
             setConfig={setConfig}
+            locales={locales}
             renderSuggestPanel={renderSuggestPanel}
             onToggleSuggest={toggleSuggestPanel}
           />
@@ -1568,7 +1727,7 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
             onClick={goBackStep}
             disabled={busy}
           >
-            {t("llms.stepBack")}
+            {step === "deploy" ? t("llms.backToReview") : t("llms.stepBack")}
           </button>
         )}
         {step === "setup" && (
@@ -1577,20 +1736,29 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
             className="pa-button-primary"
             onClick={goNextStep}
           >
-            {t("llms.stepNext")}
+            {t("llms.stepNextSources")}
           </button>
         )}
         {step === "sources" && (
-          <button
-            type="button"
-            className="pa-button-primary"
-            onClick={goNextStep}
-            disabled={busy || !canGenerate}
-          >
-            {busy
-              ? progressLabel || t("common.generating")
-              : t("llms.stepGenerate", { n: locales.length })}
-          </button>
+          <span className="pa-footer-primary-col">
+            <button
+              type="button"
+              className="pa-button-primary"
+              onClick={goNextStep}
+              disabled={busy || !canGenerate}
+            >
+              {busy
+                ? progressLabel || t("common.generating")
+                : defaultOnlyGenerate
+                  ? t("llms.stepGenerateDefault")
+                  : t("llms.stepGenerate", { n: locales.length })}
+            </button>
+            {defaultOnlyGenerate && !busy && (
+              <span className="pa-footer-hint">
+                {t("llms.freeDefaultGenerateHint", { n: locales.length })}
+              </span>
+            )}
+          </span>
         )}
         {step === "review" && (
           <>
@@ -1603,7 +1771,9 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
               {busy
                 ? progressLabel || t("common.generating")
                 : generated.length > 0
-                  ? t("llms.regenerateAll")
+                  ? defaultOnlyReview
+                    ? t("llms.regenerateDefault")
+                    : t("llms.regenerateAll")
                   : generateLabel}
             </button>
             <button
@@ -1629,9 +1799,9 @@ export function LlmsTxtView({ onBack, onOpenSettings }: Props) {
             <button
               type="button"
               className="pa-button-primary"
-              onClick={() => setStep("review")}
+              onClick={() => void handleBack()}
             >
-              {t("llms.backToReview")}
+              {t("llms.deployDone")}
             </button>
           </>
         )}

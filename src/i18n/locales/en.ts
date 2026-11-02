@@ -32,8 +32,8 @@ export const en = {
     hide: "Hide",
     none: "None",
     chars: "{n} chars",
-    apiKeyMissing: "No API key",
-    apiKeyMissingHelper: "Add one in Settings to enable generation.",
+    apiKeyMissing: "Managed AI unavailable",
+    apiKeyMissingHelper: "Activate Pro to enable AI generation.",
     default: "Default",
     confirmDiscardChanges:
       "You have unsaved edits. Switching schema type will discard them. Continue?",
@@ -43,6 +43,8 @@ export const en = {
     helpOpen: "Show help",
     aiSettingsTitle: "AI settings",
     openSettings: "Open settings",
+    uiLanguage: "Change plugin language",
+    uiLanguageTitle: "Plugin language: {name}",
     copied: "Copied",
   },
 
@@ -58,8 +60,7 @@ export const en = {
       "A schema.org property that tells AI crawlers which language a page is written in. Without it, an AI might cite your English page when a user asks in Japanese — or skip you entirely.",
     bcp47:
       "BCP-47 is the IETF standard for language codes like en-US, zh-CN, ja-JP. Schema.org and llms.txt expect this format. Polyglot AEO converts Framer locale codes for you automatically.",
-    byok:
-      "Bring Your Own Key. You provide your own Anthropic / OpenAI API key. Polyglot AEO never proxies your requests — keys stay on your device and calls go straight to the AI provider, so you only pay direct usage costs (typically pennies per page).",
+    managedAi: "Managed AI generation runs through Polyglot AEO's backend. Model credentials stay on the server, requests require an active Pro license, and usage is protected by short-lived session tokens plus quotas.",
     canonicalUrl:
       "The single official URL for this page. Search engines and AI crawlers use it to deduplicate and decide which version to cite. For multilingual pages, each locale typically has its own canonical (e.g. /about and /zh/about).",
     llmsTxt:
@@ -68,13 +69,15 @@ export const en = {
       "Polyglot AEO wraps everything it injects into Framer's Custom Code in HTML comment fences (polyglot-aeo:start / :end). On uninstall, only fenced blocks are removed — your manually-added scripts (GA, Hotjar, Stripe) stay intact.",
     brandVoice:
       "A short style guide passed to the AI when generating localized meta. Keep it specific: 'confident, technical, concise; we say \"you\" not \"your business\"' beats 'professional and friendly'.",
+    perLocaleSchema:
+      "Google's official guidance: each language version of a page should ship its own JSON-LD with a matching inLanguage value. AI search engines use this to decide which locale to cite when a user asks in that language. Generic AEO plugins ship one schema for the default locale — Polyglot AEO produces correct variants for every locale.",
   },
 
   dashboard: {
     subtitle:
-      "Get cited by ChatGPT, Perplexity, Claude & Google AI Overviews — in every language.",
+      "Pre-launch and post-publish AEO QA for multilingual Framer sites.",
     subtitleSecondary:
-      "Built for Framer — Schema auto-injects into Custom Code, Meta pastes into each page’s Title / Page Description, llms.txt deploys via Framer Static Files.",
+      "Schema in Custom Code · Meta for Page settings · llms.txt via Static Files.",
     statusInstalled: "Schema installed",
     statusDisabled: "Schema disabled",
     statusNotInstalled: "Not installed",
@@ -93,40 +96,58 @@ export const en = {
     healthMetaDone: "Meta copy generated",
     healthMetaTodoFree: "Try Meta copy (default locale)",
     healthMetaTodoPro: "Generate meta copy",
-    healthMetaHint:
-      "Connecting an API key isn't enough — generate meta once in Meta AI to complete this step.",
-    healthKeyDone: "AI key is connected",
-    healthKeyTodo: "Add an AI API key",
+    healthKeyDone: "Managed AI is ready",
+    healthKeyTodo: "Activate Pro for managed AI",
     healthLocalesDone: "All locales are unlocked",
     healthLocalesTodo: "Unlock every locale with Pro",
     openControl: "Open control center",
     reportDownload: "Download client report",
+    stackTitle: "Works with your Framer stack",
+    stackBadge: "3-step workflow",
+    stackIntro:
+      "Diagnose first, translate body copy, then ship per-locale AEO assets here.",
+    stackScannerRole: "Step 1 · Diagnose",
+    stackScannerLink: "Framer AEO scanner",
+    stackScannerDesc: "Site-wide AEO check — see what to fix.",
+    stackLokaRole: "Step 2 · Body copy",
+    stackLokaLink: "Loka Localization Hub",
+    stackLokaDesc: "Manage translations in Google Sheets.",
+    stackPolyglotRole: "Step 3 · AEO",
+    stackPolyglotDesc:
+      "Generate and install Schema, llms.txt, and paste-ready meta. Body copy stays in Loka.",
     toolsTitle: "Tools",
     controlTool: "AEO control center",
     controlToolDesc:
-      "Pre-launch issues, CMS localization gaps, and post-publish checks in one place.",
+      "Prioritized fixes for schema, CMS gaps, meta, llms.txt, and live checks.",
     schemaTool: "Per-locale schema",
-    schemaToolDesc:
-      "JSON-LD for Article, Product, LocalBusiness, FAQ & Organization — one variant per locale, with the right inLanguage.",
+    schemaToolDesc: "Install one JSON-LD variant per locale.",
     llmsTool: "Multilingual llms.txt",
-    llmsToolDesc:
-      "Scan your CMS, output one llms.txt file per locale so AI crawlers index every language.",
+    llmsToolDesc: "Generate one crawl file per locale.",
     cmsGapsTool: "CMS localization gaps",
     cmsGapsToolDesc:
-      "Find missing localized titles, summaries, slugs, and duplicate CMS titles.",
+      "Find missing titles, summaries, slugs, and duplicate rows.",
     metaTool: "Meta copy generator",
-    metaToolDesc:
-      "Native titles, descriptions, OG & Twitter per language — rewritten, not translated word-for-word.",
+    metaToolDesc: "Rewrite titles and descriptions per language.",
     verifyTool: "Published-site verifier",
-    verifyToolDesc:
-      "Check the live homepage, JSON-LD, meta description, and llms.txt after publishing.",
+    verifyToolDesc: "Check schema, meta, and llms.txt on the live site.",
     settingsTool: "Settings",
-    settingsToolDesc: "API keys, brand voice, install status.",
-    whyTitle: "Why per-locale schema?",
-    whyBody:
-      "Google's official guidance: each language version of a page should ship its own JSON-LD with a matching {code} value. AI search engines use this to decide which locale to cite when a user asks in that language. Generic AEO plugins ship one schema for the default locale — Polyglot AEO is the only tool that produces correct variants for every locale.",
+    settingsToolDesc: "License, managed AI, brand voice.",
+    launchChecklistTitle: "Launch checklist",
+    launchChecklistControlHint:
+      "Full readiness score (CMS gaps + live checks) lives in the AEO control center.",
+    localesShow: "Show locale list",
+    localesHide: "Hide locale list",
+    localesMore: "+{n} more",
+    proBannerPlan: "Free",
+    proBannerTitle: "Free audits every gap",
+    proBannerBody:
+      "Pro unlocks generation and installation for all {count} locale variants.",
+    proBannerAction: "Unlock all locales",
     quickStartTitle: "Quick start",
     quickStartProgress: "{done} of {total}",
+    quickStartCoreProgress: "{done} of {total} core",
+    quickStartNext: "Next",
+    quickStartNextUp: "Next up",
     quickStartAllDone: "You're all set",
     quickStartDismiss: "Dismiss",
     quickStartCollapse: "Collapse",
@@ -134,7 +155,7 @@ export const en = {
     quickStartSteps: {
       addLocalesTitle: "Add locales in Framer",
       addLocalesDesc:
-        "Polyglot AEO multiplies your work across every locale. Add at least one non-default locale in Framer's Localization panel.",
+        "Best with 2+ locales. Single-locale sites can still finish Schema and llms.txt first.",
       addLocalesAction: "Open docs",
       installSchemaTitle: "Install per-locale schema",
       installSchemaDesc:
@@ -144,26 +165,64 @@ export const en = {
       generateLlmsDesc:
         "Tell ChatGPT, Perplexity, and Claude how to crawl every language of your site.",
       generateLlmsAction: "Open llms.txt",
-      addApiKeyTitle: "Add an AI API key (optional)",
+      deployLlmsTitle: "Upload llms.txt to Framer",
+      deployLlmsDesc:
+        "Download the ZIP, upload files to Domains → Files (site root), then publish. DEPLOY.md is inside the ZIP.",
+      deployLlmsAction: "Open llms.txt",
+      addApiKeyTitle: "Managed AI is included with Pro",
       addApiKeyDesc:
-        "Unlocks AI Schema audit and Localized Meta. Tap the gear icon in the top-right at any time to manage keys. Claude or GPT-4o-mini are good defaults.",
+        "AI Schema audit and Localized Meta run through Polyglot's backend. Activate Pro in Settings; no provider credential is entered in the plugin.",
       addApiKeyAction: "Open settings",
-      verifyTitle: "Verify with Google Rich Results Test",
-      verifyDesc:
-        "Paste your site URL into Google's official validator to confirm AI search engines see the schema.",
-      verifyAction: "Open validator",
+      generateMetaTitle: "Generate meta copy (optional)",
+      generateMetaDesc:
+        "Native titles and descriptions per locale — paste into Framer Page settings.",
+      generateMetaAction: "Open Meta",
+      verifyPublishedTitle: "Verify published site",
+      verifyPublishedDesc:
+        "After publishing, check homepage HTML, JSON-LD, meta, and llms.txt paths from inside the plugin.",
+      verifyPublishedAction: "Run verifier",
     },
   },
 
   control: {
     title: "AEO control center",
     readiness: "Readiness",
+    readinessHint:
+      "Checks localized CMS content, schema coverage, llms.txt, meta copy, and published-site verification.",
     scanning: "Scanning…",
     rescan: "Rescan",
     downloadReport: "Download report",
+    scanFailed:
+      "Scan could not finish. Try Rescan, or check your Pro license in Settings. {error}",
+    verifyRescanNote:
+      "Rescan runs a live HTTP check (homepage, JSON-LD, llms paths) when a publish URL is available.",
+    verifyNoProxy:
+      "Without VITE_LICENSE_API_BASE, the browser may block cross-origin fetches — a “failed” live check does not always mean the site is broken. Open paths manually or deploy the Worker proxy.",
+    liveVerifySkipped:
+      "No publish URL yet — live checks skipped. Publish the site or set the base URL in llms.txt setup, then Rescan.",
+    liveVerifySummary:
+      "Last live check ({time}): {failures} failed on {url}. Open Published-site verifier for details.",
+    liveVerifyCompact: "Last check: {failures} live checks failed on {url}.",
+    cmsGapCountExplain:
+      "Titles and summaries affect the launch score. Slugs are shown so every locale can still publish clean URLs.",
     summary: "{critical} critical · {warning} warnings · {info} notes",
+    status: {
+      blocked: "Not ready for launch",
+      needsWork: "Needs fixes before launch",
+      readyWithNotes: "Ready with notes",
+      ready: "Ready to launch",
+    },
+    metricLaunchBlockers: "Critical blockers",
+    metricCmsGaps: "CMS title/summary gaps",
+    metricLocales: "Locales",
+    metricLiveFailures: "Live check failures",
     issuesTitle: "Launch blockers",
-    noIssues: "No launch blockers found. Run the published-site verifier after your next publish.",
+    taskQueueTitle: "Next launch tasks",
+    taskQueueHelper:
+      "Work these from top to bottom. Each fix routes to the exact Polyglot AEO tool that removes the blocker.",
+    taskStep: "Task {n}",
+    noIssues:
+      "No launch blockers found. Run the published-site verifier after your next publish.",
     severity: {
       critical: "Critical",
       warning: "Warning",
@@ -173,38 +232,47 @@ export const en = {
       schema_missing: {
         title: "Per-locale schema is not installed",
         body: "Install JSON-LD before launch so AI systems can understand each page.",
+        action: "Open schema audit",
       },
       schema_disabled: {
         title: "Installed schema is disabled",
         body: "Framer Custom Code is disabled, so crawlers will not see Polyglot AEO blocks.",
+        action: "Re-enable schema",
       },
       llms_missing: {
         title: "llms.txt has not been generated",
         body: "Generate the default file, then use Pro for every locale variant.",
+        action: "Generate llms.txt",
       },
       meta_missing: {
         title: "Meta copy not generated yet",
         body: "Generate at least one set of titles and descriptions per language before launch.",
+        action: "Generate meta copy",
       },
       api_key_missing: {
-        title: "No AI provider key is connected",
-        body: "Add an API key to unlock audit, localization, and retry workflows.",
+        title: "Managed AI is not available",
+        body: "Activate Pro to unlock audit, localization, and retry workflows.",
+        action: "Open license settings",
       },
       multi_locale_locked: {
-        title: "{count} locales are present but Pro is not active",
-        body: "Free shows the gaps. Pro installs and generates native AEO assets for every locale.",
+        title: "{count} locales detected, Pro unlocks full coverage",
+        body: "Free shows the gaps. Pro generates and installs native AEO assets for every locale.",
+        action: "Unlock all locales",
       },
       cms_locale_gaps: {
-        title: "{count} CMS localization gaps",
-        body: "Missing localized CMS titles or summaries cause skipped llms.txt entries and weaker schema.",
+        title: "{count} CMS title or summary gaps",
+        body: "Counts missing localized CMS titles and summaries only (not slugs). Fix in Framer CMS so llms.txt and schema stay complete per locale.",
+        action: "Open CMS gaps",
       },
       cms_duplicate_titles: {
         title: "{count} duplicate CMS title rows",
         body: "Duplicate titles make AI crawlers collapse separate records into one ambiguous entry.",
+        action: "Review duplicate titles",
       },
       published_failures: {
         title: "{count} published-site checks failed",
         body: "Run verifier and fix live URLs before handing off the site.",
+        action: "Open live verifier",
       },
     },
     cmsTitle: "CMS localization gaps",
@@ -218,6 +286,12 @@ export const en = {
     openCmsGaps: "CMS gaps",
     openVerifier: "Verify live site",
     fixPrimary: "Fix schema",
+    runVerifier: "Run verifier",
+    proBadge: "Optional",
+    proCoverageTitle: "Full coverage for {count} locales",
+    proCoverageBody:
+      "Keep auditing free. Upgrade when you want generation and installation for every locale variant.",
+    proCoverageAction: "Upgrade for all locales",
   },
 
   cmsGaps: {
@@ -226,22 +300,109 @@ export const en = {
     detailsTitle: "Collection details",
     rows: "{n} rows",
     fields: "Fields: title = {title}, summary = {summary}",
+    summaryHint:
+      "Titles and summaries affect launch readiness. Slugs are URL hygiene, shown separately so every locale can still ship clean URLs.",
+    fieldTitles: "titles",
+    fieldSummaries: "summaries",
+    fieldSlugs: "slugs",
+    fieldTitle: "title",
+    fieldSummary: "summary",
+    fieldSlug: "slug",
+    fieldContent: "content",
+    needsLocalized: "Needs localized {fields} in {locales}.",
+    collectionClean: "No localized CMS gaps found in this collection.",
+    rowIssueCount: "{n} affected rows",
+    showFixes: "Show fixes",
+    localeFixCount: "{locale} needs {count} fixes",
+    localeFixBreakdown:
+      "{locale}: {titles} titles · {summaries} summaries · {slugs} slugs",
+    moreLocales: "+ {n} more locales",
+    duplicateFixCount: "{n} duplicate title groups need unique titles",
+    openCollectionAction: "Open {name} CMS",
+    metricTitles: "titles",
+    metricSummaries: "summaries",
+    metricLaunchBlockers: "title/summary blockers",
+    metricRowFixes: "affected CMS rows",
+    metricSlugs: "slugs",
+    metricDuplicates: "duplicates",
     downloadCsv: "Download CSV",
     empty: "No CMS collections found.",
+    detailsHint:
+      "Open a collection, fix the listed rows in Framer CMS, then rescan.",
+    csvHint:
+      "CSV export now includes row id, title, default slug, locale, missing fields, and duplicate-title flags for handoff.",
+    manualHint:
+      "Project Owners can edit CMS. If tapping does not open the panel, use the CMS icon in Framer’s left sidebar and pick the same collection (canvas plugins sometimes only select it).",
+    rowIssuesTitle: "Rows to fix",
+    defaultSlug: "Slug: /{slug}",
+    moreRowIssues: "+ {n} more row fixes in the CSV",
+    duplicateRowsTitle: "Duplicate titles",
+    duplicateRowsShared: "{n} rows share this title",
+    moreDuplicateGroups: "+ {n} more duplicate groups in the CSV",
+    openInFramer: "Open {name} in Framer CMS",
+    opened:
+      "Opened {name} in Framer CMS. The plugin panel stays open — use Back to return to the dashboard.",
+    openedSelectOnly:
+      "Selected {name}. Open the CMS tab in Framer’s left sidebar if the panel is not visible.",
+    openManualSteps:
+      "Could not switch views automatically. In Framer: open CMS in the left sidebar → select「{name}」→ edit ja / ko / fr fields.",
   },
 
   verify: {
     title: "Published-site verifier",
+    ringLabel: "LIVE",
+    heroEyebrow: "Published QA",
+    statusIdle: "Ready to verify",
+    statusReady: "Ready to hand off",
+    statusWarnings: "Ready with warnings",
+    statusNotReady: "Not ready for handoff",
+    summaryLine: "{fail} failed · {warn} warnings · {pass} passed",
+    emptySummaryLine: "Homepage · schema · meta · llms paths",
+    heroBody:
+      "Checks the live homepage, JSON-LD, meta description, and every llms.txt path after publishing.",
+    metricFailures: "live failures",
+    metricLlms: "llms files",
+    metricSchema: "JSON-LD",
+    metricMeta: "Meta description",
+    metricOk: "OK",
+    metricReview: "Review",
     siteUrl: "Published site URL",
+    helperShort:
+      "Use the public production URL after publishing. Re-run after uploading llms.txt files or reinstalling schema.",
     helper:
-      "Run this after publishing. Some sites block browser fetches; when that happens, use the result as a manual checklist.",
+      "Run after publishing. Fetches go through the Polyglot server (same base as the License API). Upload llms.txt to Framer Static Files and publish before checking paths.",
     run: "Verify published site",
+    runShort: "Verify",
+    rerun: "Re-verify",
     running: "Verifying…",
     results: "Results",
+    copyReport: "Copy report",
+    downloadReport: "Download report",
+    reportCopied: "Published-site report copied.",
+    reportDownloaded: "Published-site report downloaded.",
+    verifyFailed: "Verification failed: {error}",
+    lastChecked: "Last check: {time} on {url}.",
+    beforeRunTitle: "What this verifies",
+    beforeRunBody:
+      "Use this right before handoff. It confirms that Framer has actually published the AEO assets you generated inside the plugin.",
+    checkHomepage: "Homepage HTML",
+    checkSchema: "JSON-LD script",
+    checkMeta: "Meta description",
+    checkLlms: "llms.txt paths",
+    fixFirst: "Fix before handoff",
+    passedChecks: "Passed checks",
+    openTool: "Open tool",
+    openSchemaAudit: "Open schema audit",
+    openLlmsGenerator: "Open llms.txt generator",
+    openMetaGenerator: "Open meta generator",
     homepage: "Homepage reachable",
     homepageOk: "Fetched homepage HTML with HTTP {status}.",
     homepageBlocked:
-      "Could not read the homepage from the plugin browser. Open the URL manually and inspect source.",
+      "Could not read the homepage. Open the URL manually and inspect source.",
+    homepageBlockedNoProxy:
+      "Cross-origin fetch blocked. Set VITE_LICENSE_API_BASE (Worker /verify-fetch) and retry, or check manually in a browser.",
+    homepageHttpError: "Homepage returned HTTP {status}; HTML was not parsed.",
+    invalidUrl: "Enter a public site URL starting with https://.",
     schema: "JSON-LD present",
     schemaOk: "Found {n} valid JSON-LD script(s) on the homepage.",
     schemaParseWarning: "{n} JSON-LD script(s) could not be parsed.",
@@ -259,7 +420,16 @@ export const en = {
     llmsOk: "/llms.txt returned HTTP {status}.",
     llmsLocaleOk: "/{filename} returned HTTP {status}.",
     llmsLocaleMissing: "/{filename} was not reachable.",
-    llmsMissing: "/llms.txt was not reachable. Upload it in Framer Static Files and publish again.",
+    llmsFetchBlocked:
+      "Could not read /{filename} (cross-origin). Configure the Worker proxy and retry, or open the path in a browser.",
+    llmsLocale404:
+      "/{filename} returned 404. Upload the file under Framer → Domains → Files and publish again.",
+    llmsHttpError: "/{filename} returned HTTP {status}.",
+    llmsMissing:
+      "/llms.txt returned 404. Upload it in Framer Static Files and publish again.",
+    proxyHint:
+      "Dev build: set VITE_LICENSE_API_BASE to your License Worker URL so fetches use /verify-fetch. Otherwise the plugin cannot read your live site from the browser — that is a CORS limit, not proof your files are missing.",
+    proxyHintTitle: "Worker proxy not configured",
   },
 
   schema: {
@@ -269,17 +439,62 @@ export const en = {
       heroTitle: "Let AI propose schemas for every page",
       heroBody:
         "Polyglot AEO scans your Framer project, picks the right schema kind for each page, fills the fields from your content, and translates everything into every locale you've set up.",
+      wizardTimeHint:
+        "First scan usually takes 3–5 minutes depending on site size.",
       providerLabel: "AI provider",
       modelLabel: "Model",
+      auditSetupTitle: "Audit setup",
+      auditSetupEyebrow: "Readiness",
+      auditSetupSnapshotEyebrow: "Installed",
+      auditSetupHelper:
+        "Scan coverage, review risk, locale assets, and estimated AI cost before installing.",
+      auditSetupSnapshotHelper:
+        "Installed JSON-LD is intact. Scan again to rebuild the review queue and compare it with current Framer content.",
+      summaryScanning: "Scanning…",
+      summaryNeedsReview: "Review before install",
+      summaryReady: "Ready to install",
+      summaryNoInstallable: "No installable schemas",
+      summaryInstalled: "Installed snapshot",
+      summaryNotScanned: "Not scanned yet",
+      summaryLine: "{enabled} enabled · {review} need review",
+      summarySnapshotLine: "{blocks} installed blocks · {locales} locales",
+      summaryEmptyLine: "Activate Pro, then scan to build the proposal queue.",
+      blocksRingLabel: "blocks",
+      installedBlocksMetric: "installed blocks",
+      localeVariantsMetric: "locales",
+      reviewQueueMetric: "scan to rebuild",
+      scanNeededMetricValue: "—",
+      enabledPagesMetric: "enabled pages",
+      estimatedCostMetric: "est. cost",
       translateContentLabel: "Translate content into every locale",
       translateContentHelper:
         "Generates a fully native headline, description, and body for each non-default locale instead of just changing the inLanguage tag. Adds a small AI cost but produces real localized JSON-LD.",
-      aiNeeded: "Add an AI API key in Settings to enable the AI scan.",
+      aiNeeded: "Activate Pro in Settings to enable the AI scan.",
       scanButton: "Scan site",
       rescan: "Re-scan",
       scanning: "Scanning your site…",
       scanProgress: "{current} of {total}",
       translateProgress: "Translating {current} of {total}",
+      progressSiteTitle: "Reading Framer project",
+      progressSiteHelper:
+        "Loading pages, CMS rows, locales, and existing installed schema blocks.",
+      progressAiTitle: "Calling AI for schema proposals",
+      progressAiHelper:
+        "The model is classifying pages and drafting JSON-LD. Free or subscription plans may pause under load.",
+      progressTranslateTitle: "Localizing schema content",
+      progressTranslateHelper:
+        "Generating native headlines, descriptions, and body text for each non-default locale.",
+      progressCurrentItem: "Current item",
+      progressProvider: "Provider",
+      progressModel: "Model",
+      progressCalls: "Progress",
+      progressPreparing: "Preparing",
+      progressReadingFramer: "Reading project data",
+      progressWaitingForProvider: "Waiting for provider response",
+      progressSlowTitle: "Taking longer than usual",
+      progressSlowHelper:
+        "This usually means provider rate limits, low balance, a slow model, or a large page. To debug, open Settings → Test key, switch to a faster model, or turn off locale translation and re-scan.",
+      homepageLabel: "Homepage",
       scanCalls: "scan calls",
       translateCalls: "translation calls",
       scanFailed: "Scan failed: {error}",
@@ -287,16 +502,18 @@ export const en = {
       partial: "Some pages couldn't be read. Re-scan to retry.",
       scanSummary: "Scanned {n} pages.",
       snapshotTitle: "Last installed",
-      snapshotInstalledAt:
-        "{time} · {n} blocks across {locales} locales",
+      snapshotInstalledAt: "{time} · {n} blocks across {locales} locales",
       snapshotChanges: "{n} changed",
       snapshotAdded: "{n} new",
       snapshotRemoved: "{n} removed",
       snapshotUpToDate: "Up to date",
+      snapshotNeedsUpdate: "Needs update",
       snapshotRescanHint:
         "Re-scan to detect content changes since the last install.",
       snapshotSessionListHint:
         "The proposal list is kept only while this plugin panel stays open. Tap Scan site below to restore it — installed JSON-LD is unchanged.",
+      snapshotRestoreHintShort:
+        "Scan again to restore the proposal queue. Installed JSON-LD is unchanged.",
       snapshotResetByDrift:
         "Custom Code no longer contains the polyglot-aeo block — install record reset.",
       identityCardTitle: "Brand identity",
@@ -315,17 +532,26 @@ export const en = {
       identityCardAuthorLabel: "Default byline",
       identityCardLogoLabel: "Logo URL",
       identityCardUrlLabel: "Site URL",
-      identityCardTranslationsCount:
-        "Translated for {n} locales",
-      identityCardNoTranslations: "Will translate for non-default locales on next scan.",
+      identityCardTranslationsCount: "Translated for {n} locales",
+      identityCardNoTranslations:
+        "Will translate for non-default locales on next scan.",
       identityPartialTranslate:
         "Couldn't translate brand identity for {n} locales. Those will use the source-language brand at install time.",
       proposalsTitle: "Proposed schemas",
       proposalsCount: "{enabled} of {total} enabled",
+      reviewQueueSummary: "{enabled} enabled · {review} need review",
+      installScope: "{n} blocks · {proposals} pages × {locales} locales",
+      installScopeWithReview:
+        "{n} blocks · {proposals} pages × {locales} locales · {review} need review",
+      installScopeDisabled: "Enable at least one proposal to install.",
       proposalConfidence: "{n}% confidence",
       proposalLowConfidence: "Low confidence — please review.",
       proposalAiError:
         "AI couldn't analyze this page. Disabled by default — review or enable manually.",
+      proposalAiProviderBilling:
+        "AI provider blocked the scan. Add credits or switch providers, then re-scan.",
+      proposalAiErrorNoResponse:
+        "The model returned empty or invalid JSON. Re-scan, or check Managed AI status in Settings.",
       proposalReviewBadge: "Review suggested",
       translationWarning: "{n} cells need re-translation.",
       translationHealthTitle: "Translation health",
@@ -344,8 +570,10 @@ export const en = {
       footerReinstallShort: "Re-install",
       footerInstallShort: "Install",
       footerUpdateInstallShort: "Update install",
-      footerInstallTitle:
-        "{n} blocks · {proposals} pages × {locales} locales",
+      footerInstallSelected: "Install {n} selected",
+      footerReinstallSelected: "Re-install {n} selected",
+      footerUpdateSelected: "Update {n} selected",
+      footerInstallTitle: "{n} blocks · {proposals} pages × {locales} locales",
       footerReinstallTitle:
         "{n} blocks · {proposals} pages × {locales} locales. {hint}",
       installSuccessWithUntranslated:
@@ -373,7 +601,7 @@ export const en = {
         "Headline and description are byte-identical to the default locale — the AI returned English unchanged while inLanguage says this locale. Re-translate with a stronger model or translate in Framer.",
       untranslatedReasonHintAiError:
         "The AI response was missing or invalid JSON for this page. Re-translate or fill the fields manually.",
-      enableAll: "Enable all",
+      enableAll: "Enable ready",
       disableAll: "Disable all",
       filterSearchPlaceholder: "Search by URL or page name…",
       filterNoMatch: "No proposals match your filter.",
@@ -394,16 +622,14 @@ export const en = {
       reinstallButtonHint:
         "No content changes detected since the last install. Click to force-rewrite the schema in Custom Code anyway.",
       updateInstallButton: "Update install ({summary})",
-      updateInstallButtonHint:
-        "Re-install with changes: {summary}.",
+      updateInstallButtonHint: "Re-install with changes: {summary}.",
       // Diff fragments — joined with " · " by the UI (e.g. "3 new · 2 changed").
       // Keep each fragment short (<=12 chars in English) so the joined
       // label still fits in narrow plugin panels.
       diffFragmentAdded: "{n} new",
       diffFragmentChanged: "{n} changed",
       diffFragmentRemoved: "{n} removed",
-      installSuccess:
-        "Installed {blocks} JSON-LD blocks across {pages} pages.",
+      installSuccess: "Installed {blocks} JSON-LD blocks across {pages} pages.",
       installSuccessWithPreserved:
         "Installed {blocks} JSON-LD blocks. {bytes} bytes of your existing Custom Code were preserved.",
       installFailed: "Install failed: {error}",
@@ -411,6 +637,7 @@ export const en = {
       installUndoDone: "Reverted to previous Custom Code state.",
       installUndoFailed: "Undo failed: {error}",
       editorOpen: "Edit fields",
+      editorReview: "Review fields",
       editorHelper:
         "Tweak this {kind} schema. Save to apply for the next install. Switch to Manual mode if you need to change the schema kind.",
       editorReset: "Reset to AI suggestion",
@@ -448,7 +675,8 @@ export const en = {
     selectLocaleWarning: "Select at least one locale.",
     kinds: {
       Article: "Article",
-      ArticleHelper: "Blog posts, news, long-form content. Best for AI Overviews citations.",
+      ArticleHelper:
+        "Blog posts, news, long-form content. Best for AI Overviews citations.",
       Product: "Product",
       ProductHelper: "Ecommerce items with price, brand, ratings.",
       LocalBusiness: "Local Business",
@@ -491,6 +719,28 @@ export const en = {
 
   llms: {
     title: "Multilingual llms.txt",
+    wizardTimeHint: "About 3–5 minutes for setup, sources, and generate.",
+    setupHeroEyebrow: "Setup",
+    setupHeroTitle: "Describe the site once. Generate every locale from it.",
+    setupHeroBody:
+      "This profile becomes the top of each llms.txt file, before CMS and page sections.",
+    outputFilesLabel: "Files that will be generated",
+    outputFilesMore: "+{n} more",
+    setupFilesMetric: "{n} files",
+    setupFilesMetricHelper: "one per locale",
+    setupTimeMetric: "3–5 min",
+    setupTimeMetricHelper: "setup to generate",
+    siteProfileTitle: "Site profile",
+    setupAutoSaveBadge: "Draft saved",
+    setupEditHint: "Edit",
+    aiRefine: "AI refine",
+    outputPreviewTitle: "Output preview",
+    outputPreviewHelper:
+      "The file header is ready. Next, choose which CMS collections and static pages should appear as sections.",
+    outputPreviewReady: "Ready",
+    outputNextTitle: "Next: choose content sources",
+    outputNextBody:
+      "Add CMS collections and static pages as separate sections in the generated files.",
     siteInfoTitle: "Site info",
     siteName: "Site name",
     siteNamePlaceholder: "Acme Studio",
@@ -515,8 +765,19 @@ export const en = {
     longSuggestKeywordsPlaceholder:
       "e.g. emphasize the technical capabilities, audience is product-led startups…",
     suggestAppliedLong: "Long description updated.",
-    aiPanelHeader: "AI helper · {field}",
+    aiPanelHeader: "AI refine · {field}",
     aiPanelKeywordsLabel: "What should the AI emphasize? (optional)",
+    aiQuickLabel: "Quick AI directions",
+    aiQuickTighter: "Make tighter",
+    aiQuickTighterInstruction: "Make it shorter and tighter",
+    aiQuickAeo: "More AEO-friendly",
+    aiQuickAeoInstruction: "Make it clearer for answer engines and AI crawlers",
+    aiQuickBrand: "More brand voice",
+    aiQuickBrandInstruction: "Make the tone more distinctive and brand-specific",
+    aiAdvancedSettings: "Advanced AI settings",
+    aiResultCurrent: "Current",
+    aiResultSuggested: "Suggested",
+    aiKeepOriginal: "Keep original",
     cmsSourceTitle: "CMS sources (optional)",
     collectionLabel: "Collection",
     collectionNone: "— None (site summary only) —",
@@ -577,13 +838,16 @@ export const en = {
       "Upload each file to the matching path in your hosting layer (e.g. {default}, {localized}).",
     deployTitle: "How to deploy on Framer",
     deployPlanBadge: "Framer Pro+",
+    deployFileReady: "1 file ready",
+    deployFilesReady: "{n} files ready",
+    deployFilesLabel: "Generated llms.txt files",
     deployStepDownload:
-      "Click Download on each file above (or Copy to paste them elsewhere).",
+      "Download or copy each generated file from the Results step.",
     deployStepFramer:
       "In your Framer dashboard, open Domains → your domain → Files tab, then upload each file at the root path.",
     deployStepFramerLink: "See Framer's official guide →",
     deployStepPublish:
-      "Publish your site. The files become available at /llms.txt, /llms-zh-cn.txt, etc.",
+      "Publish your site. The files become available at /llms.txt and each generated locale path.",
     deployOtherHosting:
       "Static Files requires a Framer Pro plan or higher. On Basic/Free, you'd need a custom hosting setup (Cloudflare Workers in front of your domain, etc.) — drop the files at {default}, {localized}.",
     setSiteFirst: "Set site name and base URL first.",
@@ -596,13 +860,17 @@ export const en = {
       "Items missing a localized title for {locale} were skipped — fill them in Framer's CMS, then regenerate.",
     skippedDefaultPill: "{n} CMS row(s) without a title",
     skippedDefaultHelper:
-      "Couldn't read the field \"{field}\" on these rows. Check the title field name matches a real CMS field.",
+      'Couldn\'t read the field "{field}" on these rows. Check the title field name matches a real CMS field.',
     aiTranslateTitle: "AI auto-translate (optional)",
     aiTranslateToggle: "Translate missing items with AI",
     aiTranslateHelper:
       "When a CMS item has no localized title for a locale, Polyglot AEO can ask your chosen AI model to translate it. The translation goes into the generated llms.txt file only — your CMS rows are not modified.",
+    aiTranslateProTitle: "Native AI translation for every locale",
+    aiTranslateProHelper:
+      "Free keeps showing the gaps. Pro can fill missing llms.txt entries with AI before generation.",
+    aiTranslateUnlock: "Upgrade",
     aiProviderKeyMissing:
-      "Add an API key for {provider} in Settings to enable auto-translate.",
+      "Activate Pro in Settings to enable auto-translate with {provider}.",
     aiTranslatingProgress: "Translating {n} item(s) for {locale}…",
     aiTranslatingHeader: "Translating site summary for {locale}…",
     headerFlagPill: "Site summary not localized",
@@ -646,12 +914,18 @@ export const en = {
     suggestOptimizeAction: "Optimize my draft",
     suggestRetry: "Try again",
     suggestUse: "Use this",
+    suggestUseAnyway: "Use anyway",
+    suggestNotUsable: "Not useful",
+    suggestNotUsableHint:
+      "This suggestion is too close to the original or failed quality checks. Try again or switch models.",
     suggestBusy: "Asking the AI…",
     suggestApplied: "Site summary updated.",
     suggestResultTitle: "AI suggestion",
     suggestLowQualityPill: "Low confidence",
     suggestLowQualityHint:
-      "The output didn't pass our quality checks (wrong script for your default locale, or near-identical to your draft). You can still use it, but consider trying a stronger model.",
+      "The output didn't pass our quality checks. Try again with a stronger instruction, or switch to a stronger model.",
+    suggestNoChangeHint:
+      "The model returned almost the same wording, so this is not a useful optimization. Try again, add a stronger direction, or switch models.",
     suggestFailed: "AI suggestion failed: {error}",
     suggestNoDefaultLocale:
       "Couldn't determine your default locale — open a Framer project with at least one locale and try again.",
@@ -667,12 +941,17 @@ export const en = {
       deploy: "Deploy",
     },
     stepNext: "Next",
+    stepNextSources: "Next: Content sources",
     stepBack: "Back",
     stepGenerate: "Generate {n} files",
+    stepGenerateDefault: "Generate default llms.txt",
     goToDeploy: "Next: Deploy",
     backToReview: "Back to results",
+    deployDone: "Done",
+    reviewFileCountOne: "1 file",
     reviewFileCount: "{n} files",
     reviewLocaleNeedsAttention: "{locale} needs attention ({n} CMS items)",
+    reviewLocaleNeedsAttentionNoCount: "{locale} needs attention",
     reviewLocaleTabs: "Generated file locales",
     reviewEmpty: "Generate files to see results here.",
     reviewNoIssues: "No issues for this locale.",
@@ -681,10 +960,32 @@ export const en = {
     configChangedHint:
       "Settings changed since the last generation. Regenerate to refresh your files.",
     regenerateAll: "Regenerate all",
+    regenerateDefault: "Regenerate default",
     setupOptionalTitle: "Optional",
     setupAiEnabled: "On",
     stepProgress: "{current}/{total} · {label}",
     sourcesTitle: "Content sources",
+    sourcesSelectedPill: "{n} selected",
+    sourcesHeroTitle: "Choose what each file includes",
+    sourcesHeroBody:
+      "Selected CMS collections and pages become sections in every generated locale file.",
+    freePlanPill: "Free",
+    freeDefaultGenerateHint:
+      "Free generates llms.txt only. Pro unlocks all {n} locale files.",
+    multiLocaleProTitle: "Free generates the default file first",
+    multiLocaleProHelper:
+      "This project has multiple locales. Generate llms.txt now; Pro unlocks llms-ja.txt, llms-ko.txt, and every other locale with native AI translation.",
+    multiLocaleProAction: "Unlock locale files",
+    collectionShortHelper:
+      "Selected collections become ## sections, in this order.",
+    pagesShortHelper:
+      "Add static pages such as About, Services, Contact, and Support.",
+    pagesLoadedHelper:
+      "{n} static page(s) loaded. Re-scan only if your Framer page list changed.",
+    pagesRememberedHelper:
+      "{n} selected page(s) remembered. Re-scan to restore their current names and paths.",
+    pagesRememberedNotLoaded:
+      "Your previous page selection is saved, but this session has not loaded the page list yet. Re-scan before generating so the file uses current page titles and URLs.",
     cmsFoldSummary: "CMS · {n} selected",
     pagesFoldSummary: "Pages · {n} selected",
     showMoreCollections: "+ {n} more collections",
@@ -693,22 +994,63 @@ export const en = {
   meta: {
     title: "Meta copy generator",
     sourceTitle: "Source page",
+    setupHeroEyebrow: "Setup",
+    setupHeroTitle: "Describe one page. Generate meta for every locale.",
+    setupHeroBody:
+      "This page profile becomes localized titles, descriptions, and social preview copy.",
+    setupFiles: "Generated meta fields",
+    setupFileDefault: "Title",
+    setupFileSearch: "Description",
+    setupFileSocial: "OG/Twitter",
+    setupLocaleOne: "1 locale",
+    setupLocaleMany: "{n} locales",
+    setupLocalesStat: "locales",
+    setupContextStat: "context words",
+    sourceProject: "Project page",
+    sourceManual: "Manual context",
+    sourceProjectReady: "Project pages loaded",
+    sourceProjectSelected: "Project page · {title}",
+    sourceCurrent: "Source",
+    contextThinTitle: "Context is very short",
+    contextThinBody:
+      "Add who this page is for, what it offers, and why it matters so generated meta is specific.",
+    utilityPageTitle: "This looks like a utility page",
+    utilityPageBody:
+      "404, privacy, and legal pages usually do not need marketing meta. You can continue, but a service or landing page is better for testing quality.",
+    aiModelTitle: "AI model",
+    aiModelBody:
+      "Used for ✨ Improve on this step and localized generation on the next step.",
+    outputPreviewTitle: "Output preview",
+    outputReady: "Ready",
+    outputNeedsContext: "Needs context",
+    outputPreviewBody:
+      "Next, choose provider/model and generate localized search and social fields.",
+    outputNextTitle: "Next: generate meta",
+    outputNextBody: "Create copy for {n} locale(s) from this page profile.",
+    outputNextBodyOne: "Create copy for 1 locale from this page profile.",
     pageFlowIntro:
       "Load a page from your project, pick one, then review the content before generating meta.",
     pageFlowTitle: "Page setup steps",
     pageFlowLoad: "Load pages from project",
     pageFlowLoadDone: "Pages loaded",
+    pageFlowLoadShort: "Load",
+    pageFlowLoadDoneShort: "Loaded",
     pageFlowLoadHint:
       "We read your Framer static pages so you can pick one — no need to paste URLs by hand.",
     pageFlowSelect: "Choose a page",
     pageFlowSelectDone: "Selected: {title}",
-    pageFlowSelectHint: "Pick the page you want meta copy for. We'll pull its text into context.",
+    pageFlowSelectShort: "Pick",
+    pageFlowSelectDoneShort: "Selected",
+    pageFlowSelectHint:
+      "Pick the page you want meta copy for. We'll pull its text into context.",
     pageFlowSelectPlaceholder: "Select a page…",
     pageFlowManual: "Enter context manually instead",
     pageFlowManualDone: "Manual entry",
+    pageFlowManualDoneShort: "Manual",
     pageFlowBackToPick: "Pick from project instead",
     pageFlowRescan: "Reload page list",
     pageFlowContent: "Review page info",
+    pageFlowContentShort: "Review",
     pageFlowContentHint:
       "Edit the summary if needed. ✨ AI fill works after page context is ready.",
     pageFlowSelectedPage: "Working on {title} ({path})",
@@ -716,8 +1058,11 @@ export const en = {
     stepNextNeedLoad: "Load pages from the project first.",
     stepNextNeedSelect: "Choose a page, or switch to manual entry.",
     stepNextNeedContext: "Add page context before continuing.",
+    stepNextLoadFirst: "Load pages first",
+    stepNextSelectFirst: "Choose a page first",
+    stepNextAddContext: "Add page context first",
     generateNeedKey:
-      "Add an API key for {provider} in Settings (or pick a provider that already has a key).",
+      "Activate Pro in Settings to generate with {provider}.",
     stepNavLabel: "Meta workflow steps",
     step: {
       page: "Page",
@@ -725,20 +1070,45 @@ export const en = {
       review: "Copy to Framer",
     },
     stepNext: "Next",
+    stepNextGenerate: "Next: Generate meta",
     stepBack: "Back",
     stepProgress: "{current}/{total} · {label}",
+    reviewHeroEyebrow: "Copy handoff",
+    reviewHeroTitle: "Copy this locale into Framer",
+    reviewHeroBody:
+      "Copy the generated fields, show the canvas, then paste them into this page’s settings for the current locale.",
+    reviewCurrentPage: "Page",
+    reviewCurrentLocale: "Locale",
+    reviewCopiedProgressLabel: "Copied",
+    reviewCopiedProgress: "{done} of {total} locales",
+    copyAllFields: "Copy all for this locale",
+    copyAllFieldsDone: "Copied",
+    copyAllFieldsAgain: "Copy again",
+    openFramerSettings: "Show Framer canvas",
+    applyFoldTitle: "Need help pasting into Framer?",
+    reviewMoreActions: "Downloads and regenerate",
+    copyFieldsTitle: "Fields to copy",
+    localeCopied: "Locale copied",
+    finishHandoff: "Finish handoff",
+    finishUncopiedConfirm:
+      "Only {done} of {total} locale(s) are marked copied. Finish anyway?",
+    regenerateAllConfirm:
+      "Regenerate all locales? This replaces the current generated copy.",
     reviewIntro:
-      "Title, description, and social tags for each language are below. Framer cannot receive SEO from plugins yet — paste them into each page’s settings per locale.",
+      "Framer does not let plugins write page SEO yet. Paste these values into Page settings for each locale.",
     reviewDone: "Done",
-    sessionRestored: "Restored your last generated meta — continue copying into Framer.",
-    applyNotSeoTab: "No “SEO” menu — no “Page settings” in the F menu either",
+    sessionRestored:
+      "Restored your last generated meta — continue copying into Framer.",
+    sessionRestoredStale:
+      "Restored your last results. Step 1 inputs changed — double-check before pasting into Framer.",
+    applyNotSeoTab: "There is no SEO menu in the F menu",
     applySiteVsPage:
-      "The F → Site settings flyout (General, Custom Code, …) is site-wide only. Per-page meta is opened from the Pages list on the canvas (next step). General’s Title/Description is a default, not your per-locale copy.",
+      "F → Site settings is site-wide. Per-page meta opens from the canvas Pages list, and must be pasted once per locale.",
     applyPageFallback: "your page",
     applyStepOpenPagePanel:
       "Open settings for “{page}” — fields at the top: Title and Page Description.",
     applyStepOpenPagePanelHow:
-      "Close or shrink this plugin. Click the Pages icon on the left → hover your page (e.g. Home) → ⋯ → Settings. Title and Page Description are at the top of that panel.",
+      "Minimize this plugin. In the left Pages list, hover the page → ⋯ → Settings.",
     applyStepFieldMapping:
       "Paste plugin Title → Framer Title; Meta description → Page Description. OG/Twitter fields go in the social section on the same panel.",
     applyStepFramerMetaDocs: "Framer: page titles & descriptions →",
@@ -747,7 +1117,8 @@ export const en = {
     pickPageManual: "Manual context only",
     scanPages: "Load pages from project",
     scanningPages: "Scanning pages…",
-    pagesScanPartial: "Some pages could not be read — the list may be incomplete.",
+    pagesScanPartial:
+      "Some pages could not be read — the list may be incomplete.",
     noStaticPages: "No static pages found. Paste context manually.",
     pageLoadFailed: "Could not read page content. Edit context manually.",
     homepageBadge: "homepage",
@@ -764,8 +1135,7 @@ export const en = {
     suggestActionImprove: "Improve",
     suggestSameBadge: "Matches current",
     suggestSameAsCurrent:
-      "AI agrees with what you already have ({value}). No need to replace — continue to the next step.",
-    suggestSameDismiss: "Got it",
+      "AI agrees with what you already have ({value}). No need to replace — use Next when you're ready.",
     suggestSameApplied: "Already set — no change needed.",
     suggestRetryFresh: "Infer again",
     suggestChangeFrom: "Change: {from} → {to}",
@@ -791,28 +1161,75 @@ export const en = {
     modelTitle: "Model",
     providerClaude: "Claude",
     providerOpenAi: "GPT-4o-mini",
-    providerKeyMissing: "Add an API key for {provider} in Settings to use it.",
+    providerKeyMissing: "Activate Pro in Settings to use {provider}.",
     estimatedCost: "Est. cost",
+    estimatedCostListedOne:
+      "Estimate (listed rates): ~${total} (1 locale × ~{tokensIn}+{tokensOut} tokens)",
+    estimatedCostListed:
+      "Estimate (listed rates): ~${total} ({n} locales × ~{tokensIn}+{tokensOut} tokens each)",
+    estimatedCostConsoleUpper:
+      "DeepSeek console upper ref.: ~${total} (cache-miss rates; actual may be lower)",
+    estimatedCostDisclaimer:
+      "Reference only. Step 1 infer/improve, regenerations, and other tools are extra. Billed amount is on your provider dashboard.",
+    reviewCostDisclaimer:
+      "Sum of this run’s API tokens × listed model rates — may differ from your invoice.",
+    reviewCostDisclaimerDeepSeek:
+      "Sum of API tokens × listed rates. DeepSeek CNY bills are often higher (cache miss, infer calls, other features).",
+    generateReadyOne: "Ready to generate meta for 1 locale.",
     generateReady: "Ready to generate meta for {n} locales.",
+    generateHeroEyebrow: "Generate",
+    generateHeroTitle: "Generate localized meta copy.",
+    generateHeroHelper:
+      "Review the source context, provider, and estimated cost before asking AI to write search and social fields.",
+    generateMetricLocales: "locales",
+    generateMetricContext: "context chars",
+    generateMetricProvider: "provider",
+    generateMetricCost: "est. cost",
+    generateContextPreviewTitle: "Source context",
+    generateContextReady: "Ready",
+    generateContextDraft: "Needs context",
+    generateContextPreviewEmpty:
+      "Add page context first so generated meta can be specific.",
+    generateReviewHelper:
+      "Next, create copy for {locales} locale(s) using {provider}.",
+    generateAiSettingsTitle: "AI settings",
     resultsTitle: "Results",
+    reviewLocaleCountOne: "1 locale",
     reviewLocaleCount: "{n} locales",
     reviewLocalesNeedAttention: "{locales} need attention",
     reviewLocaleTabs: "Generated meta locales",
     reviewEmpty: "Generate meta to see results here.",
     fieldGroupSearch: "Search",
     fieldGroupSocial: "Open Graph & Twitter",
-    copyAll: "Copy all fields",
-    copyAllSuccess: "Copied all fields for this locale.",
-    copyAllFailed: "Could not copy — select and copy manually.",
+    downloadLocale: "Download this locale (.txt)",
+    downloadAll: "Download all ({n})",
+    downloadAllHint: "ZIP with one .txt per locale — easy to paste into Framer",
+    downloadSuccess: "Downloaded Meta text for this locale.",
+    downloadAllSuccess: "Downloaded ZIP with {n} locale file(s).",
     lengthSoftPill: "Long ({max})",
-    lengthSoftHint: "Google often truncates around {max} characters — consider shortening.",
+    lengthSoftHint:
+      "Google often truncates around {max} characters — consider shortening.",
     addContextWarning: "Add some page context first.",
-    setKeyWarning: "Set your API key in Settings first.",
+    setKeyWarning: "Activate Pro in Settings first.",
     generateButton: "Generate for {n} locale",
     generateButtonPlural: "Generate for {n} locales",
     generatingProgress: "Generating… {current}/{total}",
+    generateProgressTitle: "Calling AI for meta copy",
+    generateProgressHelper:
+      "The model is writing localized titles, descriptions, and social fields. Provider plans may pause under load.",
+    generateProgressCurrentLocale: "Current locale",
+    generateProgressProvider: "Provider",
+    generateProgressModel: "Model",
+    generateProgressCount: "Progress",
+    generateProgressPreparing: "Preparing…",
+    generateProgressSlowTitle: "Taking longer than usual",
+    generateProgressSlowHelper:
+      "This usually means provider rate limits, low balance, a slow model, or a large page. To debug, open Settings → Test key, switch to a faster model, shorten page context, or retry.",
     generateCancelled: "Generation cancelled.",
+    generatedSuccessOne: "Generated meta for 1 locale.",
     generatedSuccess: "Generated meta for {n} locales.",
+    generatedSuccessWithIssuesOne:
+      "Generated meta for 1 locale. It may need a retry.",
     generatedSuccessWithIssues:
       "Generated meta for {n} locales. {issues} locale(s) may need a retry.",
     regenerate: "Regenerate",
@@ -822,18 +1239,24 @@ export const en = {
     configChangedHint:
       "Page context changed since the last generation. Regenerate to refresh results.",
     applyTitle: "Apply in Framer",
-    applyStepLocale: "In Framer, switch to the target language in the top bar (globe / locale picker).",
+    applyStepLocale:
+      "In Framer, switch to the target language in the top bar (globe / locale picker).",
     applyStepLocaleLink: "Framer localization guide",
     applyStepPage: "Open this page’s settings (Title + Page Description).",
-    applyStepPageWithPath: "Open settings for {path} (Title + Page Description).",
+    applyStepPageWithPath:
+      "Open settings for {path} (Title + Page Description).",
     applyStepCopyBelow:
-      "Below, pick a language tab and copy each field (or Copy all).",
+      "Use Copy all above, or copy individual fields below.",
     applyStepRepeatLocales:
       "Do the same for every language, then publish the site.",
     applyStepPublish: "Publish the site when every locale looks good.",
-    applyStepOpenProject: "Open Framer project",
+    applyStepOpenProject: "Show canvas (minimize plugin)",
+    openProjectEditorHint:
+      "You're already in this Framer project. Use Pages on the left → ⋯ → Settings for page meta, then paste the fields below.",
     applyHelper:
       "Framer does not let plugins write page SEO yet — paste these values into Page settings per locale.",
+    applyFriction:
+      "Expect manual steps: switch locale in the canvas bar → open each page’s Title / Page Description → paste → publish. Polyglot saves your generated copy between sessions.",
     fields: {
       title: "Title",
       metaDescription: "Meta description",
@@ -858,27 +1281,31 @@ export const en = {
 
   settings: {
     title: "Settings",
-    apiKeysTitle: "AI providers (BYOK)",
+    apiKeysTitle: "Managed AI",
     apiKeysHelper:
-      "Polyglot AEO never sees your keys. Each provider's key is stored only in this Framer project's plugin data and sent directly from your browser to that provider when you generate meta. You only pay each provider's normal API rates.",
-    providerKeyPlaceholder: "API key for {provider}",
-    providerGetKey: "Get a key",
+      "AI generation runs through Polyglot AEO's backend with license checks, short-lived session tokens, and quota limits.",
+    managedAiTitle: "Managed AI",
+    managedAiHelper:
+      "AI generation runs through Polyglot AEO's backend with your active Pro license, short-lived session tokens, and usage quotas.",
+    managedAiProvider: "Polyglot Managed AI · MiniMax M3",
+    providerKeyPlaceholder: "Managed credential for {provider}",
+    providerGetKey: "Provider details",
     providersShowMore: "Show {n} more providers",
     providersHide: "Hide additional providers",
     testKey: "Test",
     testing: "Testing…",
     testKeyOk: "Connected",
     testKeyFail: "Failed",
-    testKeyEmpty: "Paste a key first",
-    addCustomProvider: "+ Add custom provider",
-    customProviderTitle: "Custom OpenAI-compatible provider",
+    testKeyEmpty: "Managed AI is not available",
+    addCustomProvider: "+ Add managed provider",
+    customProviderTitle: "Managed provider",
     customProviderHelper:
-      "Use any OpenAI-compatible endpoint — Together, Groq, Ollama, LiteLLM, vLLM, an enterprise gateway, etc. Polyglot AEO will send standard /chat/completions requests.",
+      "Marketplace builds use Polyglot Managed AI so generation stays server-side and quota controlled.",
     customProviderName: "Display name",
-    customProviderNamePlaceholder: "My private LLM",
+    customProviderNamePlaceholder: "Managed provider",
     customProviderBaseUrl: "Base URL",
     customProviderBaseUrlPlaceholder:
-      "https://api.example.com/v1 (the URL ending where /chat/completions sits)",
+      "Managed server endpoint",
     customProviderModelIds: "Model ids (comma-separated)",
     customProviderModelIdsPlaceholder: "llama-3.3-70b, mixtral-8x22b",
     customProviderSave: "Save provider",
@@ -888,12 +1315,12 @@ export const en = {
     customProviderInvalid:
       "Please fill in display name, base URL, and at least one model id.",
     customProviderRemoveConfirm:
-      "Remove this custom provider? Its API key will also be cleared. This cannot be undone.",
+      "Remove this managed provider record? This cannot be undone.",
     customProviderDiscardConfirm:
-      "Discard this custom provider draft? API keys and brand voice changes have been autosaved.",
+      "Discard this managed provider draft? Brand voice changes have been autosaved.",
     customProviderDiscard: "Discard draft",
-    anthropicKey: "Anthropic API key",
-    openaiKey: "OpenAI API key",
+    anthropicKey: "Legacy Anthropic credential",
+    openaiKey: "Legacy OpenAI credential",
     brandVoiceTitle: "Brand voice",
     brandVoiceHelper: "Applied to every locale. Optional but recommended.",
     brandVoicePlaceholder:
@@ -903,10 +1330,15 @@ export const en = {
       "The language of the Polyglot AEO interface itself. Independent of your project's content locales.",
     languageAuto: "Auto ({detected})",
     quickStartResetTitle: "Quick start",
-    quickStartResetHelper:
-      "Re-show the onboarding checklist on the dashboard.",
+    quickStartResetHelper: "Re-show the onboarding checklist on the dashboard.",
     quickStartResetButton: "Show quick start",
     quickStartResetDone: "Quick start re-enabled.",
+    restartWizardTitle: "Setup guide",
+    restartWizardHelper:
+      "Open the step-by-step wizard again from the dashboard (clipboard icon next to Settings).",
+    restartWizardButton: "Reset setup guide",
+    restartWizardDone:
+      "Setup guide will open automatically next time you open the plugin (until you finish or skip it).",
     installedTitle: "Installed schema",
     installedYes: "Installed",
     installedNo: "Not installed",
@@ -944,7 +1376,7 @@ export const en = {
     activateFailed: "Could not activate license. Check the key and try again.",
     getPro: "Get Pro",
     comparePlans: "Compare Free vs Pro",
-    activeKey: "Active: {hint}",
+    activeKey: "Pro active · license ending {hint}",
     refresh: "Re-check license",
     validating: "Checking…",
     deactivate: "Remove license",
@@ -958,34 +1390,99 @@ export const en = {
         "Free includes up to 5 pages of AI schema install. Pro is unlimited.",
       schema_install_all:
         "Enable or install all pages at once is a Pro feature.",
-      schema_translate:
-        "Translating schema content per locale requires Pro.",
+      schema_translate: "Translating schema content per locale requires Pro.",
       llms_generate:
         "AI llms.txt generation requires Pro. You can still edit and copy a default-locale draft on Free.",
       llms_multi_locale:
-        "Additional locale llms files (llms-ja.txt, etc.) require Pro.",
-      llms_ai_translate:
-        "AI translation for llms.txt requires Pro.",
+        "Free generates the default llms.txt. Pro unlocks one llms file per locale with native AI translation.",
+      llms_ai_translate: "AI translation for llms.txt requires Pro.",
       meta_generate:
         "Free includes 3 default-locale Meta AI samples. Pro unlocks bulk generation across every locale.",
       schema_audit_persist:
         "Pro keeps install history and diff context across sessions.",
       remote_schema_rules:
         "Pro includes shipped quality updates as the plugin evolves.",
-      generic_pro:
-        "Unlock the full multilingual AEO workflow with Pro.",
+      generic_pro: "Unlock the full multilingual AEO workflow with Pro.",
       bulletLocales:
         "Native schema + meta + llms per locale — not just inLanguage tags",
       bulletQuality: "AI quality checks before you ship translations",
       bulletAgency: "One client site pays for itself at $19/mo",
       ctaLabel: "Upgrade to Pro",
       ctaPrice: "$19 per month",
-      pricingHint: "Or $190/year (~17% off). 14-day refund per polyglotaeo.com.",
+      monthlyPlanLabel: "Monthly",
+      monthlyPlanPrice: "$19 / month",
+      monthlyPlanHelper: "Flexible billing for one project.",
+      monthlyPlanCta: "Start monthly checkout →",
+      yearlyPlanLabel: "Yearly",
+      yearlyPlanPrice: "$190 / year",
+      yearlyPlanHelper: "Two months free. Best for launch retainers.",
+      yearlyPlanCta: "Start yearly checkout →",
+      yearlyBadge: "Save 17%",
+      pricingHint:
+        "14-day refund per polyglotaeo.com. License key arrives by email.",
     },
     dashboardLocaleBanner:
       "This project has {count} locales. Pro unlocks per-locale schema, Meta, and llms.",
     dashboardLocaleFree: "Using default locale only on Free ({code}).",
     freeInstallQuota: "{used}/{max} AI schema pages on Free",
+  },
+
+  wizard: {
+    reopen: "Setup guide",
+    stepOf: "Step {current} of {total}",
+    exit: "Exit",
+    skipAll: "Maybe later",
+    skipManualOnly: "Manual schema only",
+    completeNotify: "Setup complete",
+    cta: {
+      getStarted: "Get started",
+      continue: "Continue",
+      saveAndContinue: "Save & continue",
+      continueWithoutAi: "Continue without AI",
+      openDashboard: "Open launch checklist",
+    },
+    screens: {
+      welcome: {
+        title: "Welcome to Polyglot AEO",
+        body: "Turn your multilingual Framer launch into an AEO control center: per-locale schema, llms.txt, meta, CMS gaps, and published-site checks. One minute of setup, then follow the launch checklist.",
+      },
+      aiSetup: {
+        title: "Start with a free project check",
+        body: "Open the Control Center first. It can surface locale, CMS, schema, and published-site gaps before you use any AI generation.",
+      },
+      done: {
+        title: "You're set up",
+        body: "Open the launch checklist and review the first visible project gap. Add managed generation only when the free checks show work worth automating.",
+      },
+    },
+    snapshot: {
+      projectLabel: "This project",
+      locales: "{count} locales",
+      schemaInstalled: "Schema installed",
+      schemaNotInstalled: "Schema not installed",
+      aiConnected: "AI connected",
+      aiNotConnected: "Managed AI optional",
+      addLocales: "Add locales in Framer",
+    },
+    firstRun: {
+      freeLabel: "Free",
+      freeTitle: "Review project readiness",
+      freeBody: "Inspect locale coverage, CMS gaps, existing schema, and published-site checks without activating Pro.",
+      proLabel: "Optional Pro",
+      readyLabel: "Pro ready",
+      proTitle: "Generate with managed AI",
+      proBody: "Pro adds server-side schema, metadata, and localized generation with license checks and usage quotas.",
+      noKey:
+        "Model credentials stay on Polyglot AEO's backend and are never received or stored by the plugin.",
+    },
+    aiProviderLabel: "Provider",
+    aiKeyLabel: "Managed AI",
+    aiKeyPlaceholder: "Handled by Polyglot AEO",
+    aiTest: "Test",
+    aiTesting: "Testing…",
+    aiSave: "Save & test",
+    aiConnected: "Managed AI ready",
+    aiMoreProviders: "Managed AI settings",
   },
 
   shortcuts: {

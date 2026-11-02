@@ -4,6 +4,13 @@ export type Tier = "free" | "pro"
 /** Creem environment used for checkout and license validation. */
 export type BillingMode = "production" | "test"
 
+export type BillingPlan = "monthly" | "yearly"
+
+export interface CheckoutPlanUrls {
+  monthly: string
+  yearly: string
+}
+
 /** Features gated between Free and Pro (see docs/PRICING.md). */
 export type Feature =
   | "schema_translate"

@@ -1,0 +1,35 @@
+# High-intent Framer multilingual prospect queries
+#
+# Copy 20-50 result snippets/URLs into tools/lead-finder/search-results.local.txt,
+# then run:
+#
+#   pnpm lead:discover -- --input tools/lead-finder/search-results.local.txt --append-to tools/lead-finder/framer-prospects.local.txt
+#
+# Framer-hosted multilingual sites
+site:framer.website "hreflang"
+site:framer.website "/fr" "contact"
+site:framer.website "/de" "contact"
+site:framer.website "/ja" "contact"
+site:framer.website "/ko" "contact"
+site:framer.app "hreflang"
+site:framer.app "/fr" "contact"
+
+# Custom domains with Framer signals
+"framerusercontent.com" "hreflang" "contact"
+"framerusercontent.com" "/fr" "contact"
+"framerusercontent.com" "/de" "contact"
+"framerusercontent.com" "/ja" "contact"
+"framerusercontent.com" "localization" "agency"
+
+# Agency and maker intent
+"Made in Framer" "localization" "agency"
+"Framer" "multilingual" "agency" "contact"
+"Framer" "localization" "case study"
+"Framer" "global site" "case study"
+"Framer" "SaaS website" "localized"
+
+# CMS-heavy multilingual sites
+"Framer CMS" "hreflang"
+"Framer CMS" "multilingual"
+"Framer blog" "hreflang"
+"Framer portfolio" "multilingual"

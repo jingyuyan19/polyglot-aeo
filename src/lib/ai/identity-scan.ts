@@ -44,6 +44,7 @@ export type IdentityAiCall = (params: {
 const defaultAiCall: IdentityAiCall = (params) =>
   callAi({
     ...params.ai,
+    feature: "schema_scan",
     prompt: params.prompt,
     maxTokens: params.maxTokens,
   })

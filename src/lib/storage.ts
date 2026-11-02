@@ -29,7 +29,12 @@ import { isAllowedTo } from "./framer/permissions"
  *   2. **4 KB combined per node** — assertion error after the cumulative
  *      payload across every key on the same node passes 4096 bytes.
  *
- * (1) is worked around here by transparent chunking (see below).
+ * (1) used to be worked around here by transparent chunking. In practice,
+ * that made (2) easier to hit because every chunk still counts toward
+ * Framer's combined 4 KB budget. New writes therefore stay single-key and
+ * intentionally small. The reader still understands legacy chunks so old
+ * projects can recover data.
+ *
  * (2) is a fixed budget we cannot expand. Callers MUST treat plugin
  * data as a place for small, durable state only:
  *   - User settings (provider keys, brand voice, preferences).
@@ -37,18 +42,16 @@ import { isAllowedTo } from "./framer/permissions"
  * Heavy intermediates (full site maps, AI proposal lists with body
  * samples) MUST be kept in memory only and recomputed on demand.
  *
- * Chunking (per-key):
- * Larger values (a 7-page site map with body samples easily exceeds
- * 14 KB) trigger an SDK assertion that crashes the renderer. To survive
- * realistic state we transparently split values that cross
- * {@link CHUNK_BYTE_LIMIT} into multiple sibling keys. Note that
- * chunking only solves limit (1); (2) still applies to the SUM of
- * every chunk, so chunking large blobs is NOT a path to storing them.
+ * Legacy chunking (read-only):
+ * Older builds split values that crossed roughly 1.5 KB into sibling keys.
+ * That avoided the 2 KB per-key limit but still burned the
+ * 4 KB combined budget, so current builds no longer write chunked values.
+ * `readChunked` remains for backwards compatibility and migration cleanup.
  *
  * Wire format:
  *   - Small value (≤ limit): stored verbatim under `polyglot-aeo:<key>`,
  *     identical to the pre-chunking layout. No reader code change.
- *   - Large value (> limit): the primary key holds a tiny descriptor
+ *   - Legacy large value (> limit): the primary key holds a tiny descriptor
  *     `{"__pa_chunks": N}` and chunks 0…N-1 live under
  *     `polyglot-aeo:<key>__c0` … `polyglot-aeo:<key>__cN-1`.
  *
@@ -61,15 +64,27 @@ import { isAllowedTo } from "./framer/permissions"
 const KEY_PREFIX = "polyglot-aeo:"
 
 /**
- * Per-chunk byte budget. We aim well below the SDK's 2048 byte ceiling
- * so JSON wrappers, base64 expansion, and surrogate-pair edge cases
- * never push us over. 1500 leaves ~25% headroom which covers the worst
- * realistic case of dense Cyrillic / CJK content where every code
- * point is 3 UTF-8 bytes.
+ * Hard stop below Framer's 4 KB combined plugin-data ceiling.
+ *
+ * Framer counts every plugin-data key on the same project node together.
+ * If we knowingly try to write a blob near or above that ceiling, the SDK
+ * throws an assertion before the caller can make progress. Keep this
+ * conservative: values above this belong in memory, Custom Code, or a
+ * purpose-built compact summary.
  */
-const CHUNK_BYTE_LIMIT = 1500
+const SINGLE_VALUE_SAFE_BYTE_LIMIT = 1400
 
 const CHUNK_DESCRIPTOR_PREFIX = '{"__pa_chunks":'
+const MAX_STALE_CHUNKS_TO_CLEAR = 32
+
+const BUDGET_CLEANUP_KEYS = [
+  "last-schema-snapshot",
+  "last-sitemap",
+  "last-proposals",
+  "audit-untranslated",
+  "organization-defaults",
+  "audit-workspace-persist",
+]
 
 /**
  * Encode `value` (which the SDK accepts as a UTF-16 string) and report
@@ -160,17 +175,49 @@ async function clearChunkRange(
   }
 }
 
+async function clearKeyAndLikelyChunks(key: string): Promise<void> {
+  try {
+    await framer.setPluginData(`${KEY_PREFIX}${key}`, null)
+  } catch {
+    // ignore — best effort
+  }
+  await clearChunkRange(key, 0, MAX_STALE_CHUNKS_TO_CLEAR)
+}
+
+function isPluginDataBudgetError(error: unknown): boolean {
+  const message =
+    error instanceof Error ? error.message : String(error ?? "")
+  const normalized = message.toLowerCase()
+  return (
+    normalized.includes("plugin data") &&
+    (normalized.includes("large") ||
+      normalized.includes("4kb") ||
+      normalized.includes("4096") ||
+      normalized.includes("2kb") ||
+      normalized.includes("2048"))
+  )
+}
+
+export function canFitSinglePluginDataValue(value: string | null): boolean {
+  return value === null || utf8ByteLength(value) <= SINGLE_VALUE_SAFE_BYTE_LIMIT
+}
+
+async function reclaimPluginDataBudget(preserveKey: string): Promise<void> {
+  for (const key of BUDGET_CLEANUP_KEYS) {
+    if (key !== preserveKey) {
+      await clearKeyAndLikelyChunks(key)
+    }
+  }
+}
+
 /**
- * Internal: write any string value with transparent chunking. Both
- * `writeString` (raw strings) and `writeJson` (post-stringify) funnel
- * through here so the chunking invariant lives in one place.
+ * Internal: write any string value. Both `writeString` (raw strings) and
+ * `writeJson` (post-stringify) funnel through here so the size invariant
+ * lives in one place.
  *
  * `value === null` clears the primary key AND every prior chunk.
  */
-async function writeChunked(
-  key: string,
-  value: string | null,
-): Promise<void> {
+async function writeCompact(key: string, value: string | null): Promise<void> {
   const priorChunks = await readPriorChunkCount(key)
 
   if (value === null) {
@@ -180,30 +227,14 @@ async function writeChunked(
   }
 
   const bytes = utf8ByteLength(value)
-  if (bytes <= CHUNK_BYTE_LIMIT) {
-    await framer.setPluginData(`${KEY_PREFIX}${key}`, value)
-    // GC any leftover chunks from a previously larger value.
-    await clearChunkRange(key, 0, priorChunks)
-    return
+  if (bytes > SINGLE_VALUE_SAFE_BYTE_LIMIT) {
+    throw new Error(
+      `Plugin data value for ${key} is ${bytes} bytes; max safe size is ${SINGLE_VALUE_SAFE_BYTE_LIMIT}.`,
+    )
   }
-
-  const chunks = chunkUtf8String(value, CHUNK_BYTE_LIMIT)
-  // Write chunks FIRST, descriptor LAST: a reader racing with us sees
-  // either the old descriptor (consistent with old chunks) or the new
-  // descriptor (consistent with new chunks). We can't be fully atomic
-  // across N keys, but ordering this way avoids the worst failure mode
-  // of "descriptor says 5 chunks, only 2 written".
-  for (let i = 0; i < chunks.length; i++) {
-    await framer.setPluginData(`${KEY_PREFIX}${key}__c${i}`, chunks[i])
-  }
-  await framer.setPluginData(
-    `${KEY_PREFIX}${key}`,
-    JSON.stringify({ __pa_chunks: chunks.length }),
-  )
-  // Drop any chunks that existed in the previous (larger) value.
-  if (priorChunks > chunks.length) {
-    await clearChunkRange(key, chunks.length, priorChunks)
-  }
+  await framer.setPluginData(`${KEY_PREFIX}${key}`, value)
+  // GC any leftover chunks from a previously larger legacy value.
+  await clearChunkRange(key, 0, priorChunks)
 }
 
 /**
@@ -257,8 +288,28 @@ export async function readJson<T>(key: string, fallback: T): Promise<T> {
 
 export async function writeJson<T>(key: string, value: T): Promise<boolean> {
   if (!isAllowedTo("setPluginData")) return false
-  await writeChunked(key, JSON.stringify(value))
-  return true
+  const serialized = value === null ? null : JSON.stringify(value)
+  if (!canFitSinglePluginDataValue(serialized)) {
+    await clearKeyAndLikelyChunks(key)
+    return false
+  }
+  try {
+    await writeCompact(key, serialized)
+    return true
+  } catch (error) {
+    if (isPluginDataBudgetError(error)) {
+      await reclaimPluginDataBudget(key)
+      try {
+        await writeCompact(key, serialized)
+        return true
+      } catch (retryError) {
+        console.warn("Polyglot AEO could not persist plugin data.", retryError)
+        return false
+      }
+    }
+    console.warn("Polyglot AEO could not persist plugin data.", error)
+    return false
+  }
 }
 
 export async function readString(key: string): Promise<string | null> {
@@ -270,15 +321,30 @@ export async function writeString(
   value: string | null,
 ): Promise<boolean> {
   if (!isAllowedTo("setPluginData")) return false
-  await writeChunked(key, value)
-  return true
+  if (!canFitSinglePluginDataValue(value)) {
+    await clearKeyAndLikelyChunks(key)
+    return false
+  }
+  try {
+    await writeCompact(key, value)
+    return true
+  } catch (error) {
+    if (isPluginDataBudgetError(error)) {
+      await reclaimPluginDataBudget(key)
+      try {
+        await writeCompact(key, value)
+        return true
+      } catch (retryError) {
+        console.warn("Polyglot AEO could not persist plugin data.", retryError)
+        return false
+      }
+    }
+    console.warn("Polyglot AEO could not persist plugin data.", error)
+    return false
+  }
 }
 
 export const StorageKeys = {
-  /** @deprecated Use `provider-key:anthropic` via apiKeyStorageKeyFor(). */
-  AnthropicKey: "anthropic-key",
-  /** @deprecated Use `provider-key:openai` via apiKeyStorageKeyFor(). */
-  OpenAiKey: "openai-key",
   PreferredProvider: "preferred-provider",
   PreferredModel: "preferred-model",
   CustomProviders: "custom-providers",
@@ -313,6 +379,8 @@ export const StorageKeys = {
   IdentitySourceHash: "identity-source-hash",
   LastSchemaSnapshot: "last-schema-snapshot",
   LastLlmsTxt: "last-llms-txt",
+  /** Last published-site verifier summary for control center rescan. */
+  LastPublishedVerify: "last-published-verify",
   /**
    * @deprecated SiteMap is too large for the 4 KB combined plugin
    * data budget — never persist it. Kept here only so the migration
@@ -342,6 +410,14 @@ export const StorageKeys = {
   ScanTranslateContent: "scan-translate-content",
   UiLocalePreference: "ui-locale-preference",
   OnboardingDismissed: "onboarding-dismissed",
+  /** Setup wizard finished or skipped from welcome. */
+  OnboardingWizardCompleted: "onboarding-wizard-completed",
+  /** User chose "Skip for now" on welcome — no auto-push on next open. */
+  OnboardingWizardSkippedAll: "onboarding-wizard-skipped-all",
+  /** Last wizard screen index (0–7) for resume after tool back. */
+  OnboardingWizardLastScreen: "onboarding-wizard-last-screen",
+  /** User downloaded llms ZIP or acknowledged Static Files upload. */
+  LlmsDeployAcknowledged: "llms-deploy-acknowledged",
   DraftSchema: "draft-schema",
   DraftMeta: "draft-meta",
   /**
@@ -362,6 +438,4 @@ export const StorageKeys = {
    * Must stay under combined 4 KB budget with other keys.
    */
   AuditWorkspacePersist: "audit-workspace-persist",
-  /** Version string of last-applied remote schema rules (Pro). */
-  RemoteSchemaRulesVersion: "remote-schema-rules-version",
 } as const

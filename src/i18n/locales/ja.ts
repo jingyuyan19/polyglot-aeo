@@ -48,8 +48,8 @@ export const ja: Translations = {
     hide: "非表示",
     none: "なし",
     chars: "{n} 文字",
-    apiKeyMissing: "API キー未設定",
-    apiKeyMissingHelper: "設定で API キーを追加すると使えます。",
+    apiKeyMissing: "マネージド AI は利用できません",
+    apiKeyMissingHelper: "AI 生成を使うには Pro を有効化してください。",
     default: "デフォルト",
     confirmDiscardChanges:
       "未保存の編集があります。Schema タイプを切り替えると破棄されます。続けますか？",
@@ -59,6 +59,8 @@ export const ja: Translations = {
     helpOpen: "説明を表示",
     aiSettingsTitle: "AI 設定",
     openSettings: "設定を開く",
+    uiLanguage: "プラグインの表示言語を変更",
+    uiLanguageTitle: "表示言語：{name}",
     copied: "コピーしました",
   },
 
@@ -68,8 +70,7 @@ export const ja: Translations = {
       "schema.org のプロパティで、ページの言語を AI クローラーに伝えます。これがないと、日本語の質問に対して英語ページが引用されたり、検索結果から完全に外れたりします。",
     bcp47:
       "BCP-47 は IETF の言語コード標準です（en-US、zh-CN、ja-JP など）。Schema.org と llms.txt はこの形式が必須。Polyglot AEO が Framer の locale コードを自動変換するので、手動対応は不要です。",
-    byok:
-      "Bring Your Own Key（自分のキーを使う方式）。Anthropic、OpenAI などの API キーをご自身で用意します。Polyglot AEO はリクエストを中継しません —— キーは端末内のみに保存され、呼び出しは AI プロバイダーへ直送、料金もプロバイダーに直接支払います（通常 1 ページあたり数円）。",
+    managedAi: "マネージド AI 生成は Polyglot AEO のバックエンド経由で実行されます。モデル認証情報はサーバー側にのみ保存され、有効な Pro ライセンス、短期セッショントークン、利用量クォータで保護されます。",
     canonicalUrl:
       "ページの正式な URL を 1 つに定めるためのもの。検索エンジンと AI クローラーは重複排除と引用先決定にこれを使います。多言語サイトでは言語ごとに canonical を分けるのが一般的です（例：/about と /ja/about）。",
     llmsTxt:
@@ -78,13 +79,14 @@ export const ja: Translations = {
       "Polyglot AEO が Framer の Custom Code に注入する内容は、すべて HTML コメント（polyglot-aeo:start / :end）で囲まれます。アンインストール時は囲み内のみ削除 —— 手動で追加したスクリプト（GA、Hotjar、Stripe）はそのまま保持されます。",
     brandVoice:
       "AI にローカライズ meta を生成させるときに渡す短いスタイル指示。具体的なほど効きます。「自信、技術的、簡潔。'you' を使い 'your business' は使わない」のほうが「プロフェッショナルでフレンドリー」より 10 倍効果的です。",
+    perLocaleSchema:
+      "Google の公式ガイダンスでは、各言語版ページに対応する inLanguage を持つ独立した JSON-LD を用意することが推奨されています。AI 検索はこれを使い、ユーザーがその言語で質問したときにどのロケールを引用するか決めます。一般的な AEO プラグインはデフォルト言語の schema しか出しません —— Polyglot AEO はすべてのロケール向けに正しいバリアントを生成します。",
   },
 
   dashboard: {
-    subtitle:
-      "ChatGPT、Perplexity、Claude、Google AI Overviews にすべての言語で引用されるサイトへ。",
+    subtitle: "多言語 Framer サイトの公開前・公開後 AEO 品質チェック。",
     subtitleSecondary:
-      "Framer に最適化 —— Schema は Custom Code に自動注入、Meta は各ページの Title / Page Description に貼り付け、llms.txt は Framer Static Files で配信。",
+      "Schema は Custom Code · Meta はページ設定 · llms.txt は Static Files で配信。",
     statusInstalled: "Schema インストール済み",
     statusDisabled: "Schema 無効化中",
     statusNotInstalled: "未インストール",
@@ -103,40 +105,57 @@ export const ja: Translations = {
     healthMetaDone: "Meta 文案を生成済み",
     healthMetaTodoFree: "Meta を試し生成（デフォルト言語）",
     healthMetaTodoPro: "Meta 文案を生成",
-    healthMetaHint:
-      "API キーを入れただけでは完了しません。Meta AI で一度生成するとチェックされます。",
-    healthKeyDone: "API キー設定済み",
-    healthKeyTodo: "API キーを設定",
+    healthKeyDone: "マネージド AI 準備完了",
+    healthKeyTodo: "Pro を有効化して AI を使用",
     healthLocalesDone: "すべての言語が利用可能",
     healthLocalesTodo: "Pro で全言語を解放",
     openControl: "コントロールセンターを開く",
     reportDownload: "クライアントレポートをダウンロード",
+    stackTitle: "Framer ワークフローと組み合わせ",
+    stackBadge: "3 ステップ",
+    stackIntro: "診断 → 本文翻訳 → このプラグインで言語別 AEO を届ける。",
+    stackScannerRole: "ステップ 1 · 診断",
+    stackScannerLink: "Framer AEO スキャナー",
+    stackScannerDesc: "サイト全体の AEO チェックで修正点を把握。",
+    stackLokaRole: "ステップ 2 · 本文",
+    stackLokaLink: "Loka Localization Hub",
+    stackLokaDesc: "Google Sheets で各言語の本文を管理。",
+    stackPolyglotRole: "ステップ 3 · AEO",
+    stackPolyglotDesc:
+      "Schema、llms.txt、貼り付け用 Meta を生成・インストール。本文は Loka と組み合わせてください。",
     toolsTitle: "ツール",
     controlTool: "AEO コントロールセンター",
     controlToolDesc:
-      "公開前の問題、CMS の多言語ギャップ、公開後の検証を一か所で確認。",
+      "Schema、CMS、Meta、llms.txt、live チェックを優先順に修正。",
     schemaTool: "言語別 Schema",
-    schemaToolDesc:
-      "Article、Product、LocalBusiness、FAQ などの JSON-LD を言語ごとに生成。inLanguage も自動で正しく設定されます。",
+    schemaToolDesc: "言語ごとに JSON-LD を 1 つインストール。",
     llmsTool: "多言語 llms.txt",
-    llmsToolDesc:
-      "CMS をスキャンし、言語ごとに llms.txt を出力。AI クローラーが各言語を理解しやすくなります。",
+    llmsToolDesc: "言語ごとのクロール用ファイルを生成。",
     cmsGapsTool: "CMS 多言語ギャップ",
     cmsGapsToolDesc:
-      "ローカライズ済みタイトル、概要、slug、重複 CMS タイトルを検出します。",
+      "不足タイトル、概要、slug、重複行を検出。",
     metaTool: "Meta 文案生成",
-    metaToolDesc:
-      "各言語向けに title・description・OG・Twitter をネイティブ表現で生成。直訳ではなく書き直します。",
+    metaToolDesc: "言語ごとに title と description を書き直し。",
     verifyTool: "公開サイト検証",
-    verifyToolDesc:
-      "公開後にホームページ、JSON-LD、meta description、llms.txt を確認します。",
+    verifyToolDesc: "公開サイトの schema、meta、llms.txt を確認。",
     settingsTool: "設定",
-    settingsToolDesc: "API キー、ブランドボイス、インストール状態。",
-    whyTitle: "なぜ言語別の Schema が必要？",
-    whyBody:
-      "Google の指針では、各言語版のページに対応する {code} 付きの JSON-LD を置くべきとされています。AI 検索はこの情報で、ユーザーがその言語で質問したときにどの版を引用するか決めます。一般的な AEO プラグインはデフォルト言語用の schema しか出しませんが、Polyglot AEO はすべての言語に正しいバリアントを生成します。",
+    settingsToolDesc: "ライセンス、マネージド AI、ブランドボイス。",
+    launchChecklistTitle: "公開チェックリスト",
+    launchChecklistControlHint:
+      "CMS ギャップと live チェックを含む準備度は AEO コントロールセンターで確認してください。",
+    localesShow: "言語リストを表示",
+    localesHide: "言語リストを隠す",
+    localesMore: "他 {n} 件",
+    proBannerPlan: "Free",
+    proBannerTitle: "Free で全ギャップを診断",
+    proBannerBody:
+      "Pro で {count} 言語すべての生成とインストールを解放。",
+    proBannerAction: "全言語を解放",
     quickStartTitle: "クイックスタート",
     quickStartProgress: "{done} / {total}",
+    quickStartCoreProgress: "コア {done} / {total}",
+    quickStartNext: "次のステップ",
+    quickStartNextUp: "次にやること",
     quickStartAllDone: "すべて準備完了",
     quickStartDismiss: "閉じる",
     quickStartCollapse: "折りたたむ",
@@ -144,7 +163,7 @@ export const ja: Translations = {
     quickStartSteps: {
       addLocalesTitle: "Framer に言語を追加",
       addLocalesDesc:
-        "言語が多いほどこのプラグインの価値が上がります。Framer の Localization パネルで、デフォルト以外の言語を 1 つ追加してください。",
+        "2 言語以上が最適。1 言語でも Schema と llms.txt は先に完了できます。",
       addLocalesAction: "ドキュメントを開く",
       installSchemaTitle: "言語別 Schema をインストール",
       installSchemaDesc:
@@ -154,26 +173,64 @@ export const ja: Translations = {
       generateLlmsDesc:
         "ChatGPT、Perplexity、Claude にサイトの「言語マップ」を渡し、各言語をどう辿ればよいかを伝えます。",
       generateLlmsAction: "llms.txt を開く",
-      addApiKeyTitle: "AI API キーを追加（任意）",
+      deployLlmsTitle: "llms.txt を Framer にアップロード",
+      deployLlmsDesc:
+        "ZIP をダウンロードし、Domains → Files でルートにアップロードして公開。DEPLOY.md が ZIP に入っています。",
+      deployLlmsAction: "llms.txt を開く",
+      addApiKeyTitle: "Pro にマネージド AI が含まれます",
       addApiKeyDesc:
-        "AI Schema 監査と Meta 文案生成が使えるようになります。右上の歯車からキーを管理できます。Claude または GPT-4o-mini がおすすめです。",
+        "AI Schema 監査と Meta 文案生成は Polyglot のバックエンドで実行されます。設定で Pro を有効化すれば利用でき、プラグイン内でモデル認証情報を入力する必要はありません。",
       addApiKeyAction: "設定を開く",
-      verifyTitle: "Google Rich Results Test で検証",
-      verifyDesc:
-        "サイト URL を Google 公式バリデーターに貼り付けて、AI 検索エンジンから schema が正しく見えているか確認します。",
-      verifyAction: "バリデーターを開く",
+      generateMetaTitle: "Meta 文案を生成（任意）",
+      generateMetaDesc:
+        "言語別の title / description — Framer のページ設定に貼り付けます。",
+      generateMetaAction: "Meta を開く",
+      verifyPublishedTitle: "公開サイトを検証",
+      verifyPublishedDesc:
+        "公開後、プラグイン内でホーム、JSON-LD、meta、llms.txt パスを確認します。",
+      verifyPublishedAction: "検証を実行",
     },
   },
 
   control: {
     title: "AEO コントロールセンター",
     readiness: "公開準備度",
+    readinessHint:
+      "ローカライズ済み CMS、schema、llms.txt、Meta 文案、公開サイト検証をチェックします。",
     scanning: "スキャン中…",
     rescan: "再スキャン",
     downloadReport: "レポートをダウンロード",
+    scanFailed:
+      "スキャンを完了できませんでした。再スキャンするか、設定で Pro ライセンスを確認してください。{error}",
+    verifyRescanNote:
+      "再スキャンは公開 URL がある場合、live HTTP チェック（ホーム、JSON-LD、llms パス）を実行します。",
+    verifyNoProxy:
+      "VITE_LICENSE_API_BASE 未設定時、ブラウザがクロスオリジン取得をブロックすることがあります — live の失敗が必ずしもサイト障害を意味しません。パスを手動で開くか Worker プロキシをデプロイしてください。",
+    liveVerifySkipped:
+      "公開 URL がありません — live チェックをスキップしました。サイトを公開するか llms.txt 設定でベース URL を入力してから再スキャンしてください。",
+    liveVerifySummary:
+      "前回の live チェック（{time}）：{url} で {failures} 件失敗。詳細は公開サイト検証へ。",
+    liveVerifyCompact: "前回のチェック：{url} で live チェック {failures} 件失敗。",
+    cmsGapCountExplain:
+      "タイトルと概要は公開スコアに影響します。slug は各 locale の URL をきれいに公開するために表示しています。",
     summary: "重大 {critical} · 警告 {warning} · メモ {info}",
+    status: {
+      blocked: "まだ公開できません",
+      needsWork: "公開前に修正が必要",
+      readyWithNotes: "ほぼ準備完了（メモあり）",
+      ready: "公開できます",
+    },
+    metricLaunchBlockers: "重大ブロッカー",
+    metricCmsGaps: "CMS タイトル/概要ギャップ",
+    metricLocales: "言語数",
+    metricLiveFailures: "Live チェック失敗",
     issuesTitle: "公開ブロッカー",
-    noIssues: "公開ブロッカーは見つかりません。次回公開後に公開サイト検証を実行してください。",
+    taskQueueTitle: "次の公開タスク",
+    taskQueueHelper:
+      "上から順に処理してください。各タスクは、該当ブロッカーを直す Polyglot AEO の画面へ移動します。",
+    taskStep: "タスク {n}",
+    noIssues:
+      "公開ブロッカーは見つかりません。次回公開後に公開サイト検証を実行してください。",
     severity: {
       critical: "重大",
       warning: "警告",
@@ -183,38 +240,47 @@ export const ja: Translations = {
       schema_missing: {
         title: "言語別 schema が未インストール",
         body: "公開前に JSON-LD をインストールし、AI が各ページを理解できるようにしてください。",
+        action: "Schema 監査を開く",
       },
       schema_disabled: {
         title: "インストール済み schema が無効",
         body: "Framer Custom Code が無効なため、クローラーは Polyglot AEO ブロックを見られません。",
+        action: "Schema を再有効化",
       },
       llms_missing: {
         title: "llms.txt が未生成",
         body: "まずデフォルト言語のファイルを生成し、Pro で各言語版を生成できます。",
+        action: "llms.txt を生成",
       },
       meta_missing: {
         title: "Meta 文案が未生成",
         body: "公開前に、各言語向けの title / description を少なくとも 1 セット生成してください。",
+        action: "Meta 文案を生成",
       },
       api_key_missing: {
-        title: "API キーが未設定",
-        body: "API キーを設定すると、AI 監査・ローカライズ・再試行が使えます。",
+        title: "マネージド AI は利用できません",
+        body: "Pro を有効化すると、AI 監査・ローカライズ・再試行が使えます。",
+        action: "ライセンス設定を開く",
       },
       multi_locale_locked: {
-        title: "プロジェクトに {count} 言語あるが Pro 未有効",
-        body: "無料版はギャップを表示します。Pro では各言語の AEO アセットを生成・インストールできます。",
+        title: "{count} 言語を検出。Pro で全言語をカバー",
+        body: "無料版はギャップを表示します。Pro では各言語のネイティブ AEO アセットを生成・インストールできます。",
+        action: "全 locale を解放",
       },
       cms_locale_gaps: {
-        title: "{count} 件の CMS ローカライズギャップ",
-        body: "ローカライズ済みタイトルや概要がないと、llms.txt の項目がスキップされ schema も弱くなります。",
+        title: "{count} 件の CMS タイトル／概要ギャップ",
+        body: "不足しているローカライズ CMS タイトルと概要のみをカウント（slug は除く）。Framer CMS で補完し、各言語の llms.txt と schema を揃えてください。",
+        action: "CMS ギャップを開く",
       },
       cms_duplicate_titles: {
         title: "{count} 行の CMS タイトル重複",
         body: "重複タイトルは、AI クローラーが別レコードを曖昧な 1 件として扱う原因になります。",
+        action: "重複タイトルを確認",
       },
       published_failures: {
         title: "{count} 件の公開サイト検証が失敗",
         body: "納品前に検証を実行し、live URL を修正してください。",
+        action: "公開サイト検証を開く",
       },
     },
     cmsTitle: "CMS 多言語ギャップ",
@@ -228,6 +294,12 @@ export const ja: Translations = {
     openCmsGaps: "CMS ギャップ",
     openVerifier: "公開サイトを検証",
     fixPrimary: "schema を修正",
+    runVerifier: "検証を実行",
+    proBadge: "任意",
+    proCoverageTitle: "{count} 言語をフルカバー",
+    proCoverageBody:
+      "無料版でもギャップ確認は続けられます。全 locale の生成とインストールが必要になったらアップグレードしてください。",
+    proCoverageAction: "全 locale をアップグレード",
   },
 
   cmsGaps: {
@@ -236,22 +308,110 @@ export const ja: Translations = {
     detailsTitle: "Collection 詳細",
     rows: "{n} 行",
     fields: "フィールド: title = {title}, summary = {summary}",
+    summaryHint:
+      "タイトルと概要は公開準備度に影響します。slug は URL hygiene として別表示し、各 locale の URL を clean に保てるようにします。",
+    fieldTitles: "タイトル",
+    fieldSummaries: "概要",
+    fieldSlugs: "slug",
+    fieldTitle: "タイトル",
+    fieldSummary: "概要",
+    fieldSlug: "slug",
+    fieldContent: "コンテンツ",
+    needsLocalized: "{locales} の {fields} をローカライズしてください。",
+    collectionClean: "この Collection には CMS 多言語ギャップが見つかりません。",
+    rowIssueCount: "{n} 行が対象",
+    showFixes: "修正を表示",
+    localeFixCount: "{locale}: {count} 件の修正が必要",
+    localeFixBreakdown:
+      "{locale}: タイトル {titles} · 概要 {summaries} · slug {slugs}",
+    moreLocales: "他 {n} locale",
+    duplicateFixCount: "{n} 件の重複タイトルグループを一意にしてください",
+    openCollectionAction: "{name} CMS を開く",
+    metricTitles: "タイトル",
+    metricSummaries: "概要",
+    metricLaunchBlockers: "タイトル/概要 blockers",
+    metricRowFixes: "対象 CMS 行",
+    metricSlugs: "slug",
+    metricDuplicates: "重複",
     downloadCsv: "CSV をダウンロード",
     empty: "CMS Collection が見つかりません。",
+    detailsHint:
+      "Collection を開き、下に表示された行を Framer CMS で修正してから再スキャンしてください。",
+    csvHint:
+      "CSV は行別の修正リストです。row id、タイトル、default slug、locale、欠けているフィールド、重複タイトルの印を含みます。",
+    manualHint:
+      "プロジェクト Owner でも CMS を編集できます。タップしてもパネルが開かない場合は、Framer 左の CMS から同じ Collection を選んでください（canvas プラグインは選択のみのことがあります）。",
+    rowIssuesTitle: "修正する行",
+    defaultSlug: "Slug: /{slug}",
+    moreRowIssues: "CSV に他 {n} 件の行別修正があります",
+    duplicateRowsTitle: "重複タイトル",
+    duplicateRowsShared: "{n} 行が同じタイトルを使用",
+    moreDuplicateGroups: "CSV に他 {n} 件の重複グループがあります",
+    openInFramer: "Framer CMS で {name} を開く",
+    opened:
+      "Framer CMS で {name} を開きました。プラグインは開いたままです。「戻る」でダッシュボードに戻れます。",
+    openedSelectOnly:
+      "{name} を選択しました。CMS パネルが見えない場合は Framer 左の CMS タブを開いてください。",
+    openManualSteps:
+      "画面を自動で切り替えられませんでした。Framer で左の CMS を開き、「{name}」を選び、ja / ko / fr などのフィールドを編集してください。",
   },
 
   verify: {
     title: "公開サイト検証",
+    ringLabel: "LIVE",
+    heroEyebrow: "公開 QA",
+    statusIdle: "検証の準備完了",
+    statusReady: "引き渡し可能",
+    statusWarnings: "警告つきで引き渡し可能",
+    statusNotReady: "まだ引き渡し非推奨",
+    summaryLine: "{fail} 失敗 · {warn} 警告 · {pass} 成功",
+    emptySummaryLine: "ホーム · Schema · Meta · llms パス",
+    heroBody:
+      "公開後のホームページ、JSON-LD、meta description、各 llms.txt パスが実際に到達可能か確認します。",
+    metricFailures: "公開失敗",
+    metricLlms: "llms ファイル",
+    metricSchema: "JSON-LD",
+    metricMeta: "Meta description",
+    metricOk: "OK",
+    metricReview: "確認",
     siteUrl: "公開サイト URL",
+    helperShort:
+      "公開済みの本番 URL を入力してください。llms.txt のアップロードや Schema 再インストール後に再検証します。",
     helper:
-      "公開後に実行します。一部のサイトはプラグイン内ブラウザからの取得をブロックするため、その場合は手動チェックリストとして使ってください。",
+      "公開後に実行します。検証は Polyglot サーバー経由で公開 URL を取得します（License API と同じベース）。llms.txt は Framer Static Files にアップロードして再公開してください。",
     run: "公開サイトを検証",
+    runShort: "検証",
+    rerun: "再検証",
     running: "検証中…",
     results: "結果",
+    copyReport: "レポートをコピー",
+    downloadReport: "レポートをダウンロード",
+    reportCopied: "公開サイト検証レポートをコピーしました。",
+    reportDownloaded: "公開サイト検証レポートをダウンロードしました。",
+    verifyFailed: "検証に失敗しました: {error}",
+    lastChecked: "最終検証: {time} / {url}",
+    beforeRunTitle: "検証内容",
+    beforeRunBody:
+      "引き渡し直前に使います。プラグインで生成した AEO アセットが Framer の公開サイトに反映されているか確認します。",
+    checkHomepage: "ホーム HTML",
+    checkSchema: "JSON-LD script",
+    checkMeta: "Meta description",
+    checkLlms: "llms.txt パス",
+    fixFirst: "引き渡し前に修正",
+    passedChecks: "成功したチェック",
+    openTool: "ツールを開く",
+    openSchemaAudit: "Schema 監査を開く",
+    openLlmsGenerator: "llms.txt 生成を開く",
+    openMetaGenerator: "Meta 生成を開く",
     homepage: "ホームページ到達",
     homepageOk: "ホームページ HTML を HTTP {status} で取得しました。",
     homepageBlocked:
-      "プラグイン内ブラウザからホームページを読み取れませんでした。URL を手動で開き、ソースを確認してください。",
+      "ホームページを読み取れませんでした。URL を手動で開き、ソースを確認してください。",
+    homepageBlockedNoProxy:
+      "クロスオリジンで取得できません。.env に VITE_LICENSE_API_BASE（Worker の /verify-fetch）を設定して再試行するか、ブラウザで手動確認してください。",
+    homepageHttpError:
+      "ホームページが HTTP {status} を返したため HTML を解析できません。",
+    invalidUrl: "https:// で始まる公開サイト URL を入力してください。",
     schema: "JSON-LD あり",
     schemaOk: "ホームページに有効な JSON-LD script が {n} 件見つかりました。",
     schemaParseWarning: "{n} 件の JSON-LD script を解析できませんでした。",
@@ -269,7 +429,16 @@ export const ja: Translations = {
     llmsOk: "/llms.txt が HTTP {status} を返しました。",
     llmsLocaleOk: "/{filename} が HTTP {status} を返しました。",
     llmsLocaleMissing: "/{filename} に到達できません。",
-    llmsMissing: "/llms.txt に到達できません。Framer Static Files にアップロードして再公開してください。",
+    llmsFetchBlocked:
+      "/{filename} を読み取れません（クロスオリジン）。Worker プロキシを設定して再試行するか、ブラウザでパスを開いてください。",
+    llmsLocale404:
+      "/{filename} が 404 を返しました。Framer → Domains → Files にアップロードして再公開してください。",
+    llmsHttpError: "/{filename} が HTTP {status} を返しました。",
+    llmsMissing:
+      "/llms.txt が 404 を返しました。Framer Static Files にアップロードして再公開してください。",
+    proxyHint:
+      "開発ビルド：VITE_LICENSE_API_BASE に License Worker の URL を設定し、/verify-fetch 経由で取得してください。未設定時はブラウザから live サイトを読めません — CORS 制限であり、ファイル未配置の証明ではありません。",
+    proxyHintTitle: "Worker プロキシ未設定",
   },
 
   schema: {
@@ -279,17 +448,62 @@ export const ja: Translations = {
       heroTitle: "AI が全ページの Schema を提案",
       heroBody:
         "Polyglot AEO が Framer プロジェクトをスキャンし、各ページに最適な Schema タイプを判定。フィールドを抽出し、有効な各言語向けに本格的に翻訳します（inLanguage の書き換えだけではありません）。",
+      wizardTimeHint: "初回スキャンはサイト規模により通常 3〜5 分です。",
       providerLabel: "AI プロバイダー",
       modelLabel: "モデル",
+      auditSetupTitle: "監査設定",
+      auditSetupEyebrow: "準備状況",
+      auditSetupSnapshotEyebrow: "インストール済み",
+      auditSetupHelper:
+        "インストール前に、カバレッジ、確認リスク、locale アセット、AI コスト見積もりを確認します。",
+      auditSetupSnapshotHelper:
+        "インストール済みの JSON-LD はそのままです。再スキャンすると確認キューを復元し、現在の Framer コンテンツと比較できます。",
+      summaryScanning: "スキャン中…",
+      summaryNeedsReview: "インストール前に確認",
+      summaryReady: "インストール可能",
+      summaryNoInstallable: "インストール可能な Schema がありません",
+      summaryInstalled: "インストール済みスナップショット",
+      summaryNotScanned: "未スキャン",
+      summaryLine: "{enabled} 有効 · {review} 要確認",
+      summarySnapshotLine: "{blocks} ブロック済み · {locales} locale",
+      summaryEmptyLine:
+        "Pro を有効化してスキャンすると、提案キューを作成します。",
+      blocksRingLabel: "blocks",
+      installedBlocksMetric: "インストール済み",
+      localeVariantsMetric: "locale",
+      reviewQueueMetric: "再スキャンで復元",
+      scanNeededMetricValue: "—",
+      enabledPagesMetric: "有効ページ",
+      estimatedCostMetric: "推定コスト",
       translateContentLabel: "全言語にコンテンツを翻訳",
       translateContentHelper:
         "デフォルト以外の言語でも headline・description・本文をネイティブに生成します。inLanguage だけでは足りない、本物のローカライズ JSON-LD を出力します（少額の AI 費用が発生）。",
-      aiNeeded: "AI スキャンを使うには「設定」で API キーを登録してください。",
+      aiNeeded: "AI スキャンを使うには「設定」で Pro を有効化してください。",
       scanButton: "サイトをスキャン",
       rescan: "再スキャン",
       scanning: "サイトをスキャン中…",
       scanProgress: "{current} / {total}",
       translateProgress: "翻訳中 {current} / {total}",
+      progressSiteTitle: "Framer プロジェクトを読み込み中",
+      progressSiteHelper:
+        "ページ、CMS レコード、locale、インストール済み Schema ブロックを読み込んでいます。",
+      progressAiTitle: "AI で Schema 提案を作成中",
+      progressAiHelper:
+        "モデルがページ種別を判定し、JSON-LD を作成しています。無料枠やサブスク枠は混雑時に遅くなることがあります。",
+      progressTranslateTitle: "Schema コンテンツをローカライズ中",
+      progressTranslateHelper:
+        "デフォルト以外の言語向けに headline、description、本文を自然な表現で生成しています。",
+      progressCurrentItem: "現在の項目",
+      progressProvider: "プロバイダー",
+      progressModel: "モデル",
+      progressCalls: "進捗",
+      progressPreparing: "準備中",
+      progressReadingFramer: "プロジェクトデータを読み込み中",
+      progressWaitingForProvider: "プロバイダーの応答待ち",
+      progressSlowTitle: "通常より時間がかかっています",
+      progressSlowHelper:
+        "よくある原因は、プロバイダーのレート制限、残高不足、遅いモデル、大きなページです。Settings → Test key、より速いモデルへの切替、または locale 翻訳をオフにして再スキャンしてください。",
+      homepageLabel: "ホームページ",
       scanCalls: "スキャン呼び出し",
       translateCalls: "翻訳呼び出し",
       scanFailed: "スキャン失敗：{error}",
@@ -297,16 +511,18 @@ export const ja: Translations = {
       partial: "一部のページを読み取れませんでした。再スキャンしてください。",
       scanSummary: "{n} ページをスキャンしました。",
       snapshotTitle: "前回のインストール",
-      snapshotInstalledAt:
-        "{time} · {locales} 言語 · 計 {n} ブロック",
+      snapshotInstalledAt: "{time} · {locales} 言語 · 計 {n} ブロック",
       snapshotChanges: "{n} 件 変更あり",
       snapshotAdded: "{n} 件 新規",
       snapshotRemoved: "{n} 件 削除",
       snapshotUpToDate: "最新の状態",
+      snapshotNeedsUpdate: "更新が必要",
       snapshotRescanHint:
         "前回インストールしてからの変更を検出するには再スキャンしてください。",
       snapshotSessionListHint:
         "提案リストはこのパネルを開いている間だけ保持されます。戻ったあとは下の「サイトをスキャン」で復元してください。インストール済みの JSON-LD は変わりません。",
+      snapshotRestoreHintShort:
+        "再スキャンで提案キューを復元できます。インストール済み JSON-LD は変わりません。",
       snapshotResetByDrift:
         "Custom Code から polyglot-aeo ブロックが消えています — インストール記録をリセットしました。",
       identityCardTitle: "ブランド情報",
@@ -326,16 +542,25 @@ export const ja: Translations = {
       identityCardLogoLabel: "ロゴ URL",
       identityCardUrlLabel: "サイト URL",
       identityCardTranslationsCount: "{n} 言語に翻訳済み",
-      identityCardNoTranslations:
-        "次回のスキャン時に他の言語へ翻訳します。",
+      identityCardNoTranslations: "次回のスキャン時に他の言語へ翻訳します。",
       identityPartialTranslate:
         "{n} 言語のブランド情報を翻訳できませんでした。インストール時はソース言語のブランド名が使用されます。",
       proposalsTitle: "提案された Schema",
       proposalsCount: "有効 {enabled} / {total}",
+      reviewQueueSummary: "{enabled} 有効 · {review} 要確認",
+      installScope: "{n} ブロック · {proposals} ページ × {locales} locale",
+      installScopeWithReview:
+        "{n} ブロック · {proposals} ページ × {locales} locale · {review} 件 要確認",
+      installScopeDisabled:
+        "インストールするには、少なくとも 1 件の提案を有効にしてください。",
       proposalConfidence: "信頼度 {n}%",
       proposalLowConfidence: "信頼度が低いです。内容をご確認ください。",
       proposalAiError:
         "AI がこのページを解析できませんでした。デフォルトで無効化しています。",
+      proposalAiProviderBilling:
+        "AI プロバイダー側でスキャンが止まりました。残高を追加するかプロバイダーを切り替えて、再スキャンしてください。",
+      proposalAiErrorNoResponse:
+        "モデルの応答が空、または JSON として解釈できませんでした。再スキャンするか、設定でマネージド AI の状態を確認してください。",
       proposalReviewBadge: "要確認",
       translationWarning: "{n} 件のセルを再翻訳してください。",
       translationHealthTitle: "翻訳の品質",
@@ -354,8 +579,10 @@ export const ja: Translations = {
       footerReinstallShort: "再インストール",
       footerInstallShort: "インストール",
       footerUpdateInstallShort: "更新インストール",
-      footerInstallTitle:
-        "{n} ブロック · {proposals} ページ × {locales} 言語",
+      footerInstallSelected: "{n} 件をインストール",
+      footerReinstallSelected: "{n} 件を再インストール",
+      footerUpdateSelected: "{n} 件を更新",
+      footerInstallTitle: "{n} ブロック · {proposals} ページ × {locales} 言語",
       footerReinstallTitle:
         "{n} ブロック · {proposals} ページ × {locales} 言語。{hint}",
       installSuccessWithUntranslated:
@@ -365,7 +592,8 @@ export const ja: Translations = {
       cardUntranslated: "再翻訳が必要：{locales}",
       cardRetry: "再翻訳 ({n})",
       cardRetrying: "翻訳中…",
-      cardRetryHint: "このページで失敗した言語だけを再翻訳して再インストールします。",
+      cardRetryHint:
+        "このページで失敗した言語だけを再翻訳して再インストールします。",
       retryFailed: "{n} 件のセルを再翻訳",
       retryFailedBusy: "再翻訳中…",
       retryAllOk: "{n} 件すべて翻訳成功。再インストールしました。",
@@ -382,7 +610,7 @@ export const ja: Translations = {
         "見出しと説明がデフォルト言語と完全に同じです。AI が英語をそのまま返したのに inLanguage だけこのロケールになっています。より強いモデルで再翻訳するか、Framer で手動翻訳してください。",
       untranslatedReasonHintAiError:
         "AI の応答が欠落しているか JSON として無効でした。再翻訳するか、フィールドを手動で入力してください。",
-      enableAll: "すべて有効",
+      enableAll: "安全な項目を有効",
       disableAll: "すべて無効",
       filterSearchPlaceholder: "URL またはページ名で検索…",
       filterNoMatch: "条件に一致する提案がありません。",
@@ -416,6 +644,7 @@ export const ja: Translations = {
       installUndoDone: "インストール前の Custom Code に復元しました。",
       installUndoFailed: "復元失敗：{error}",
       editorOpen: "フィールドを編集",
+      editorReview: "フィールドを確認",
       editorHelper:
         "この {kind} スキーマを微調整します。保存すれば次回のインストールから反映されます。種類自体を変更する場合は手動モードへ。",
       editorReset: "AI の提案に戻す",
@@ -446,14 +675,16 @@ export const ja: Translations = {
     previewEmpty: "上で言語を 1 つ以上選んでください。",
     installButton: "{n} 個の block をインストール",
     installButtonPlural: "{n} 個の block をインストール",
-    installSuccess: "Custom Code に {n} 個の schema block をインストールしました。",
+    installSuccess:
+      "Custom Code に {n} 個の schema block をインストールしました。",
     installSuccessWithPreserved:
       "{n} 個の schema block をインストール。既存の Custom Code（{bytes} バイト）は完全に保持されました。",
     installFailed: "インストール失敗：{error}",
     selectLocaleWarning: "言語を 1 つ以上選んでください。",
     kinds: {
       Article: "Article",
-      ArticleHelper: "ブログ、ニュース、長文。AI Overviews 引用に最も効きます。",
+      ArticleHelper:
+        "ブログ、ニュース、長文。AI Overviews 引用に最も効きます。",
       Product: "Product",
       ProductHelper: "EC 商品。価格、ブランド、評価などを含めます。",
       LocalBusiness: "Local Business",
@@ -496,6 +727,28 @@ export const ja: Translations = {
 
   llms: {
     title: "多言語 llms.txt",
+    wizardTimeHint: "設定・ソース・生成でおよそ 3〜5 分。",
+    setupHeroEyebrow: "設定",
+    setupHeroTitle: "サイトを一度だけ説明し、各 locale のファイルを生成。",
+    setupHeroBody:
+      "このプロフィールは各 llms.txt の冒頭に入り、CMS とページセクションの前に表示されます。",
+    outputFilesLabel: "生成されるファイル",
+    outputFilesMore: "+{n} 件",
+    setupFilesMetric: "{n} ファイル",
+    setupFilesMetricHelper: "locale ごとに 1 つ",
+    setupTimeMetric: "3〜5 分",
+    setupTimeMetricHelper: "設定から生成まで",
+    siteProfileTitle: "サイトプロフィール",
+    setupAutoSaveBadge: "下書き保存済み",
+    setupEditHint: "編集",
+    aiRefine: "AI で整える",
+    outputPreviewTitle: "出力プレビュー",
+    outputPreviewHelper:
+      "ファイル冒頭は準備済みです。次に CMS Collection と静的ページをセクションとして選びます。",
+    outputPreviewReady: "準備完了",
+    outputNextTitle: "次へ：コンテンツソースを選択",
+    outputNextBody:
+      "CMS Collection と静的ページを、生成ファイル内の独立セクションとして追加します。",
     siteInfoTitle: "サイト情報",
     siteName: "サイト名",
     siteNamePlaceholder: "Acme Studio",
@@ -504,8 +757,7 @@ export const ja: Translations = {
       "Acme はデザイナー向けツールを作るグローバルプロダクトスタジオ。",
     baseUrl: "ベース URL",
     baseUrlPlaceholder: "https://acme.com",
-    localizedPathsLabel:
-      "デフォルト以外の言語にスラッグを前置（Framer 標準）",
+    localizedPathsLabel: "デフォルト以外の言語にスラッグを前置（Framer 標準）",
     longDescription: "ロングディスクリプション",
     longDescriptionOptional: "（任意）",
     longDescriptionHelper:
@@ -521,8 +773,20 @@ export const ja: Translations = {
     longSuggestKeywordsPlaceholder:
       "例：技術的な強みを推す、対象は product-led スタートアップ…",
     suggestAppliedLong: "ロングディスクリプションを更新しました。",
-    aiPanelHeader: "AI アシスタント · {field}",
+    aiPanelHeader: "AI 改善 · {field}",
     aiPanelKeywordsLabel: "AI に強調してほしい点は？（任意）",
+    aiQuickLabel: "AI クイック指示",
+    aiQuickTighter: "短く整える",
+    aiQuickTighterInstruction: "より短く、引き締まった表現にする",
+    aiQuickAeo: "AEO 向けに",
+    aiQuickAeoInstruction:
+      "回答エンジンや AI クローラーが理解しやすい表現にする",
+    aiQuickBrand: "ブランドらしく",
+    aiQuickBrandInstruction: "より独自性があり、ブランドに合う語調にする",
+    aiAdvancedSettings: "AI 詳細設定",
+    aiResultCurrent: "現在",
+    aiResultSuggested: "提案",
+    aiKeepOriginal: "元のまま",
     cmsSourceTitle: "CMS ソース（任意）",
     collectionLabel: "Collection",
     collectionNone: "— 使わない（サイトサマリーのみ） —",
@@ -571,7 +835,8 @@ export const ja: Translations = {
       "静的ページが見つかりません。（CMS Collection に紐づくページは、上の「CMS ソース」から追加します。）",
     pagesHomepageBadge: "ホーム",
     aiTranslatingPages: "{locale} 向けに {n} 件のページを翻訳中…",
-    aiTranslatingLongDescription: "{locale} 向けにロングディスクリプションを翻訳中…",
+    aiTranslatingLongDescription:
+      "{locale} 向けにロングディスクリプションを翻訳中…",
     longDescriptionFlagPill: "ロングディスクリプションが未ローカライズ",
     longDescriptionFlagHintMixedScript:
       "AI が訳したロングディスクリプションに対象 locale と異なるスクリプトが混入していたため、デフォルト locale 版を残しました。より強いモデルで再試行してください。",
@@ -584,18 +849,22 @@ export const ja: Translations = {
       "各ファイルをホスティング層の対応するパスにアップロードしてください（例：{default}、{localized}）。",
     deployTitle: "Framer サイトへのデプロイ方法",
     deployPlanBadge: "Framer Pro+ が必要",
+    deployFileReady: "1 個のファイルが準備済み",
+    deployFilesReady: "{n} 個のファイルが準備済み",
+    deployFilesLabel: "生成済み llms.txt ファイル",
     deployStepDownload:
-      "上の各ファイルで「ダウンロード」を押してローカルに保存（または「コピー」で他所に貼り付け）。",
+      "「生成結果」に戻り、各生成ファイルをダウンロードまたはコピーします。",
     deployStepFramer:
       "Framer Dashboard → 左側 Domains → ご自身のドメイン → Files タブで、各ファイルをルートパスにアップロード。",
     deployStepFramerLink: "Framer 公式ガイドを見る →",
     deployStepPublish:
-      "サイトを Publish。/llms.txt、/llms-zh-cn.txt などのパスから配信が開始されます。",
+      "サイトを Publish。/llms.txt と生成された各 locale パスで配信されます。",
     deployOtherHosting:
       "Static Files は Framer Pro+ プランの機能です。Basic／Free プランで llms.txt を配信するには、独自ホスティング（カスタムドメインの前段に Cloudflare Workers を置くなど）で {default}、{localized} に配置する必要があります。",
     setSiteFirst: "先にサイト名とベース URL を入力してください。",
     generationFailed: "生成失敗：{error}",
-    configSaveFailed: "下書きを保存できませんでした。離れる前に再試行してください。",
+    configSaveFailed:
+      "下書きを保存できませんでした。離れる前に再試行してください。",
     copySuccess: "コピーしました。",
     generateSuccess: "{n} 個のファイルを生成しました。",
     skippedLocalizedPill: "{n} 件をスキップ",
@@ -608,8 +877,12 @@ export const ja: Translations = {
     aiTranslateToggle: "未翻訳の項目を AI で翻訳する",
     aiTranslateHelper:
       "ローカライズ済みタイトルのない CMS 項目を、選択した AI モデルに翻訳してもらいます。翻訳結果は生成される llms.txt にのみ反映され、CMS の元データは変更されません。",
+    aiTranslateProTitle: "各ロケール向けの自然な AI 翻訳",
+    aiTranslateProHelper:
+      "無料版ではギャップを確認できます。Pro では生成前に llms.txt の不足項目を AI で補完できます。",
+    aiTranslateUnlock: "アップグレード",
     aiProviderKeyMissing:
-      "自動翻訳を使うには、設定で {provider} の API キーを追加してください。",
+      "自動翻訳を使うには、設定で Pro を有効化して {provider} を利用してください。",
     aiTranslatingProgress: "{locale} の {n} 件を翻訳中…",
     aiTranslatingHeader: "{locale} のサイト概要を翻訳中…",
     headerFlagPill: "サイト概要が未ローカライズ",
@@ -629,7 +902,8 @@ export const ja: Translations = {
     regenerateLocaleBusy: "再生成中…",
     regenerateLocaleHint:
       "{locale} のファイルだけ AI 翻訳を再実行します。失敗した項目はもう一度試行され、他のロケールは影響を受けません。",
-    regenerateLocaleSuccess: "{locale} を再生成しました。すべてのチェックに合格。",
+    regenerateLocaleSuccess:
+      "{locale} を再生成しました。すべてのチェックに合格。",
     regenerateLocaleStillFailed:
       "{locale} を再生成しましたが、品質チェックに合格しない項目が残っています。より強いモデルをお試しください。",
     regenerateLocaleNotFound:
@@ -653,15 +927,23 @@ export const ja: Translations = {
     suggestOptimizeAction: "下書きを最適化",
     suggestRetry: "もう一度試す",
     suggestUse: "使用する",
+    suggestUseAnyway: "そのまま使用",
+    suggestNotUsable: "使用しない",
+    suggestNotUsableHint:
+      "提案が元の文と近すぎるか、品質チェックを通過しませんでした。再試行するかモデルを切り替えてください。",
     suggestBusy: "AI に問い合わせ中…",
     suggestApplied: "サイト概要を更新しました。",
     suggestResultTitle: "AI の提案",
     suggestLowQualityPill: "信頼度低",
     suggestLowQualityHint:
-      "出力が品質チェックを通過しませんでした（デフォルトロケールの文字種が不一致、または下書きとほぼ同一）。そのまま使えますが、より強力なモデルを試すのを推奨します。",
+      "出力が品質チェックを通過しませんでした。指示を強めて再試行するか、より強力なモデルに切り替えてください。",
+    suggestNoChangeHint:
+      "モデルが下書きとほぼ同じ文言を返しました。有効な最適化ではないため、再試行するか、より具体的な指示または別モデルを試してください。",
     suggestFailed: "AI 提案に失敗：{error}",
-    suggestNoDefaultLocale: "デフォルトロケールが見つかりません。Framer プロジェクトに少なくとも 1 つのロケールを設定してください。",
-    suggestNeedsSiteName: "まずサイト名を入力してください。AI はこれを主要な手がかりにします。",
+    suggestNoDefaultLocale:
+      "デフォルトロケールが見つかりません。Framer プロジェクトに少なくとも 1 つのロケールを設定してください。",
+    suggestNeedsSiteName:
+      "まずサイト名を入力してください。AI はこれを主要な手がかりにします。",
     suggestModelHint:
       "ヒント：一行サマリの生成には、推論を行わない高速モデル（Claude Haiku、GPT-4o-mini、DeepSeek-V3、GLM-4-Plus など）で十分です。Thinking 系モデルは内部推論にトークンを多く使い、回答に到達する前に打ち切られることがあります。",
     stepNavLabel: "llms.txt の手順",
@@ -672,12 +954,17 @@ export const ja: Translations = {
       deploy: "デプロイ",
     },
     stepNext: "次へ",
+    stepNextSources: "次へ：コンテンツソース",
     stepBack: "戻る",
     stepGenerate: "{n} 個のファイルを生成",
+    stepGenerateDefault: "デフォルトの llms.txt を生成",
     goToDeploy: "次へ：デプロイ",
     backToReview: "結果に戻る",
+    deployDone: "完了",
+    reviewFileCountOne: "1 個のファイル",
     reviewFileCount: "{n} 個のファイル",
     reviewLocaleNeedsAttention: "{locale} 要確認（CMS {n} 件）",
+    reviewLocaleNeedsAttentionNoCount: "{locale} 要確認",
     reviewLocaleTabs: "生成ファイルのロケール",
     reviewEmpty: "ファイルを生成すると、ここに結果が表示されます。",
     reviewNoIssues: "このロケールに問題はありません。",
@@ -686,10 +973,32 @@ export const ja: Translations = {
     configChangedHint:
       "前回の生成以降に設定が変わりました。ファイルを更新するには再生成してください。",
     regenerateAll: "すべて再生成",
+    regenerateDefault: "デフォルトを再生成",
     setupOptionalTitle: "オプション",
     setupAiEnabled: "オン",
     stepProgress: "{current}/{total} · {label}",
     sourcesTitle: "コンテンツソース",
+    sourcesSelectedPill: "{n} 件選択",
+    sourcesHeroTitle: "各ファイルに含める内容を選択",
+    sourcesHeroBody:
+      "選択した CMS コレクションと静的ページが、各ロケールファイルのセクションになります。",
+    freePlanPill: "無料",
+    freeDefaultGenerateHint:
+      "無料版では llms.txt のみ生成します。Pro で {n} 個すべてのロケールファイルを生成できます。",
+    multiLocaleProTitle: "無料版ではまずデフォルトファイルを生成",
+    multiLocaleProHelper:
+      "このプロジェクトには複数ロケールがあります。今すぐ llms.txt を生成できます。Pro では llms-ja.txt、llms-ko.txt など各ロケールのファイルとネイティブ AI 翻訳を利用できます。",
+    multiLocaleProAction: "ロケールファイルを解放",
+    collectionShortHelper:
+      "選択したコレクションは、この順序で ## セクションになります。",
+    pagesShortHelper:
+      "About、Services、Contact、Support などの静的ページを追加します。",
+    pagesLoadedHelper:
+      "{n} 件の静的ページを読み込み済みです。Framer のページ一覧が変わった場合だけ再スキャンしてください。",
+    pagesRememberedHelper:
+      "前回選択した {n} 件のページを記憶しています。再スキャンすると現在の名前とパスを復元できます。",
+    pagesRememberedNotLoaded:
+      "前回のページ選択は保存されていますが、このセッションではページ一覧をまだ読み込んでいません。生成前に再スキャンして、最新のページタイトルと URL を使ってください。",
     cmsFoldSummary: "CMS · {n} 件選択",
     pagesFoldSummary: "ページ · {n} 件選択",
     showMoreCollections: "+ あと {n} 件の Collection",
@@ -698,23 +1007,63 @@ export const ja: Translations = {
   meta: {
     title: "Meta 文案生成",
     sourceTitle: "ソースページ",
+    setupHeroEyebrow: "設定",
+    setupHeroTitle: "1 ページを説明し、全言語の Meta を生成。",
+    setupHeroBody:
+      "このページ情報から、各言語のタイトル、説明、SNS プレビュー文案を作ります。",
+    setupFiles: "生成される Meta フィールド",
+    setupFileDefault: "Title",
+    setupFileSearch: "Description",
+    setupFileSocial: "OG/Twitter",
+    setupLocaleOne: "1 言語",
+    setupLocaleMany: "{n} 言語",
+    setupLocalesStat: "言語",
+    setupContextStat: "文脈語数",
+    sourceProject: "プロジェクトページ",
+    sourceManual: "手動コンテキスト",
+    sourceProjectReady: "ページ一覧を読み込み済み",
+    sourceProjectSelected: "プロジェクトページ · {title}",
+    sourceCurrent: "ソース",
+    contextThinTitle: "コンテキストが短すぎます",
+    contextThinBody:
+      "このページの対象者、提供内容、重要な理由を足すと、より具体的な Meta になります。",
+    utilityPageTitle: "ユーティリティページの可能性があります",
+    utilityPageBody:
+      "404、プライバシー、規約ページは通常マーケティング Meta の対象ではありません。続行できますが、品質確認にはサービスページやランディングページの方が適しています。",
+    aiModelTitle: "AI モデル",
+    aiModelBody:
+      "このステップの ✨ 改善と、次のステップの各言語生成に使います。",
+    outputPreviewTitle: "出力プレビュー",
+    outputReady: "準備完了",
+    outputNeedsContext: "コンテキストが必要",
+    outputPreviewBody:
+      "次にプロバイダーとモデルを選び、検索用・SNS 用フィールドを生成します。",
+    outputNextTitle: "次：Meta を生成",
+    outputNextBody: "このページ情報から {n} 言語分の文案を生成します。",
+    outputNextBodyOne: "このページ情報から 1 言語分の文案を生成します。",
     pageFlowIntro:
       "プロジェクトからページを読み込み、1 つ選び、内容を確認してから生成に進みます。",
     pageFlowTitle: "ページ設定の手順",
     pageFlowLoad: "プロジェクトからページを読み込む",
     pageFlowLoadDone: "ページを読み込み済み",
+    pageFlowLoadShort: "読込",
+    pageFlowLoadDoneShort: "読込済",
     pageFlowLoadHint:
       "Framer の静的ページ一覧を取得します。URL を手入力する必要はありません。",
     pageFlowSelect: "対象ページを選ぶ",
     pageFlowSelectDone: "選択済み：{title}",
+    pageFlowSelectShort: "選択",
+    pageFlowSelectDoneShort: "選択済",
     pageFlowSelectHint:
       "選ぶとページのテキストが「ページコンテキスト」に入ります。",
     pageFlowSelectPlaceholder: "ページを選択…",
     pageFlowManual: "読み込まず手入力する",
     pageFlowManualDone: "手入力",
+    pageFlowManualDoneShort: "手入力",
     pageFlowBackToPick: "プロジェクトから選び直す",
     pageFlowRescan: "一覧を再読み込み",
     pageFlowContent: "ページ情報を確認",
+    pageFlowContentShort: "確認",
     pageFlowContentHint:
       "概要は編集できます。コンテキスト入力後に ✨ AI 補完が使えます。",
     pageFlowSelectedPage: "対象：{title}（{path}）",
@@ -722,8 +1071,11 @@ export const ja: Translations = {
     stepNextNeedLoad: "先にプロジェクトからページを読み込んでください。",
     stepNextNeedSelect: "ページを選ぶか、手入力に切り替えてください。",
     stepNextNeedContext: "ページコンテキストを入力してから次へ進んでください。",
+    stepNextLoadFirst: "先にページを読み込む",
+    stepNextSelectFirst: "先にページを選ぶ",
+    stepNextAddContext: "先にページ情報を入力",
     generateNeedKey:
-      "設定で {provider} の API キーを追加するか、キー設定済みのプロバイダーを選んでください。",
+      "設定で Pro を有効化すると、{provider} で生成できます。",
     stepNavLabel: "Meta ワークフローのステップ",
     step: {
       page: "ページ",
@@ -731,21 +1083,46 @@ export const ja: Translations = {
       review: "Framer にコピー",
     },
     stepNext: "次へ",
+    stepNextGenerate: "次：Meta を生成",
     stepBack: "戻る",
     stepProgress: "{current}/{total} · {label}",
+    reviewHeroEyebrow: "コピー引き渡し",
+    reviewHeroTitle: "この言語を Framer にコピー",
+    reviewHeroBody:
+      "生成されたフィールドをコピーし、キャンバスを表示して、このページ設定の現在の言語に貼り付けます。",
+    reviewCurrentPage: "ページ",
+    reviewCurrentLocale: "言語",
+    reviewCopiedProgressLabel: "コピー済み",
+    reviewCopiedProgress: "{done} / {total} 言語",
+    copyAllFields: "この言語の全項目をコピー",
+    copyAllFieldsDone: "コピー済み",
+    copyAllFieldsAgain: "もう一度コピー",
+    openFramerSettings: "Framer キャンバスを表示",
+    applyFoldTitle: "貼り付け場所が分からない場合",
+    reviewMoreActions: "ダウンロードと再生成",
+    copyFieldsTitle: "コピーするフィールド",
+    localeCopied: "この言語はコピー済み",
+    finishHandoff: "引き渡しを完了",
+    finishUncopiedConfirm:
+      "{total} 言語中 {done} 言語のみコピー済みです。それでも完了しますか？",
+    regenerateAllConfirm:
+      "すべての言語を再生成しますか？現在の生成文案は置き換えられます。",
     reviewIntro:
-      "各言語のタイトル・説明・SNS タグは下にあります。Framer はプラグインから書き込めないため、言語ごとにページ設定へ貼り付けてください。",
+      "Framer はまだページ SEO をプラグインから書き込めません。各言語の Page settings に貼り付けてください。",
     reviewDone: "完了",
     sessionRestored:
       "前回生成した Meta を復元しました。Framer へのコピーを続けられます。",
-    applyNotSeoTab: "「SEO」メニューも、F メニュー内の Page settings もありません",
+    sessionRestoredStale:
+      "前回の生成結果を復元しました。ステップ 1 の入力が変わっている場合は、貼り付け前に内容を確認してください。",
+    applyNotSeoTab:
+      "F メニューにページ別 SEO 設定はありません",
     applySiteVsPage:
-      "F → Site settings の一覧（General、Custom Code など）はサイト全体用です。ページ別 Meta はキャンバス左の Pages リストから開きます（次の手順）。General の Title/Description はデフォルトであり、言語別の文案の代わりにはなりません。",
+      "F → Site settings はサイト全体用です。ページ別 Meta はキャンバス左の Pages リストから開き、言語ごとに貼り付けます。",
     applyPageFallback: "対象ページ",
     applyStepOpenPagePanel:
       "ページ「{page}」の設定を開く（上部に Title と Page Description）。",
     applyStepOpenPagePanelHow:
-      "プラグインを閉じるか小さくする → 左の Pages アイコン → リストでページ（例 Home）にホバー → ⋯ → Settings。Title と Page Description はそのパネル上部です。",
+      "プラグインを小さくし、左の Pages リストでページにホバー → ⋯ → Settings。",
     applyStepFieldMapping:
       "プラグインの Title → Framer の Title、Meta description → Page Description。OG/Twitter は同じパネルのソーシャル欄へ。",
     applyStepFramerMetaDocs: "Framer 公式：ページのタイトルと説明 →",
@@ -754,9 +1131,12 @@ export const ja: Translations = {
     pickPageManual: "手動入力のみ",
     scanPages: "プロジェクトからページを読み込む",
     scanningPages: "ページをスキャン中…",
-    pagesScanPartial: "一部のページを読み取れませんでした。リストが不完全な場合があります。",
-    noStaticPages: "静的ページが見つかりません。コンテキストを手動で入力してください。",
-    pageLoadFailed: "ページ内容を読み取れませんでした。手動で編集してください。",
+    pagesScanPartial:
+      "一部のページを読み取れませんでした。リストが不完全な場合があります。",
+    noStaticPages:
+      "静的ページが見つかりません。コンテキストを手動で入力してください。",
+    pageLoadFailed:
+      "ページ内容を読み取れませんでした。手動で編集してください。",
     homepageBadge: "ホーム",
     suggestPageTypeHint: "コンテキストからページタイプを提案",
     pageTypeHelper:
@@ -771,8 +1151,7 @@ export const ja: Translations = {
     suggestActionImprove: "改善",
     suggestSameBadge: "現在と同じ",
     suggestSameAsCurrent:
-      "AI も現在の入力（{value}）で問題ないと判断しました。置き換え不要です。",
-    suggestSameDismiss: "了解",
+      "AI も現在の入力（{value}）で問題ないと判断しました。置き換え不要です。「次へ」で進めます。",
     suggestSameApplied: "すでに同じ値です。",
     suggestRetryFresh: "再推定",
     suggestChangeFrom: "変更案：{from} → {to}",
@@ -799,28 +1178,75 @@ export const ja: Translations = {
     modelTitle: "モデル",
     providerClaude: "Claude",
     providerOpenAi: "GPT-4o-mini",
-    providerKeyMissing: "設定で {provider} の API キーを追加してください。",
+    providerKeyMissing: "設定で Pro を有効化すると、{provider} を利用できます。",
     estimatedCost: "推定コスト",
+    estimatedCostListedOne:
+      "見積もり（表示単価）：~${total}（1 言語 × 約 {tokensIn}+{tokensOut} tokens）",
+    estimatedCostListed:
+      "見積もり（表示単価）：~${total}（{n} 言語 × 約 {tokensIn}+{tokensOut} tokens/言語）",
+    estimatedCostConsoleUpper:
+      "DeepSeek コンソール上限目安：~${total}（cache miss 単価・実際は下回る場合あり）",
+    estimatedCostDisclaimer:
+      "参考値です。ステップ 1 の推定/改善・再生成・他機能は含みません。実際の請求はプロバイダー側で確認してください。",
+    reviewCostDisclaimer:
+      "今回の API token × 表示単価の合計。請求額とずれる場合があります。",
+    reviewCostDisclaimerDeepSeek:
+      "API token × 表示単価の合計。DeepSeek の請求は高めになりやすいです（cache miss・推定・他機能は別）。",
+    generateReadyOne: "1 言語分の Meta 生成の準備ができました。",
     generateReady: "{n} 言語分の Meta 生成の準備ができました。",
+    generateHeroEyebrow: "生成",
+    generateHeroTitle: "ローカライズした Meta 文案を生成。",
+    generateHeroHelper:
+      "AI に検索・ソーシャル用フィールドを書かせる前に、ページ文脈、プロバイダー、推定コストを確認します。",
+    generateMetricLocales: "言語",
+    generateMetricContext: "文脈文字数",
+    generateMetricProvider: "プロバイダー",
+    generateMetricCost: "推定コスト",
+    generateContextPreviewTitle: "ソース文脈",
+    generateContextReady: "準備完了",
+    generateContextDraft: "文脈が必要",
+    generateContextPreviewEmpty:
+      "具体的な Meta を生成するために、先にページ文脈を追加してください。",
+    generateReviewHelper:
+      "次に {provider} を使って {locales} 言語分の文案を作成します。",
+    generateAiSettingsTitle: "AI 設定",
     resultsTitle: "結果",
+    reviewLocaleCountOne: "1 言語",
     reviewLocaleCount: "{n} 言語",
     reviewLocalesNeedAttention: "{locales} は要確認",
     reviewLocaleTabs: "Meta を生成した言語",
     reviewEmpty: "生成後にここで結果を確認できます。",
     fieldGroupSearch: "検索",
     fieldGroupSocial: "Open Graph と Twitter",
-    copyAll: "すべてのフィールドをコピー",
-    copyAllSuccess: "この言語の全フィールドをコピーしました。",
-    copyAllFailed: "コピーできませんでした。手動で選択してコピーしてください。",
+    downloadLocale: "この言語をダウンロード (.txt)",
+    downloadAll: "まとめてダウンロード ({n})",
+    downloadAllHint: "言語ごとに txt を ZIP で — Framer へ貼り付けやすい",
+    downloadSuccess: "この言語の Meta テキストをダウンロードしました。",
+    downloadAllSuccess: "{n} 言語分の Meta ZIP をダウンロードしました。",
     lengthSoftPill: "長め（{max}）",
-    lengthSoftHint: "Google はおおよそ {max} 文字で切り詰めることが多いです。短くすることを検討してください。",
+    lengthSoftHint:
+      "Google はおおよそ {max} 文字で切り詰めることが多いです。短くすることを検討してください。",
     addContextWarning: "ページコンテキストを入力してください。",
-    setKeyWarning: "設定で API キーを追加してください。",
+    setKeyWarning: "設定で Pro を有効化してください。",
     generateButton: "{n} 言語分を生成",
     generateButtonPlural: "{n} 言語分を生成",
     generatingProgress: "生成中… {current} / {total}",
+    generateProgressTitle: "AI で Meta 文案を生成中",
+    generateProgressHelper:
+      "モデルが各言語のタイトル、説明、ソーシャル用フィールドを書いています。プロバイダー側の混雑で一時的に遅くなることがあります。",
+    generateProgressCurrentLocale: "現在の言語",
+    generateProgressProvider: "プロバイダー",
+    generateProgressModel: "モデル",
+    generateProgressCount: "進捗",
+    generateProgressPreparing: "準備中…",
+    generateProgressSlowTitle: "通常より時間がかかっています",
+    generateProgressSlowHelper:
+      "マネージド AI の混雑、クォータ不足、遅いモデル、または長いページ内容が原因のことがあります。設定でライセンスを確認し、ページコンテキスト短縮や再試行を試してください。",
     generateCancelled: "生成をキャンセルしました。",
+    generatedSuccessOne: "1 言語分の Meta を生成しました。",
     generatedSuccess: "{n} 言語分の Meta を生成しました。",
+    generatedSuccessWithIssuesOne:
+      "1 言語分の Meta を生成しました。再試行が必要かもしれません。",
     generatedSuccessWithIssues:
       "{n} 言語分の Meta を生成しました。{issues} 言語は再試行が必要かもしれません。",
     regenerate: "再生成",
@@ -834,15 +1260,20 @@ export const ja: Translations = {
       "Framer 上部バーで対象言語に切り替えます（地球アイコン / 言語ピッカー）。",
     applyStepLocaleLink: "Framer ローカライズガイド",
     applyStepPage: "このページの設定を開く（Title + Page Description）。",
-    applyStepPageWithPath: "{path} のページ設定を開く（Title + Page Description）。",
+    applyStepPageWithPath:
+      "{path} のページ設定を開く（Title + Page Description）。",
     applyStepCopyBelow:
-      "下で言語タブを選び、各フィールドをコピー（またはすべてコピー）。",
+      "上の「すべてコピー」を使うか、下で個別フィールドをコピーします。",
     applyStepRepeatLocales:
       "すべての言語で同じ手順を繰り返し、問題なければ公開します。",
     applyStepPublish: "各言語を確認したらサイトを公開します。",
-    applyStepOpenProject: "Framer プロジェクトを開く",
+    applyStepOpenProject: "キャンバスを表示（プラグインを閉じる）",
+    openProjectEditorHint:
+      "すでにこの Framer プロジェクト内です。左の Pages → ⋯ → Settings でページ Meta を開き、下の文案を貼り付けてください。",
     applyHelper:
       "Framer はまだプラグインからページ SEO を書き込めません。言語ごとにページ設定へ貼り付けてください。",
+    applyFriction:
+      "手順が必要です：キャンバス上部で言語を切り替え → 各ページの Title / Page Description を開く → 貼り付け → 公開。生成した文案はセッション間で保持されます。",
     fields: {
       title: "Title",
       metaDescription: "Meta description",
@@ -867,27 +1298,31 @@ export const ja: Translations = {
 
   settings: {
     title: "設定",
-    apiKeysTitle: "AI プロバイダー（BYOK）",
+    apiKeysTitle: "マネージド AI",
     apiKeysHelper:
-      "Polyglot AEO はキーを見ません。各プロバイダーのキーは現在の Framer プロジェクトの plugin data にのみ保存され、生成時はブラウザから直接プロバイダーへ送信、料金もプロバイダー通常価格で直接決済されます。",
-    providerKeyPlaceholder: "{provider} の API キー",
-    providerGetKey: "キーを取得",
+      "AI 生成は Polyglot AEO のバックエンド経由で実行され、ライセンス確認、短期セッショントークン、利用量クォータで保護されます。",
+    managedAiTitle: "マネージド AI",
+    managedAiHelper:
+      "AI 生成は Polyglot AEO のバックエンド経由で実行され、有効な Pro ライセンス、短期セッショントークン、利用量クォータで保護されます。",
+    managedAiProvider: "Polyglot Managed AI · MiniMax M3",
+    providerKeyPlaceholder: "{provider} のマネージド認証情報",
+    providerGetKey: "プロバイダー詳細",
     providersShowMore: "他のプロバイダー {n} 件を表示",
     providersHide: "他のプロバイダーを隠す",
     testKey: "テスト",
     testing: "テスト中…",
     testKeyOk: "接続成功",
     testKeyFail: "失敗",
-    testKeyEmpty: "先にキーを入力",
-    addCustomProvider: "+ カスタムプロバイダーを追加",
-    customProviderTitle: "カスタム OpenAI 互換プロバイダー",
+    testKeyEmpty: "マネージド AI は利用できません",
+    addCustomProvider: "+ マネージドプロバイダーを追加",
+    customProviderTitle: "マネージドプロバイダー",
     customProviderHelper:
-      "OpenAI 互換のエンドポイントなら何でも使えます —— Together、Groq、Ollama、LiteLLM、vLLM、社内ゲートウェイなど。Polyglot AEO は標準の /chat/completions リクエストを送ります。",
+      "Marketplace ビルドは Polyglot Managed AI を使用し、生成リクエストをサーバー側で実行してクォータ管理します。",
     customProviderName: "表示名",
-    customProviderNamePlaceholder: "プライベート LLM",
+    customProviderNamePlaceholder: "マネージドプロバイダー",
     customProviderBaseUrl: "Base URL",
     customProviderBaseUrlPlaceholder:
-      "https://api.example.com/v1（/chat/completions が置かれるパスの前まで）",
+      "マネージドサーバーエンドポイント",
     customProviderModelIds: "モデル ID（カンマ区切り）",
     customProviderModelIdsPlaceholder: "llama-3.3-70b, mixtral-8x22b",
     customProviderSave: "プロバイダーを保存",
@@ -897,25 +1332,30 @@ export const ja: Translations = {
     customProviderInvalid:
       "表示名、Base URL、モデル ID（最低 1 つ）を入力してください。",
     customProviderRemoveConfirm:
-      "このカスタムプロバイダーを削除しますか？関連する API キーも一緒に削除され、元に戻せません。",
+      "このマネージドプロバイダー記録を削除しますか？元に戻せません。",
     customProviderDiscardConfirm:
-      "このカスタムプロバイダーの下書きを破棄しますか？API キーとブランドボイスの変更は自動保存済みです。",
+      "このマネージドプロバイダーの下書きを破棄しますか？ブランドボイスの変更は自動保存済みです。",
     customProviderDiscard: "下書きを破棄",
-    anthropicKey: "Anthropic API キー",
-    openaiKey: "OpenAI API キー",
+    anthropicKey: "旧 Anthropic 認証情報",
+    openaiKey: "旧モデル認証情報",
     brandVoiceTitle: "ブランドボイス",
     brandVoiceHelper: "すべての locale に適用されます。任意ですが推奨。",
     brandVoicePlaceholder:
       "自信、技術的、簡潔。「you」を使い「your business」は使わない。「シナジー」「活用」のような空虚な言葉は避ける。",
     languageTitle: "プラグインの言語",
-    languageHelper:
-      "プラグインの表示言語。サイトのコンテンツ言語とは別です。",
+    languageHelper: "プラグインの表示言語。サイトのコンテンツ言語とは別です。",
     languageAuto: "自動（{detected}）",
     quickStartResetTitle: "クイックスタート",
     quickStartResetHelper:
       "Dashboard でオンボーディングチェックリストを再表示します。",
     quickStartResetButton: "クイックスタートを表示",
     quickStartResetDone: "クイックスタートを再有効化しました。",
+    restartWizardTitle: "セットアップガイド",
+    restartWizardHelper:
+      "次回プラグインを開くとステップガイドが自動表示されます。Dashboard の設定横のアイコンからいつでも再開できます。",
+    restartWizardButton: "セットアップガイドをリセット",
+    restartWizardDone:
+      "リセットしました。次回の起動時にガイドが表示されます。",
     installedTitle: "インストール済み Schema",
     installedYes: "インストール済み",
     installedNo: "未インストール",
@@ -953,7 +1393,7 @@ export const ja: Translations = {
     activateFailed: "有効化できませんでした。キーを確認してください。",
     getPro: "Pro を購入",
     comparePlans: "Free と Pro を比較",
-    activeKey: "有効: {hint}",
+    activeKey: "Pro 有効 · ライセンス末尾 {hint}",
     refresh: "ライセンスを再確認",
     validating: "確認中…",
     deactivate: "ライセンスを削除",
@@ -965,12 +1405,13 @@ export const ja: Translations = {
         "複数言語を検出しました。Pro で各言語向けの schema・Meta・llms を生成できます。",
       schema_install_limit:
         "無料版は AI schema インストール最大 5 ページ。Pro は無制限。",
-      schema_install_all: "全ページの一括有効化・インストールは Pro の機能です。",
+      schema_install_all:
+        "全ページの一括有効化・インストールは Pro の機能です。",
       schema_translate: "言語別 schema 翻訳には Pro が必要です。",
       llms_generate:
         "AI による llms.txt 生成には Pro が必要です。無料版はデフォルト言語の編集・コピーが可能。",
       llms_multi_locale:
-        "追加言語の llms ファイル（llms-ja.txt 等）には Pro が必要です。",
+        "無料版ではデフォルトの llms.txt を生成できます。Pro で各ロケールの llms ファイルとネイティブ AI 翻訳を解放できます。",
       llms_ai_translate: "llms.txt の AI 翻訳には Pro が必要です。",
       meta_generate:
         "無料版はデフォルト言語で Meta を 3 回試せます。Pro では全言語を一括生成できます。",
@@ -985,12 +1426,80 @@ export const ja: Translations = {
       bulletAgency: "クライアント 1 サイトで月 $19 はすぐ回収しやすい",
       ctaLabel: "Pro にアップグレード",
       ctaPrice: "月額 $19",
-      pricingHint: "年額 $190（約 17% OFF）。返金は polyglotaeo.com を参照。",
+      monthlyPlanLabel: "月払い",
+      monthlyPlanPrice: "$19 / 月",
+      monthlyPlanHelper: "1 プロジェクトから柔軟に開始。",
+      monthlyPlanCta: "月払いでチェックアウト →",
+      yearlyPlanLabel: "年払い",
+      yearlyPlanPrice: "$190 / 年",
+      yearlyPlanHelper: "2 か月分お得。継続運用に最適。",
+      yearlyPlanCta: "年払いでチェックアウト →",
+      yearlyBadge: "17% OFF",
+      pricingHint:
+        "14 日間返金保証は polyglotaeo.com を参照。ライセンスキーはメールで届きます。",
     },
     dashboardLocaleBanner:
       "このプロジェクトは {count} 言語。Pro で各言語の schema・Meta・llms を解放できます。",
     dashboardLocaleFree: "無料版はデフォルト言語のみ（{code}）。",
     freeInstallQuota: "Free AI schema {used}/{max} ページ",
+  },
+
+  wizard: {
+    reopen: "セットアップガイド",
+    stepOf: "ステップ {current} / {total}",
+    exit: "終了",
+    skipAll: "あとで",
+    skipManualOnly: "Manual schema のみ",
+    completeNotify: "セットアップ完了",
+    cta: {
+      getStarted: "始める",
+      continue: "続ける",
+      saveAndContinue: "保存して続ける",
+      continueWithoutAi: "AI なしで続ける",
+      openDashboard: "ローンチリストを開く",
+    },
+    screens: {
+      welcome: {
+        title: "Polyglot AEO へようこそ",
+        body: "多言語 Framer サイトの AEO をひとつのコントロールセンターで確認します。ロケール別 schema、llms.txt、Meta、CMS ギャップ、公開後チェックまで、まずは1分で基本設定します。",
+      },
+      aiSetup: {
+        title: "まず無料のプロジェクトチェックから",
+        body: "最初にコントロールセンターを開きます。AI 生成を使わなくても、ロケール、CMS、Schema、公開サイトの具体的な不足を確認できます。",
+      },
+      done: {
+        title: "準備完了",
+        body: "ローンチチェックリストを開き、最初に見つかった不足を確認します。自動化する価値のある作業が見えてからマネージド生成を追加できます。",
+      },
+    },
+    snapshot: {
+      projectLabel: "このプロジェクト",
+      locales: "ロケール {count}",
+      schemaInstalled: "Schema 済み",
+      schemaNotInstalled: "Schema 未設定",
+      aiConnected: "AI 接続済み",
+      aiNotConnected: "マネージド AI は任意",
+      addLocales: "Framer でロケールを追加",
+    },
+    firstRun: {
+      freeLabel: "無料",
+      freeTitle: "プロジェクト準備状況を確認",
+      freeBody: "Pro を有効にせず、ロケール範囲、CMS ギャップ、既存 Schema、公開サイトを確認できます。",
+      proLabel: "任意の Pro",
+      readyLabel: "Pro 準備完了",
+      proTitle: "マネージド AI で生成",
+      proBody: "Pro はライセンス確認と利用上限付きで、Schema、Meta、ローカライズ内容をサーバー側で生成します。",
+      noKey:
+        "モデル認証情報は Polyglot AEO のバックエンドだけに保存され、プラグインが受信・保存することはありません。",
+    },
+    aiProviderLabel: "プロバイダー",
+    aiKeyLabel: "マネージド AI",
+    aiKeyPlaceholder: "Polyglot AEO が処理します",
+    aiTest: "テスト",
+    aiTesting: "テスト中…",
+    aiSave: "保存してテスト",
+    aiConnected: "マネージド AI は準備完了",
+    aiMoreProviders: "マネージド AI 設定",
   },
 
   shortcuts: {

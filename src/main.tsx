@@ -4,21 +4,23 @@ import "./globals.css"
 import React from "react"
 import ReactDOM from "react-dom/client"
 
-import { App } from "./App"
-import {
-  AUTO_LOCALE,
-  detectBrowserLocale,
-  initI18n,
-  resolveLocale,
-  type LocalePreference,
-  type SupportedLocale,
-} from "./i18n"
-import { registerProtectedMethodChecks } from "./lib/framer/permissions"
-import { initSentry } from "./lib/sentry"
-import { StorageKeys, readString } from "./lib/storage"
-
 const root = document.getElementById("root")
 if (!root) throw new Error("Root element not found")
+
+function render(element: React.ReactElement) {
+  ReactDOM.createRoot(root!).render(
+    <React.StrictMode>{element}</React.StrictMode>,
+  )
+}
+
+function isPreviewMode() {
+  const params = new URLSearchParams(window.location.search)
+  return (
+    params.get("preview") === "1" ||
+    params.get("preview") === "true" ||
+    window.location.hash === "#preview"
+  )
+}
 
 /**
  * Boot order matters here: we must load the persisted UI-language preference
@@ -27,6 +29,31 @@ if (!root) throw new Error("Root element not found")
  * language. Reading plugin data is cheap (~1ms), so we await it synchronously.
  */
 async function bootstrap() {
+  if (isPreviewMode()) {
+    const { PreviewApp } = await import("./preview/PreviewApp")
+    render(<PreviewApp />)
+    return
+  }
+
+  const [
+    { App },
+    {
+      AUTO_LOCALE,
+      detectBrowserLocale,
+      initI18n,
+      resolveLocale,
+    },
+    { registerProtectedMethodChecks },
+    { initSentry },
+    { StorageKeys, readString },
+  ] = await Promise.all([
+    import("./App"),
+    import("./i18n"),
+    import("./lib/framer/permissions"),
+    import("./lib/sentry"),
+    import("./lib/storage"),
+  ])
+
   // Pre-register every protected SDK method we'll ever call. This
   // satisfies the SDK's "checked-set" invariant and silences the
   // dev-mode "Invoking protected message type ... without checking
@@ -37,21 +64,17 @@ async function bootstrap() {
   registerProtectedMethodChecks()
   initSentry()
 
-  const detected: SupportedLocale = detectBrowserLocale()
+  const detected = detectBrowserLocale()
 
   const stored = await readString(StorageKeys.UiLocalePreference)
-  const preference: LocalePreference =
+  const preference =
     stored === null || stored === AUTO_LOCALE
       ? AUTO_LOCALE
-      : (resolveLocale(stored) as LocalePreference)
+      : resolveLocale(stored)
 
   initI18n({ preference, detected })
 
-  ReactDOM.createRoot(root!).render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>,
-  )
+  render(<App />)
 }
 
 void bootstrap()

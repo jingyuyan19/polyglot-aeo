@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { chunkUtf8String } from "./storage"
+import { canFitSinglePluginDataValue, chunkUtf8String } from "./storage"
 
 const enc = new TextEncoder()
 
@@ -91,5 +91,16 @@ describe("chunkUtf8String", () => {
     expect(chunkUtf8String("中".repeat(100), 200).length).toBeGreaterThanOrEqual(
       2,
     )
+  })
+})
+
+describe("canFitSinglePluginDataValue", () => {
+  it("allows null clears and ordinary small strings", () => {
+    expect(canFitSinglePluginDataValue(null)).toBe(true)
+    expect(canFitSinglePluginDataValue("small draft")).toBe(true)
+  })
+
+  it("rejects values that would risk Framer's combined plugin-data budget", () => {
+    expect(canFitSinglePluginDataValue("a".repeat(3001))).toBe(false)
   })
 })

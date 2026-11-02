@@ -8,7 +8,7 @@ import {
 
 import { buildCheckoutUrl } from "../lib/license/api"
 import { canUseFeature } from "../lib/license/entitlements"
-import { fetchRemoteSchemaRules } from "../lib/schema/remote-rules"
+import { loadBundledSchemaRules } from "../lib/schema/bundled-rules"
 import {
   activateLicenseForProject,
   deactivateLicenseForProject,
@@ -25,13 +25,17 @@ import type {
   FeatureContext,
   LicenseRecord,
   BillingMode,
+  CheckoutPlanUrls,
   Tier,
   UpgradeReason,
 } from "../lib/license/types"
 
 interface Props {
   children: ReactNode
-  onUpgradeRequest: (reason: UpgradeReason, checkoutUrl: string) => void
+  onUpgradeRequest: (
+    reason: UpgradeReason,
+    checkoutUrls: CheckoutPlanUrls,
+  ) => void
   onTierReady?: (isPro: boolean) => void
 }
 
@@ -46,8 +50,7 @@ export function EntitlementProvider({
   const [validating, setValidating] = useState(false)
   const [lastError, setLastError] = useState<string | null>(null)
   const [projectId, setProjectId] = useState<string | null>(null)
-  const [billingMode, setBillingModeState] =
-    useState<BillingMode>("production")
+  const [billingMode, setBillingModeState] = useState<BillingMode>("production")
 
   const refresh = useCallback(async () => {
     setValidating(true)
@@ -87,7 +90,7 @@ export function EntitlementProvider({
           setLastError("Could not save billing environment")
           return
         }
-        setBillingModeState(mode)
+        setBillingModeState(await resolveBillingMode())
         const result = await refreshLicenseTier({ force: true })
         setTier(result.tier)
         setLicense(result.record)
@@ -104,25 +107,28 @@ export function EntitlementProvider({
   useEffect(() => {
     if (!loading && tier === "pro") {
       onTierReady?.(true)
-      void fetchRemoteSchemaRules(true)
+      void loadBundledSchemaRules()
     }
   }, [loading, tier, onTierReady])
 
-  const activate = useCallback(async (key: string) => {
-    setValidating(true)
-    setLastError(null)
-    try {
-      const result = await activateLicenseForProject(key)
-      if (!result.ok) {
-        setLastError(result.error ?? "Activation failed")
-        return result
+  const activate = useCallback(
+    async (key: string) => {
+      setValidating(true)
+      setLastError(null)
+      try {
+        const result = await activateLicenseForProject(key)
+        if (!result.ok) {
+          setLastError(result.error ?? "Activation failed")
+          return result
+        }
+        await refresh()
+        return { ok: true }
+      } finally {
+        setValidating(false)
       }
-      await refresh()
-      return { ok: true }
-    } finally {
-      setValidating(false)
-    }
-  }, [refresh])
+    },
+    [refresh],
+  )
 
   const deactivate = useCallback(async () => {
     setValidating(true)
@@ -144,10 +150,10 @@ export function EntitlementProvider({
 
   const requestUpgrade = useCallback(
     (reason: UpgradeReason) => {
-      onUpgradeRequest(
-        reason,
-        buildCheckoutUrl("monthly", projectId, billingMode),
-      )
+      onUpgradeRequest(reason, {
+        monthly: buildCheckoutUrl("monthly", projectId, billingMode, reason),
+        yearly: buildCheckoutUrl("yearly", projectId, billingMode, reason),
+      })
     },
     [billingMode, onUpgradeRequest, projectId],
   )

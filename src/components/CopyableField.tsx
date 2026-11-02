@@ -11,6 +11,10 @@ interface Props {
   label?: string
   /** The actual value to copy. Multi-line is fine. */
   value: string
+  /** Taller layout for descriptions (overrides Framer's 30px button height). */
+  multiline?: boolean
+  /** Optional hook for parent-level progress, e.g. marking a locale copied. */
+  onCopied?: () => void
 }
 
 /**
@@ -23,7 +27,7 @@ interface Props {
  * If the Clipboard API isn't available (older browsers) we fall back to
  * the textarea-select trick before giving up silently.
  */
-export function CopyableField({ label, value }: Props) {
+export function CopyableField({ label, value, multiline, onCopied }: Props) {
   const { t } = useI18n()
   const [copied, setCopied] = useState(false)
 
@@ -43,6 +47,7 @@ export function CopyableField({ label, value }: Props) {
         document.execCommand("copy")
         document.body.removeChild(ta)
       }
+      onCopied?.()
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1200)
     } catch {
@@ -53,7 +58,9 @@ export function CopyableField({ label, value }: Props) {
   return (
     <button
       type="button"
-      className="pa-copyable"
+      className={
+        multiline ? "pa-copyable pa-copyable--multiline" : "pa-copyable"
+      }
       data-copied={copied}
       onClick={handleCopy}
       aria-label={label ? `${t("common.copy")}: ${label}` : t("common.copy")}

@@ -1,12 +1,14 @@
 import { useEffect } from "react"
+import { createPortal } from "react-dom"
 
+import { ModalOverlay } from "./ModalOverlay"
 import { useI18n } from "../i18n"
-import type { UpgradeReason } from "../lib/license/types"
+import type { CheckoutPlanUrls, UpgradeReason } from "../lib/license/types"
 
 interface Props {
   open: boolean
   reason: UpgradeReason | null
-  checkoutUrl: string
+  checkoutUrls: CheckoutPlanUrls
   onClose: () => void
 }
 
@@ -27,7 +29,7 @@ const REASON_KEYS: Record<
   generic_pro: "generic_pro",
 }
 
-export function UpgradeModal({ open, reason, checkoutUrl, onClose }: Props) {
+export function UpgradeModal({ open, reason, checkoutUrls, onClose }: Props) {
   const { t } = useI18n()
 
   useEffect(() => {
@@ -44,21 +46,18 @@ export function UpgradeModal({ open, reason, checkoutUrl, onClose }: Props) {
 
   if (!open) return null
 
+  const root = document.getElementById("root")
+  if (!root) return null
+
   const subKey = reason ? REASON_KEYS[reason] : "generic"
   const body = t(`license.upgrade.${subKey}` as "license.upgrade.generic")
 
-  return (
-    <div
-      className="pa-confirm-overlay"
-      role="presentation"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
-    >
+  return createPortal(
+    <ModalOverlay onBackdropClick={onClose}>
       <div
         className="pa-confirm-dialog pa-upgrade-dialog"
         role="dialog"
-        aria-modal="true"
+        aria-modal={true}
         aria-labelledby="pa-upgrade-title"
         onClick={(e) => e.stopPropagation()}
       >
@@ -71,20 +70,57 @@ export function UpgradeModal({ open, reason, checkoutUrl, onClose }: Props) {
           <li>{t("license.upgrade.bulletQuality")}</li>
           <li>{t("license.upgrade.bulletAgency")}</li>
         </ul>
-        <div className="pa-upgrade-actions">
+        <div className="pa-upgrade-plan-list">
           <a
-            className="pa-button pa-button-primary pa-upgrade-cta"
-            href={checkoutUrl}
+            className="pa-upgrade-plan"
+            data-featured="true"
+            href={checkoutUrls.yearly}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label={t("license.upgrade.yearlyPlanCta")}
           >
-            <span className="pa-upgrade-cta-main">
-              {t("license.upgrade.ctaLabel")}
+            <span className="pa-upgrade-plan-top">
+              <span className="pa-upgrade-plan-name">
+                {t("license.upgrade.yearlyPlanLabel")}
+              </span>
+              <span className="pa-upgrade-plan-badge">
+                {t("license.upgrade.yearlyBadge")}
+              </span>
             </span>
-            <span className="pa-upgrade-cta-sub">
-              {t("license.upgrade.ctaPrice")}
+            <span className="pa-upgrade-plan-price">
+              {t("license.upgrade.yearlyPlanPrice")}
+            </span>
+            <span className="pa-upgrade-plan-helper">
+              {t("license.upgrade.yearlyPlanHelper")}
+            </span>
+            <span className="pa-upgrade-plan-cta">
+              {t("license.upgrade.yearlyPlanCta")}
             </span>
           </a>
+          <a
+            className="pa-upgrade-plan"
+            href={checkoutUrls.monthly}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t("license.upgrade.monthlyPlanCta")}
+          >
+            <span className="pa-upgrade-plan-top">
+              <span className="pa-upgrade-plan-name">
+                {t("license.upgrade.monthlyPlanLabel")}
+              </span>
+            </span>
+            <span className="pa-upgrade-plan-price">
+              {t("license.upgrade.monthlyPlanPrice")}
+            </span>
+            <span className="pa-upgrade-plan-helper">
+              {t("license.upgrade.monthlyPlanHelper")}
+            </span>
+            <span className="pa-upgrade-plan-cta">
+              {t("license.upgrade.monthlyPlanCta")}
+            </span>
+          </a>
+        </div>
+        <div className="pa-upgrade-actions">
           <button type="button" className="pa-button" onClick={onClose}>
             {t("common.close")}
           </button>
@@ -93,6 +129,7 @@ export function UpgradeModal({ open, reason, checkoutUrl, onClose }: Props) {
           {t("license.upgrade.pricingHint")}
         </p>
       </div>
-    </div>
+    </ModalOverlay>,
+    root,
   )
 }

@@ -50,23 +50,17 @@ export function canUseFeature(
       return true
 
     case "meta_generate":
-      return (
-        localeCount <= 1 &&
-        !nonDefault &&
-        (ctx.metaGenerateCount ?? 0) < FREE_META_GENERATE_LIMIT
-      )
+      return false
 
     case "meta_ai_suggest":
-      // Free: page setup suggest allowed on default locale only.
-      return !nonDefault
+      return false
 
     case "schema_audit_persist":
     case "remote_schema_rules":
       return false
 
     case "custom_openai_endpoint":
-      // BYOK + custom providers available on Free per plan.
-      return true
+      return false
 
     default:
       return false

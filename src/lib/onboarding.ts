@@ -1,45 +1,32 @@
 /**
- * Onboarding state machine.
+ * Launch checklist (Quick Start) state machine.
  *
- * Polyglot AEO's "Quick Start" surface is a 5-step state-aware checklist.
- * Each step's completion is derived from real environment signals at render
- * time — never persisted. Persisting "I completed step N" creates stale
- * state when users uninstall schema, swap projects, or revoke API keys.
- *
- * The only piece of state we DO persist is whether the user explicitly
- * dismissed the panel. Everything else is computed.
- *
- * The pure helpers in this module are unit-tested in `onboarding.test.ts`.
+ * Completion is derived from real signals at render time — not persisted
+ * step flags. Only panel dismiss is persisted (`OnboardingDismissed`).
  */
 
 export type StepId =
   | "addLocales"
   | "installSchema"
   | "generateLlms"
+  | "deployLlms"
   | "addApiKey"
-  | "verify"
+  | "generateMeta"
+  | "verifyPublished"
 
 export interface OnboardingSignals {
-  /** Number of locales detected in the Framer project (default + others). */
   localeCount: number
-  /** Whether Polyglot AEO has installed schema into headEnd. */
   schemaInstalled: boolean
-  /** Whether the user has saved at least one llms.txt run. */
   llmsGenerated: boolean
-  /** Whether at least one AI provider key is configured. */
+  llmsDeployAcknowledged: boolean
   hasApiKey: boolean
+  metaGenerated: boolean
+  /** True after at least one in-plugin published-site verify run. */
+  publishedVerifyRan: boolean
 }
 
 export interface OnboardingStep {
   id: StepId
-  /**
-   * Steps fall into one of three states:
-   *  - `done`     ✓ user has done this; render muted with checkmark
-   *  - `pending`  ○ next or upcoming action; render with action button
-   *  - `optional` ◇ skippable but recommended (e.g. AI key for Meta tool)
-   *               — counted as "complete" toward overall progress so the
-   *                 panel can be dismissed without forcing this step
-   */
   state: "done" | "pending" | "optional"
 }
 
@@ -47,19 +34,12 @@ const STEP_ORDER: StepId[] = [
   "addLocales",
   "installSchema",
   "generateLlms",
+  "deployLlms",
   "addApiKey",
-  "verify",
+  "generateMeta",
+  "verifyPublished",
 ]
 
-/**
- * Compute the steps array given environment signals.
- *
- * `verify` is the trickiest step: we have no way to programmatically check
- * whether the user actually clicked through to Google Rich Results Test, so
- * we mark it `pending` only when schema is installed (otherwise there's
- * nothing to verify yet) and treat it as `optional` once it appears so the
- * checklist can reach 100% without it.
- */
 export function computeSteps(signals: OnboardingSignals): OnboardingStep[] {
   return STEP_ORDER.map((id) => ({
     id,
@@ -73,27 +53,28 @@ function deriveState(
 ): OnboardingStep["state"] {
   switch (id) {
     case "addLocales":
-      // 2+ locales is the threshold where Polyglot AEO becomes valuable.
-      // 1 locale is technically "fine" but the plugin's pitch falls apart.
-      return signals.localeCount >= 2 ? "done" : "pending"
+      if (signals.localeCount >= 2) return "done"
+      if (signals.localeCount === 1) return "optional"
+      return "pending"
     case "installSchema":
       return signals.schemaInstalled ? "done" : "pending"
     case "generateLlms":
       return signals.llmsGenerated ? "done" : "pending"
+    case "deployLlms":
+      if (signals.llmsDeployAcknowledged) return "done"
+      if (!signals.llmsGenerated) return "pending"
+      return "pending"
     case "addApiKey":
-      // Optional because the Schema and llms.txt tools work without it.
       return signals.hasApiKey ? "done" : "optional"
-    case "verify":
-      // Only meaningful after schema is installed.
-      return signals.schemaInstalled ? "optional" : "pending"
+    case "generateMeta":
+      return signals.metaGenerated ? "done" : "optional"
+    case "verifyPublished":
+      if (signals.publishedVerifyRan) return "done"
+      if (signals.schemaInstalled) return "pending"
+      return "optional"
   }
 }
 
-/**
- * Progress tuple for rendering "{done} / {total}" and a progress bar.
- * Optional steps that are still "optional" (not yet `done`) count as
- * complete toward the total, because they can't block dismissal.
- */
 export function computeProgress(steps: OnboardingStep[]): {
   done: number
   total: number
@@ -106,7 +87,39 @@ export function computeProgress(steps: OnboardingStep[]): {
   return { done, total, ratio: total === 0 ? 0 : done / total }
 }
 
-/** True when every step is either complete or skippable. */
 export function isAllDone(steps: OnboardingStep[]): boolean {
   return steps.every((s) => s.state === "done" || s.state === "optional")
+}
+
+/** Show control-center CTA when checklist is nearly complete. */
+export function shouldOfferControlCenter(steps: OnboardingStep[]): boolean {
+  const progress = computeProgress(steps)
+  return isAllDone(steps) || progress.ratio >= 0.85
+}
+
+/** Launch blockers counted in the dashboard progress pill (excludes optional). */
+export const CORE_STEP_IDS: readonly StepId[] = [
+  "installSchema",
+  "generateLlms",
+  "deployLlms",
+  "verifyPublished",
+] as const
+
+export function computeCoreProgress(steps: OnboardingStep[]): {
+  done: number
+  total: number
+  ratio: number
+} {
+  const core = steps.filter((s) =>
+    (CORE_STEP_IDS as readonly string[]).includes(s.id),
+  )
+  const total = core.length
+  const done = core.filter((s) => s.state === "done").length
+  return { done, total, ratio: total === 0 ? 0 : done / total }
+}
+
+/** First checklist row still requiring action (for highlight in Quick Start). */
+export function getNextPendingStep(steps: OnboardingStep[]): StepId | null {
+  const pending = steps.find((s) => s.state === "pending")
+  return pending?.id ?? null
 }

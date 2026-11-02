@@ -1,14 +1,10 @@
 [build]
+  base = "polyglotaeo-web"
   command = "npm run build"
   publish = "out"
 
 [build.environment]
   NODE_VERSION = "22"
-
-[[headers]]
-  for = "/schema-rules-v1.json"
-  [headers.values]
-    Cache-Control = "public, max-age=300, stale-while-revalidate=86400"
 
 [[headers]]
   for = "/*"

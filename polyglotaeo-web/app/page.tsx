@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { FramerInstallButton } from "./components"
 
 export default function HomePage() {
   return (
@@ -8,13 +9,15 @@ export default function HomePage() {
           <div className="eyebrow">For Framer multilingual launches</div>
           <h1>The AEO control center for Framer teams.</h1>
           <p className="lead">
-            Polyglot AEO helps agencies and founders prepare multilingual
-            Framer sites for answer engines with localized schema, metadata,
-            llms.txt files, CMS gap checks, and published-site verification.
+            Polyglot AEO helps agencies and founders run pre-launch and
+            post-publish AEO QA for multilingual Framer sites: localized
+            schema, metadata, CMS gap checks, live verification, and optional
+            llms.txt exports for teams that use them.
           </p>
           <div className="hero-actions">
-            <Link className="button primary" href="/pricing">
-              View pricing
+            <FramerInstallButton>Install free on Framer</FramerInstallButton>
+            <Link className="button" href="/audit/">
+              Request mini audit
             </Link>
             <Link className="button" href="/#workflow">
               See workflow
@@ -22,7 +25,7 @@ export default function HomePage() {
           </div>
           <div className="proof">
             <span>Free plugin on Framer Marketplace</span>
-            <span>BYOK AI providers</span>
+            <span>Managed AI for Pro</span>
             <span>Pro subscriptions via Creem</span>
           </div>
         </div>
@@ -48,8 +51,8 @@ export default function HomePage() {
               <span>4 locales</span>
             </div>
             <div className="issue">
-              <strong>llms.txt generated</strong>
-              <span>Needs publish</span>
+              <strong>Locale canonicals</strong>
+              <span>1 conflict</span>
             </div>
             <div className="issue">
               <strong>CMS title gaps</strong>
@@ -75,24 +78,28 @@ export default function HomePage() {
             </p>
           </article>
           <article className="card">
-            <h3>Multilingual llms.txt</h3>
+            <h3>Optional multilingual llms.txt</h3>
             <p>
-              Build default and locale-specific llms files, catch untranslated
-              rows, and export files ready for deployment.
+              Build default and locale-specific handoff files, catch
+              untranslated rows, and export them for systems that consume the
+              emerging format. They are not a Google Search ranking signal.
             </p>
+            <Link className="text-link" href="/llms-txt/">
+              Use the llms.txt checklist
+            </Link>
           </article>
           <article className="card">
             <h3>CMS gap manager</h3>
             <p>
               Find missing localized titles, summaries, slugs, and duplicate
-              records before they quietly damage answer-engine quality.
+              records before they leak into public metadata and schema.
             </p>
           </article>
           <article className="card">
             <h3>Published-site verifier</h3>
             <p>
-              Check the live site for schema, meta descriptions, language
-              coverage, and llms files after deployment.
+              Check the live site for schema, meta descriptions, canonicals,
+              language coverage, and optional llms files after deployment.
             </p>
           </article>
           <article className="card">
@@ -103,10 +110,10 @@ export default function HomePage() {
             </p>
           </article>
           <article className="card">
-            <h3>Bring your own AI key</h3>
+            <h3>Managed AI generation</h3>
             <p>
-              Use supported AI providers from plugin settings. Keys stay in the
-              Framer project environment.
+              Pro requests run through Polyglot AEO&apos;s backend with license
+              checks, short-lived session tokens, and usage quotas.
             </p>
           </article>
         </div>
@@ -116,7 +123,7 @@ export default function HomePage() {
         <h2>A narrow, practical launch workflow.</h2>
         <p className="section-intro">
           The product is intentionally focused: make multilingual Framer sites
-          understandable, citeable, and verifiable without turning your team into
+          distinct, consistent, and verifiable without turning your team into
           technical SEO operators.
         </p>
         <div className="steps">
@@ -133,8 +140,8 @@ export default function HomePage() {
             <div>
               <h3>Generate AEO assets</h3>
               <p>
-                Create schema, meta suggestions, and llms.txt variants with
-                native-language output where Pro is enabled.
+                Create schema and meta suggestions with native-language output,
+                plus optional llms.txt variants where Pro is enabled.
               </p>
             </div>
           </article>
@@ -151,8 +158,8 @@ export default function HomePage() {
             <div>
               <h3>Verify the live site</h3>
               <p>
-                After publish, verify that schema, meta, language coverage, and
-                llms files are reachable from the production domain.
+                After publish, verify schema, metadata, canonicals, language
+                coverage, and any optional llms files from the production domain.
               </p>
             </div>
           </article>
@@ -161,15 +168,19 @@ export default function HomePage() {
 
       <section className="section narrow">
         <div className="callout">
-          <h2>Free is useful. Pro is built for real multilingual launches.</h2>
+          <h2>Free finds the risk. Pro fixes every locale.</h2>
           <p>
-            Start free for default-locale schema and a single llms.txt. Upgrade
-            when you need every locale, bulk installs, CMS gap exports, verifier
-            reports, and client-ready launch QA.
+            Start free to run the Control Center, preview CMS gaps, install a
+            small default-locale schema set, and generate an optional llms.txt. Upgrade
+            when the launch depends on every locale, bulk installs, verifier
+            reports, and client-ready QA.
           </p>
           <Link className="button primary" href="/pricing">
             Compare plans
           </Link>
+          <FramerInstallButton className="button soft">
+            Install free first
+          </FramerInstallButton>
         </div>
       </section>
     </main>

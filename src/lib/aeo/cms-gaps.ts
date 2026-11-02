@@ -16,7 +16,24 @@ export interface CmsLocaleGap {
 
 export interface CmsDuplicateTitleGroup {
   title: string
+  rows: Array<{
+    rowId: string
+    rowTitle: string
+    defaultSlug: string
+  }>
+  /** @deprecated use rows instead. Kept so older callers/tests remain simple. */
   rowIds: string[]
+}
+
+export interface CmsLocaleGapIssue {
+  rowId: string
+  rowTitle: string
+  defaultSlug: string
+  localeId: string
+  localeCode: string
+  missingTitle: boolean
+  missingSummary: boolean
+  missingSlug: boolean
 }
 
 export interface CmsCollectionGapReport {
@@ -26,6 +43,7 @@ export interface CmsCollectionGapReport {
   summaryField: string | null
   rowCount: number
   localeGaps: CmsLocaleGap[]
+  localeIssues: CmsLocaleGapIssue[]
   duplicateTitles: CmsDuplicateTitleGroup[]
 }
 
@@ -60,18 +78,27 @@ export function analyzeCmsCollectionLocalization(
   const publicRows = rows.filter(isPublicRow)
 
   const localeGaps: CmsLocaleGap[] = []
+  const localeIssues: CmsLocaleGapIssue[] = []
   for (const locale of locales) {
     if (locale.isDefault) continue
     let missingTitles = 0
     let missingSummaries = 0
     let missingSlugs = 0
     for (const row of publicRows) {
+      const rowTitle = titleField
+        ? stringValue(row.fieldValues[titleField]) || row.slug || row.id
+        : row.slug || row.id
+      let missingTitle = false
+      let missingSummary = false
+      let missingSlug = false
       if (!titleField) {
         missingTitles += 1
+        missingTitle = true
       } else if (
         !stringValue(row.fieldValuesByLocale[locale.id]?.[titleField])
       ) {
         missingTitles += 1
+        missingTitle = true
       }
 
       const sourceSummary = summaryField
@@ -83,10 +110,25 @@ export function analyzeCmsCollectionLocalization(
         !stringValue(row.fieldValuesByLocale[locale.id]?.[summaryField])
       ) {
         missingSummaries += 1
+        missingSummary = true
       }
 
       if (row.slug && !row.localeSlugs[locale.id]) {
         missingSlugs += 1
+        missingSlug = true
+      }
+
+      if (missingTitle || missingSummary || missingSlug) {
+        localeIssues.push({
+          rowId: row.id,
+          rowTitle,
+          defaultSlug: row.slug,
+          localeId: locale.id,
+          localeCode: locale.code,
+          missingTitle,
+          missingSummary,
+          missingSlug,
+        })
       }
     }
     localeGaps.push({
@@ -98,14 +140,24 @@ export function analyzeCmsCollectionLocalization(
     })
   }
 
-  const titleGroups = new Map<string, { title: string; rowIds: string[] }>()
+  const titleGroups = new Map<
+    string,
+    {
+      title: string
+      rows: Array<{ rowId: string; rowTitle: string; defaultSlug: string }>
+    }
+  >()
   if (titleField) {
     for (const row of publicRows) {
       const title = stringValue(row.fieldValues[titleField])
       if (!title) continue
       const key = normalizedTitle(title)
-      const group = titleGroups.get(key) ?? { title, rowIds: [] }
-      group.rowIds.push(row.id)
+      const group = titleGroups.get(key) ?? { title, rows: [] }
+      group.rows.push({
+        rowId: row.id,
+        rowTitle: title,
+        defaultSlug: row.slug,
+      })
       titleGroups.set(key, group)
     }
   }
@@ -117,9 +169,13 @@ export function analyzeCmsCollectionLocalization(
     summaryField,
     rowCount: publicRows.length,
     localeGaps,
-    duplicateTitles: Array.from(titleGroups.values()).filter(
-      (group) => group.rowIds.length > 1,
-    ),
+    localeIssues,
+    duplicateTitles: Array.from(titleGroups.values())
+      .filter((group) => group.rows.length > 1)
+      .map((group) => ({
+        ...group,
+        rowIds: group.rows.map((row) => row.rowId),
+      })),
   }
 }
 

@@ -48,8 +48,24 @@ const SEVERITY_ORDER: Record<AeoIssueSeverity, number> = {
 
 const SCORE_WEIGHTS: Record<AeoIssueSeverity, number> = {
   critical: 24,
-  warning: 14,
-  info: 7,
+  warning: 12,
+  info: 5,
+}
+
+function issueVolumePenalty(issue: AeoIssue): number {
+  const count = issue.count ?? 0
+  switch (issue.id) {
+    case "cms_locale_gaps":
+      return Math.min(44, Math.ceil(count / 5) * 3)
+    case "published_failures":
+      return Math.min(18, count * 3)
+    case "cms_duplicate_titles":
+      return Math.min(10, count * 2)
+    case "multi_locale_locked":
+      return Math.min(6, Math.max(0, count - 1) * 2)
+    default:
+      return 0
+  }
 }
 
 export function buildAeoIssues(signals: AeoIssueSignals): AeoIssue[] {
@@ -96,7 +112,7 @@ export function buildAeoIssues(signals: AeoIssueSignals): AeoIssue[] {
   if (signals.localeCount > 1 && !signals.isPro) {
     issues.push({
       id: "multi_locale_locked",
-      severity: "critical",
+      severity: "info",
       category: "license",
       count: signals.localeCount,
     })
@@ -139,10 +155,12 @@ export function buildAeoIssues(signals: AeoIssueSignals): AeoIssue[] {
 
 export function scoreAeoIssues(issues: ReadonlyArray<AeoIssue>): number {
   const penalty = issues.reduce(
-    (sum, issue) => sum + SCORE_WEIGHTS[issue.severity],
+    (sum, issue) =>
+      sum + SCORE_WEIGHTS[issue.severity] + issueVolumePenalty(issue),
     0,
   )
-  return Math.max(0, Math.min(100, 100 - penalty))
+  const rawScore = Math.max(0, Math.min(100, 100 - penalty))
+  return issues.length > 0 ? Math.max(5, rawScore) : rawScore
 }
 
 export function countAeoIssuesBySeverity(

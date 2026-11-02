@@ -1,9 +1,11 @@
-import { useState, type ReactNode } from "react"
+/* eslint-disable react-refresh/only-export-components */
+import { useEffect, useRef, useState, type ReactNode } from "react"
 
 import { HelpIcon } from "../../components/HelpIcon"
 import { useI18n } from "../../i18n"
 import { metaSuggestMatchesCurrent } from "../../lib/ai/meta-suggest-match"
 import type { MetaSetupSuggestField } from "../../lib/ai/meta-setup-suggest"
+import type { Provider, ProviderId } from "../../lib/ai/providers"
 import type { StaticPageEntry } from "../../lib/framer/static-pages"
 
 export type MetaPageSetupPhase = "load" | "select" | "content"
@@ -21,6 +23,12 @@ interface Props {
   manualOnly: boolean
   suggestBusy: MetaSetupSuggestField | null
   suggestion: { field: MetaSetupSuggestField; text: string } | null
+  localeCount: number
+  providerId: ProviderId
+  modelId: string
+  allProviders: Provider[]
+  currentProvider: Provider
+  currentModel: Provider["models"][number]
   onPageTypeChange: (v: string) => void
   onPageContextChange: (v: string) => void
   onPrimaryKeywordChange: (v: string) => void
@@ -36,6 +44,8 @@ interface Props {
   ) => void
   onAcceptSuggestion: () => void
   onDismissSuggestion: () => void
+  onProviderChange: (id: ProviderId) => void
+  onModelChange: (id: string) => void
 }
 
 export function deriveMetaPagePhase(
@@ -47,6 +57,26 @@ export function deriveMetaPagePhase(
   if (staticPages === null) return "load"
   if (!selectedPageId) return "select"
   return "content"
+}
+
+/** Checklist “done” must follow phase order — draft-restored context must not skip steps 1–2. */
+export function deriveMetaFlowStepDone(
+  manualOnly: boolean,
+  staticPages: StaticPageEntry[] | null,
+  selectedPageId: string | undefined,
+  pageContext: string,
+): { load: boolean; select: boolean; content: boolean } {
+  const pagesLoaded = staticPages !== null
+  const pageSelected = Boolean(selectedPageId)
+  const hasContext = pageContext.trim().length > 0
+  if (manualOnly) {
+    return { load: true, select: true, content: hasContext }
+  }
+  return {
+    load: pagesLoaded,
+    select: pagesLoaded && pageSelected,
+    content: pagesLoaded && pageSelected && hasContext,
+  }
 }
 
 export function MetaPageStep({
@@ -62,6 +92,12 @@ export function MetaPageStep({
   manualOnly,
   suggestBusy,
   suggestion,
+  localeCount,
+  providerId,
+  modelId,
+  allProviders,
+  currentProvider,
+  currentModel,
   onPageTypeChange,
   onPageContextChange,
   onPrimaryKeywordChange,
@@ -73,6 +109,8 @@ export function MetaPageStep({
   onSuggestField,
   onAcceptSuggestion,
   onDismissSuggestion,
+  onProviderChange,
+  onModelChange,
   selectedPageIsHomepage,
 }: Props) {
   const { t } = useI18n()
@@ -86,52 +124,93 @@ export function MetaPageStep({
     selectedPageId,
   )
   const hasContext = pageContext.trim().length > 0
-  const pagesLoaded = staticPages !== null
-  const pageSelected = Boolean(selectedPageId)
+  const stepDone = deriveMetaFlowStepDone(
+    manualOnly,
+    staticPages,
+    selectedPageId,
+    pageContext,
+  )
 
   const selectedPage = staticPages?.find((p) => p.id === selectedPageId)
+  const sourceLabel = manualOnly
+    ? t("meta.sourceManual")
+    : selectedPage
+      ? t("meta.sourceProjectSelected", { title: selectedPage.title })
+      : staticPages
+        ? t("meta.sourceProjectReady")
+        : t("meta.sourceProject")
+  const hasThinContext = hasContext && pageContext.trim().length < 24
+  const selectedPageLooksUtility =
+    !manualOnly &&
+    Boolean(
+      selectedPage &&
+        (/^\/?404\/?$/i.test(selectedPage.rawPath) ||
+          /404|not found/i.test(selectedPage.title)),
+    )
 
   return (
     <section className="pa-section">
-      <span className="pa-section-title">{t("meta.sourceTitle")}</span>
-      <p className="pa-section-helper" style={{ margin: "0 0 10px" }}>
-        {t("meta.pageFlowIntro")}
-      </p>
+      <div className="pa-meta-setup-grid" aria-label={t("meta.pageFlowTitle")}>
+        <div className="pa-meta-setup-hero">
+          <span className="pa-pill" data-tone="accent">
+            {t("meta.setupHeroEyebrow")}
+          </span>
+          <h2>{t("meta.setupHeroTitle")}</h2>
+          <p>{t("meta.setupHeroBody")}</p>
+          <div className="pa-meta-file-chips" aria-label={t("meta.setupFiles")}>
+            <span>
+              {localeCount === 1
+                ? t("meta.setupLocaleOne")
+                : t("meta.setupLocaleMany", { n: localeCount })}
+            </span>
+            <span>{t("meta.setupFileDefault")}</span>
+            <span>{t("meta.setupFileSearch")}</span>
+            <span>{t("meta.setupFileSocial")}</span>
+          </div>
+        </div>
+      </div>
 
-      <ol className="pa-meta-page-flow" aria-label={t("meta.pageFlowTitle")}>
+      <div className="pa-meta-compact-flow">
         <FlowStepItem
           index={1}
-          done={pagesLoaded || manualOnly}
+          done={stepDone.load}
           active={phase === "load"}
           label={
-            pagesLoaded || manualOnly
-              ? t("meta.pageFlowLoadDone")
-              : t("meta.pageFlowLoad")
+            stepDone.load
+              ? t("meta.pageFlowLoadDoneShort")
+              : t("meta.pageFlowLoadShort")
           }
         />
         <FlowStepItem
           index={2}
-          done={pageSelected || manualOnly}
+          done={stepDone.select}
           active={phase === "select"}
           label={
-            pageSelected && selectedPage
-              ? t("meta.pageFlowSelectDone", { title: selectedPage.title })
-              : manualOnly
-                ? t("meta.pageFlowManualDone")
-                : t("meta.pageFlowSelect")
+            stepDone.select && selectedPage
+              ? t("meta.pageFlowSelectDoneShort", { title: selectedPage.title })
+              : manualOnly && stepDone.select
+                ? t("meta.pageFlowManualDoneShort")
+                : t("meta.pageFlowSelectShort")
           }
         />
         <FlowStepItem
           index={3}
-          done={hasContext}
+          done={stepDone.content}
           active={phase === "content"}
-          label={t("meta.pageFlowContent")}
-          hint={phase === "content" ? t("meta.pageFlowContentHint") : undefined}
+          label={t("meta.pageFlowContentShort")}
         />
-      </ol>
+      </div>
 
       {phase === "load" && (
         <div className="pa-card pa-meta-page-phase">
+          <div className="pa-meta-source-switch" role="group">
+            <button type="button" data-active="true">
+              {t("meta.sourceProject")}
+            </button>
+            <button type="button" onClick={() => onManualOnlyChange(true)}>
+              {t("meta.sourceManual")}
+            </button>
+          </div>
           <p className="pa-section-helper" style={{ margin: 0 }}>
             {t("meta.pageFlowLoadHint")}
           </p>
@@ -144,19 +223,19 @@ export function MetaPageStep({
           >
             {pagesScanning ? t("meta.scanningPages") : t("meta.scanPages")}
           </button>
-          <button
-            type="button"
-            className="pa-link"
-            style={{ marginTop: 10, alignSelf: "flex-start" }}
-            onClick={() => onManualOnlyChange(true)}
-          >
-            {t("meta.pageFlowManual")}
-          </button>
         </div>
       )}
 
       {phase === "select" && staticPages && (
         <div className="pa-card pa-meta-page-phase">
+          <div className="pa-meta-source-switch" role="group">
+            <button type="button" data-active="true">
+              {t("meta.sourceProject")}
+            </button>
+            <button type="button" onClick={() => onManualOnlyChange(true)}>
+              {t("meta.sourceManual")}
+            </button>
+          </div>
           <p className="pa-section-helper" style={{ margin: 0 }}>
             {t("meta.pageFlowSelectHint")}
           </p>
@@ -213,25 +292,38 @@ export function MetaPageStep({
 
       {phase === "content" && (
         <>
-          {!manualOnly && selectedPage && (
-            <p className="pa-section-helper" style={{ margin: "0 0 8px" }}>
-              {t("meta.pageFlowSelectedPage", {
-                title: selectedPage.title,
-                path: selectedPage.rawPath,
-              })}
-            </p>
-          )}
-          {manualOnly && (
-            <div className="pa-button-row" style={{ marginBottom: 8 }}>
-              <button
-                type="button"
-                className="pa-link"
-                onClick={() => onManualOnlyChange(false)}
-              >
-                {t("meta.pageFlowBackToPick")}
-              </button>
+          <div className="pa-meta-source-card">
+            <div>
+              <span>{t("meta.sourceCurrent")}</span>
+              <strong>{sourceLabel}</strong>
+              {!manualOnly && selectedPage && (
+                <small>{selectedPage.rawPath}</small>
+              )}
+            </div>
+            <button
+              type="button"
+              className="pa-pill-button"
+              onClick={() => onManualOnlyChange(!manualOnly)}
+            >
+              {manualOnly ? t("meta.pageFlowBackToPick") : t("meta.pageFlowManual")}
+            </button>
+          </div>
+          {selectedPageLooksUtility && (
+            <div className="pa-meta-context-warning" role="status">
+              <strong>{t("meta.utilityPageTitle")}</strong>
+              <span>{t("meta.utilityPageBody")}</span>
             </div>
           )}
+
+          <AiModelPicker
+            providerId={providerId}
+            modelId={modelId}
+            allProviders={allProviders}
+            currentProvider={currentProvider}
+            currentModel={currentModel}
+            onProviderChange={onProviderChange}
+            onModelChange={onModelChange}
+          />
 
           <div className="pa-card pa-meta-page-phase">
             <div className="pa-label">
@@ -252,6 +344,12 @@ export function MetaPageStep({
                 disabled={pageContentLoading}
               />
             </div>
+            {hasThinContext && (
+              <div className="pa-meta-context-warning" role="status">
+                <strong>{t("meta.contextThinTitle")}</strong>
+                <span>{t("meta.contextThinBody")}</span>
+              </div>
+            )}
 
             <SuggestableField
               label={t("meta.pageType")}
@@ -313,9 +411,104 @@ export function MetaPageStep({
               />
             </div>
           </details>
+
+          <div className="pa-meta-output-preview">
+            <div className="pa-row-spread">
+              <span className="pa-section-title">
+                {t("meta.outputPreviewTitle")}
+              </span>
+              <span className="pa-pill" data-tone={hasContext ? "success" : "warning"}>
+                {hasContext ? t("meta.outputReady") : t("meta.outputNeedsContext")}
+              </span>
+            </div>
+            <p className="pa-section-helper" style={{ margin: 0 }}>
+              {t("meta.outputPreviewBody")}
+            </p>
+            <div className="pa-meta-output-next">
+              <strong>{t("meta.outputNextTitle")}</strong>
+              <span>
+                {localeCount === 1
+                  ? t("meta.outputNextBodyOne")
+                  : t("meta.outputNextBody", { n: localeCount })}
+              </span>
+            </div>
+          </div>
         </>
       )}
     </section>
+  )
+}
+
+function AiModelPicker({
+  providerId,
+  modelId,
+  allProviders,
+  currentProvider,
+  currentModel,
+  onProviderChange,
+  onModelChange,
+}: {
+  providerId: ProviderId
+  modelId: string
+  allProviders: Provider[]
+  currentProvider: Provider
+  currentModel: Provider["models"][number]
+  onProviderChange: (id: ProviderId) => void
+  onModelChange: (id: string) => void
+}) {
+  const { t } = useI18n()
+
+  return (
+    <div className="pa-meta-ai-picker">
+      <div className="pa-meta-ai-picker-heading">
+        <div>
+          <strong>{t("meta.aiModelTitle")}</strong>
+          <span>{t("meta.aiModelBody")}</span>
+        </div>
+        <span className="pa-pill" data-tone="info">
+          {currentModel.name}
+        </span>
+      </div>
+      <div className="pa-meta-ai-picker-grid">
+        <label className="pa-label">
+          {t("meta.providerTitle")}
+          <select
+            className="pa-select"
+            value={providerId}
+            onChange={(e) => {
+              const next = allProviders.find((p) => p.id === e.target.value)
+              if (!next) return
+              onProviderChange(next.id)
+              onModelChange(next.models[0]?.id ?? "")
+            }}
+          >
+            {allProviders.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="pa-label">
+          {t("meta.modelTitle")}
+          <select
+            className="pa-select"
+            value={modelId}
+            onChange={(e) => onModelChange(e.target.value)}
+          >
+            {currentProvider.models.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+                {m.badge ? ` · ${m.badge}` : ""}
+                {m.pricePerMTokenInput > 0
+                  ? ` · $${m.pricePerMTokenInput}/$${m.pricePerMTokenOutput}/M`
+                  : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+    </div>
   )
 }
 
@@ -333,7 +526,11 @@ function FlowStepItem({
   hint?: string
 }) {
   return (
-    <li data-done={done ? true : undefined} data-active={active ? true : undefined}>
+    <div
+      className="pa-meta-flow-chip"
+      data-done={done ? true : undefined}
+      data-active={active ? true : undefined}
+    >
       <span className="pa-meta-page-flow-step" aria-hidden="true">
         {done && !active ? "✓" : index}
       </span>
@@ -348,7 +545,7 @@ function FlowStepItem({
           </span>
         )}
       </span>
-    </li>
+    </div>
   )
 }
 
@@ -396,6 +593,25 @@ function SuggestableField({
     ? t("meta.suggestHintImprove")
     : t("meta.suggestHintInfer")
 
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showResult) return
+    let inner = 0
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => {
+        panelRef.current?.scrollIntoView({
+          block: "nearest",
+          behavior: "smooth",
+        })
+      })
+    })
+    return () => {
+      cancelAnimationFrame(outer)
+      cancelAnimationFrame(inner)
+    }
+  }, [showResult, isSame, suggestion?.text])
+
   return (
     <div className="pa-label">
       <span className="pa-row-spread" style={{ alignItems: "center" }}>
@@ -437,71 +653,76 @@ function SuggestableField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
       />
-      {showResult && isSame && (
-        <div
-          className="pa-ai-panel pa-ai-panel-same"
-          style={{ marginTop: 6 }}
-          data-tone="info"
-        >
-          <p className="pa-section-helper" style={{ margin: 0 }}>
-            <span className="pa-pill" data-tone="info">
-              {t("meta.suggestSameBadge")}
-            </span>
-          </p>
-          <p className="pa-section-helper" style={{ margin: "8px 0 0" }}>
-            {t("meta.suggestSameAsCurrent", { value: suggestion!.text })}
-          </p>
-          <div className="pa-button-row" style={{ marginTop: 8 }}>
-            <button type="button" onClick={onDismissSuggestion}>
-              {t("meta.suggestSameDismiss")}
-            </button>
-            <button
-              type="button"
-              onClick={() => onSuggestField(field, { ignoreDraft: true })}
-              disabled={busy}
+      {showResult && (
+        <div ref={panelRef}>
+          {isSame ? (
+            <div
+              className="pa-ai-panel pa-ai-panel-same"
+              style={{ marginTop: 6 }}
+              data-tone="info"
+              role="status"
             >
-              {t("meta.suggestRetryFresh")}
-            </button>
-          </div>
-        </div>
-      )}
-      {showResult && !isSame && (
-        <div className="pa-ai-panel" style={{ marginTop: 6 }}>
-          {hasValue && (
-            <p className="pa-section-helper" style={{ margin: "0 0 6px" }}>
-              {t("meta.suggestChangeFrom", {
-                from: value.trim(),
-                to: suggestion!.text.trim(),
-              })}
-            </p>
+              <p className="pa-section-helper" style={{ margin: 0 }}>
+                <span className="pa-pill" data-tone="info">
+                  {t("meta.suggestSameBadge")}
+                </span>
+              </p>
+              <p className="pa-section-helper" style={{ margin: "8px 0 0" }}>
+                {t("meta.suggestSameAsCurrent", { value: suggestion!.text })}
+              </p>
+              <div className="pa-ai-panel-same-actions">
+                <button
+                  type="button"
+                  className="pa-link"
+                  onClick={() => onSuggestField(field, { ignoreDraft: true })}
+                  disabled={busy}
+                >
+                  {t("meta.suggestRetryFresh")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="pa-ai-panel" style={{ marginTop: 6 }}>
+              {hasValue && (
+                <p className="pa-section-helper" style={{ margin: "0 0 6px" }}>
+                  {t("meta.suggestChangeFrom", {
+                    from: value.trim(),
+                    to: suggestion!.text.trim(),
+                  })}
+                </p>
+              )}
+              {!hasValue && (
+                <p className="pa-section-helper" style={{ margin: "0 0 6px" }}>
+                  {t("meta.suggestNewValue")}
+                </p>
+              )}
+              <pre
+                className="pa-code"
+                style={{ margin: 0, whiteSpace: "pre-wrap" }}
+              >
+                {suggestion!.text}
+              </pre>
+              <div className="pa-button-row" style={{ marginTop: 6 }}>
+                <button
+                  type="button"
+                  className="pa-button-primary"
+                  onClick={onAcceptSuggestion}
+                >
+                  {t("meta.suggestUse")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSuggestField(field)}
+                  disabled={busy}
+                >
+                  {t("meta.suggestRetry")}
+                </button>
+                <button type="button" onClick={onDismissSuggestion}>
+                  {t("common.cancel")}
+                </button>
+              </div>
+            </div>
           )}
-          {!hasValue && (
-            <p className="pa-section-helper" style={{ margin: "0 0 6px" }}>
-              {t("meta.suggestNewValue")}
-            </p>
-          )}
-          <pre className="pa-code" style={{ margin: 0, whiteSpace: "pre-wrap" }}>
-            {suggestion!.text}
-          </pre>
-          <div className="pa-button-row" style={{ marginTop: 6 }}>
-            <button
-              type="button"
-              className="pa-button-primary"
-              onClick={onAcceptSuggestion}
-            >
-              {t("meta.suggestUse")}
-            </button>
-            <button
-              type="button"
-              onClick={() => onSuggestField(field)}
-              disabled={busy}
-            >
-              {t("meta.suggestRetry")}
-            </button>
-            <button type="button" onClick={onDismissSuggestion}>
-              {t("common.cancel")}
-            </button>
-          </div>
         </div>
       )}
     </div>

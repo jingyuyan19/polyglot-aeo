@@ -57,9 +57,21 @@ Create both as **percentage** coupons in Creem and attach to the Pro product.
 
 | Variable | Example |
 |----------|---------|
-| `VITE_LICENSE_API_BASE` | `https://polyglot-license.<account>.workers.dev` |
+| `VITE_LICENSE_API_BASE` | `https://license.polyglotaeo.com` |
 | `VITE_CREEM_CHECKOUT_MONTHLY` | Optional static fallback only |
 | `VITE_CREEM_CHECKOUT_YEARLY` | Optional static fallback only |
+
+## Compliance domain checklist
+
+- [ ] Creem store/business is approved for Polyglot AEO and
+  `https://polyglotaeo.com`.
+- [ ] Creem Support or dashboard confirms checkout traffic from
+  `https://license.polyglotaeo.com/checkout` is registered for the same store.
+- [ ] Cloudflare Worker is routed through `license.polyglotaeo.com`.
+- [ ] `workers.dev` production routing is disabled or confirmed by Creem as
+  acceptable during migration.
+- [ ] `pnpm lead:creem-compliance` is clear, and the original compliance warning
+  is recorded as `status=resolved` before Marketplace/Community distribution.
 
 ## Sandbox checklist
 

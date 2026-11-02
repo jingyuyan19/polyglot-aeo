@@ -2,19 +2,19 @@
 
 > A multilingual AEO quality control center for Framer. Prepare every locale
 > before launch, verify the published site after launch, and keep CMS gaps from
-> leaking into AI search.
+> leaking into public metadata and language declarations.
 
-Polyglot AEO bridges Framer's localization system with the structured data and
-`llms.txt` standards that AI search engines use to decide what to cite. Generic
-AEO plugins ship one schema for the default locale; Polyglot AEO produces a
-correctly-typed variant for every locale on your project.
+Polyglot AEO bridges Framer's localization system with structured data,
+localized metadata, public-site verification, and optional `llms.txt` handoff
+files. Generic AEO plugins ship one schema for the default locale; Polyglot AEO
+produces a correctly-typed variant for every locale on your project.
 
 ## What it does
 
 - **Per-locale JSON-LD** for `Article`, `Product`, `LocalBusiness`, `FAQPage`,
   and `Organization`. Each variant carries the right `inLanguage` value and
   links sister translations via `workTranslation`.
-- **Multilingual `llms.txt` generator** that scans Framer CMS collections and
+- **Optional multilingual `llms.txt` generator** that scans Framer CMS collections and
   emits one `llms.txt` (default locale) plus `llms-{locale}.txt` per other
   locale. Items missing a localized title are automatically skipped to avoid
   leaking source-language content into a partial translation.
@@ -24,7 +24,9 @@ correctly-typed variant for every locale on your project.
   native, not translated.
 - **AEO Health Score + published-site verifier** so designers can see what is
   missing, then confirm the live homepage, JSON-LD, meta description, and
-  `/llms.txt` after publishing.
+  locale declarations and optional `/llms.txt` files after publishing. Google
+  Search does not use `llms.txt`, so that file is not treated as a ranking
+  signal or included in the public readiness score.
 - **AEO Control Center** with launch blockers, CMS localization gaps, issue
   severity, and downloadable client reports.
 - **One-click install** into Framer's Custom Code (`headEnd`). Uninstall is

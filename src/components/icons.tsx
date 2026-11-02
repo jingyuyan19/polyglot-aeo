@@ -55,6 +55,47 @@ export function MetaIcon({ size = 16 }: IconProps) {
   )
 }
 
+export function ControlIcon({ size = 16 }: IconProps) {
+  return (
+    <svg {...baseProps(size)}>
+      <path
+        d="M3 4h10v8H3V4Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+      <path
+        d="M5.5 7h2M5.5 9.5h5M5.5 11h3.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+export function CmsIcon({ size = 16 }: IconProps) {
+  return (
+    <svg {...baseProps(size)}>
+      <path
+        d="M4 3.5h8a1 1 0 0 1 1 1v2.5H3V4.5a1 1 0 0 1 1-1Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+      <path
+        d="M3 7h10v5.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+      <path
+        d="M6 9.5h4M6 11h2.5"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 export function VerifyIcon({ size = 16 }: IconProps) {
   return (
     <svg {...baseProps(size)}>
@@ -71,6 +112,42 @@ export function VerifyIcon({ size = 16 }: IconProps) {
         strokeWidth="1.4"
         strokeLinecap="round"
       />
+    </svg>
+  )
+}
+
+/** Setup guide — re-open the onboarding wizard. */
+export function OnboardingIcon({ size = 16 }: IconProps) {
+  return (
+    <svg {...baseProps(size)}>
+      <path
+        d="M4 2.5h8v2H4v-2ZM3 6.5h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5.5 9h2M5.5 11.5h5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+export function HelpCircleIcon({ size = 16 }: IconProps) {
+  return (
+    <svg {...baseProps(size)}>
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" />
+      <path
+        d="M6.25 6.15A2 2 0 0 1 8.08 4.8c1.05 0 1.82.66 1.82 1.55 0 .7-.39 1.12-1.03 1.55-.58.39-.77.62-.77 1.15v.15"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="8.05" cy="11.45" r=".65" fill="currentColor" />
     </svg>
   )
 }

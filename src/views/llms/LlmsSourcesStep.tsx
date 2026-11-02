@@ -2,6 +2,8 @@ import { useMemo } from "react"
 import type { Dispatch, SetStateAction } from "react"
 
 import { HelpIcon } from "../../components/HelpIcon"
+import { useFeatureGate } from "../../components/entitlement-hooks"
+import { CmsIcon, LlmsIcon } from "../../components/icons"
 import { useI18n } from "../../i18n"
 import type { CollectionSummary } from "../../lib/framer/cms"
 import type { LocaleInfo } from "../../lib/framer/locales"
@@ -51,6 +53,7 @@ export function LlmsSourcesStep({
   totalItemsAcrossCollections,
 }: Props) {
   const { t } = useI18n()
+  const gate = useFeatureGate()
 
   const { picked, unpicked } = useMemo(() => {
     const p: CollectionSummary[] = []
@@ -63,6 +66,11 @@ export function LlmsSourcesStep({
   }, [collections, config.collectionIds])
 
   const pagesPicked = config.pageIds.length
+  const pagesLoaded = staticPages !== null
+  const hasRememberedPages = pagesPicked > 0 && !pagesLoaded
+  const totalSelectedSources = config.collectionIds.length + pagesPicked
+  const multiLocaleLocked =
+    !gate.isPro && locales.some((locale) => !locale.isDefault)
 
   const renderCollection = (c: CollectionSummary) => {
     const pickedRow = config.collectionIds.includes(c.id)
@@ -120,14 +128,71 @@ export function LlmsSourcesStep({
   }
 
   return (
-    <section className="pa-section">
-      <span className="pa-section-title">
-        {t("llms.sourcesTitle")}
-        <HelpIcon termId="llmsTxt" />
-      </span>
-      <div className="pa-card">
+    <section className="pa-section pa-llms-sources">
+      <div className="pa-row-spread">
+        <span className="pa-section-title">
+          {t("llms.sourcesTitle")}
+          <HelpIcon termId="llmsTxt" />
+        </span>
+        <span className="pa-pill">
+          {t("llms.sourcesSelectedPill", { n: totalSelectedSources })}
+        </span>
+      </div>
+      <div className="pa-card pa-llms-sources-card">
+        <div className="pa-llms-sources-summary">
+          <div>
+            <span className="pa-card-title">{t("llms.sourcesHeroTitle")}</span>
+            <p className="pa-section-helper">
+              {t("llms.sourcesHeroBody")}
+            </p>
+          </div>
+        </div>
+
+        <div className="pa-metric-grid pa-llms-sources-metrics">
+          <span className="pa-metric-tile">
+            <CmsIcon size={15} />
+            <span>
+              <strong>{config.collectionIds.length}</strong>
+              <small>{t("llms.cmsSourceTitle")}</small>
+            </span>
+          </span>
+          <span className="pa-metric-tile">
+            <LlmsIcon size={15} />
+            <span>
+              <strong>{pagesPicked}</strong>
+              <small>{t("llms.pagesSourceTitle")}</small>
+            </span>
+          </span>
+        </div>
+
+        {multiLocaleLocked && (
+          <div className="pa-llms-ai-pro-card pa-llms-multi-locale-card">
+            <div>
+              <span className="pa-pill" data-tone="info">
+                {t("llms.freePlanPill")}
+              </span>
+              <strong>
+                {t("llms.multiLocaleProTitle", { n: locales.length })}
+              </strong>
+              <p>{t("llms.multiLocaleProHelper")}</p>
+            </div>
+            <button
+              type="button"
+              className="pa-pill-button"
+              onClick={() =>
+                gate.check("llms_multi_locale", {
+                  localeCount: locales.length,
+                  nonDefaultLocale: true,
+                })
+              }
+            >
+              {t("llms.multiLocaleProAction")}
+            </button>
+          </div>
+        )}
+
         <details
-          className="pa-llms-fold"
+          className="pa-llms-fold pa-llms-fold--source"
           open={config.collectionIds.length > 0 || collections.length <= 3}
         >
           <summary>
@@ -138,7 +203,7 @@ export function LlmsSourcesStep({
           <div className="pa-llms-fold-body">
             <div className="pa-row-spread" style={{ marginBottom: 4 }}>
               <span className="pa-section-helper--inline" style={{ margin: 0 }}>
-                {t("llms.collectionMultiHelper")}
+                {t("llms.collectionShortHelper")}
               </span>
               <button
                 type="button"
@@ -176,10 +241,8 @@ export function LlmsSourcesStep({
         </details>
 
         <details
-          className="pa-llms-fold"
-          open={
-            pagesPicked > 0 || staticPages === null || pagesScanning
-          }
+          className="pa-llms-fold pa-llms-fold--source"
+          open={pagesPicked > 0 || !pagesLoaded || pagesScanning}
         >
           <summary>
             {t("llms.pagesFoldSummary", { n: pagesPicked })}
@@ -187,7 +250,13 @@ export function LlmsSourcesStep({
           <div className="pa-llms-fold-body">
             <div className="pa-row-spread" style={{ marginBottom: 4 }}>
               <span className="pa-section-helper--inline" style={{ margin: 0 }}>
-                {t("llms.pagesSourceHelper")}
+                {pagesLoaded
+                  ? t("llms.pagesLoadedHelper", {
+                      n: staticPages.length,
+                    })
+                  : hasRememberedPages
+                    ? t("llms.pagesRememberedHelper", { n: pagesPicked })
+                    : t("llms.pagesShortHelper")}
               </span>
               <button
                 type="button"
@@ -197,14 +266,16 @@ export function LlmsSourcesStep({
               >
                 {pagesScanning
                   ? t("llms.pagesScanBusy")
-                  : staticPages
+                  : pagesLoaded || hasRememberedPages
                     ? t("llms.pagesRescan")
                     : t("llms.pagesScan")}
               </button>
             </div>
             {staticPages === null && !pagesScanning && (
               <p className="pa-section-helper pa-section-helper--inline">
-                {t("llms.pagesNotScannedYet")}
+                {hasRememberedPages
+                  ? t("llms.pagesRememberedNotLoaded", { n: pagesPicked })
+                  : t("llms.pagesNotScannedYet")}
               </p>
             )}
             {staticPages !== null && staticPages.length === 0 && (

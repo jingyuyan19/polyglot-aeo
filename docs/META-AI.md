@@ -4,8 +4,8 @@ Generate native SEO title, meta description, Open Graph, and Twitter tags per Fr
 
 ## Workflow (4 steps)
 
-1. **Page** — Pick a static page (optional) to auto-fill context, or paste manually. Use **✨ AI** on page type, primary keyword, or brand voice to fill from context (requires API key in Settings).
-2. **Generate** — Choose AI provider (folded by default), estimate cost, generate for all locales (up to 3 concurrent API calls). Cancel supported while running.
+1. **Page** — Pick a static page (optional) to auto-fill context, or paste manually. Use **✨ AI** on page type, primary keyword, or brand voice to fill from context (requires active Pro license).
+2. **Generate** — Uses Polyglot Managed AI, estimates cost, and generates for all locales. Cancel supported while running.
 3. **Results** — Locale tabs, quality flags, SEO length hints (~60 title / ~155 description), copy per field or **Copy all**.
 4. **Apply** — Steps to switch locale in Framer, open Page settings → SEO, paste, publish.
 

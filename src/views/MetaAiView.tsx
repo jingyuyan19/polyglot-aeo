@@ -2,6 +2,7 @@ import { framer, isWebPageNode } from "framer-plugin"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { useFeatureGate } from "../components/entitlement-hooks"
+import { ConfirmDialog } from "../components/ConfirmDialog"
 import { MetaStepBar } from "../components/MetaStepBar"
 import { TopBar } from "../components/TopBar"
 import { useFormDraft } from "../hooks/useFormDraft"
@@ -28,6 +29,7 @@ import {
   generateMetaSetupSuggestion,
   type MetaSetupSuggestField,
 } from "../lib/ai/meta-setup-suggest"
+import { estimateMetaBatchCost } from "../lib/ai/meta-cost-estimate"
 import { buildMetaPrompt, type MetaPromptInput } from "../lib/ai/prompts"
 import {
   BUILTIN_PROVIDERS,
@@ -35,7 +37,8 @@ import {
   type CustomProviderConfig,
   type Provider,
 } from "../lib/ai/providers"
-import { openCurrentFramerProject } from "../lib/framer/project"
+import { downloadTextFile } from "../lib/download-text"
+import { focusFramerEditorCanvas } from "../lib/framer/project"
 import { extractStaticPageContent } from "../lib/framer/site-scan"
 import {
   scanStaticPages,
@@ -44,33 +47,49 @@ import {
 import { toSchemaLanguage } from "../lib/framer/locales"
 import { buildPageContextFromScan } from "../lib/meta/page-context"
 import {
-  readJson,
+  clearMetaSessionPersist,
+  flushMetaSessionPersist,
+  fromMetaSessionRows,
+  readMetaSessionPersist,
+} from "../lib/meta/session-persist"
+import {
   readString,
   StorageKeys,
-  writeJson,
   writeString,
 } from "../lib/storage"
+import {
+  buildMetaZipArchive,
+  formatMetaLocaleExport,
+  metaLocaleFilename,
+} from "./meta/format-meta-export"
 import { MetaGenerateStep } from "./meta/MetaGenerateStep"
-import { MetaPageStep } from "./meta/MetaPageStep"
+import {
+  deriveMetaFlowStepDone,
+  MetaPageStep,
+} from "./meta/MetaPageStep"
 import { MetaReviewStep } from "./meta/MetaReviewStep"
 import {
   metaDraftSignature,
   type MetaDraft,
   type MetaResult,
   type MetaStep,
-  type PersistedMetaResults,
+  type MetaWizardSession,
 } from "./meta/types"
 
 interface Props {
   onBack: () => void
   onOpenSettings: () => void
+  onOpenOnboarding?: () => void
+  /** Survives pop → Dashboard → push Meta (plugin data budget is too small). */
+  restoredSession?: MetaWizardSession | null
+  onPersistSession?: (session: MetaWizardSession | null) => void
 }
 
 const DEFAULT_META_DRAFT: MetaDraft = {
   pageContext: "",
   pageType: "",
   primaryKeyword: "",
-  providerId: "anthropic",
+  providerId: BUILTIN_PROVIDERS[0].id,
   modelId: BUILTIN_PROVIDERS[0].models[0].id,
 }
 
@@ -113,7 +132,20 @@ async function resolveProjectBaseUrl(): Promise<string> {
   return "https://your-site.framer.website"
 }
 
-export function MetaAiView({ onBack, onOpenSettings }: Props) {
+function formatElapsed(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`
+}
+
+export function MetaAiView({
+  onBack,
+  onOpenSettings,
+  onOpenOnboarding,
+  restoredSession = null,
+  onPersistSession,
+}: Props) {
   const { t } = useI18n()
   const { locales } = useLocales()
   const gate = useFeatureGate()
@@ -134,17 +166,32 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
       DEFAULT_META_DRAFT.providerId) as ProviderId
   const modelId = draft.value.modelId ?? DEFAULT_META_DRAFT.modelId
 
-  const setField = <K extends keyof MetaDraft>(key: K, val: MetaDraft[K]) =>
-    draft.setValue((prev) => {
-      const { provider: _legacy, ...rest } = prev
-      void _legacy
-      return { ...rest, [key]: val }
-    })
+  const setField = useCallback(
+    <K extends keyof MetaDraft>(key: K, val: MetaDraft[K]) =>
+      draft.setValue((prev) => {
+        const { provider: _legacy, ...rest } = prev
+        void _legacy
+        return { ...rest, [key]: val }
+      }),
+    [draft],
+  )
 
-  const [step, setStep] = useState<MetaStep>("page")
+  const [step, setStep] = useState<MetaStep>(
+    () => restoredSession?.step ?? "page",
+  )
   const [brandVoice, setBrandVoice] = useState("")
-  const [results, setResults] = useState<MetaResult[]>([])
-  const [resultLocaleId, setResultLocaleId] = useState("")
+  const [results, setResults] = useState<MetaResult[]>(
+    () => restoredSession?.results ?? [],
+  )
+  const [copiedMetaLocaleIds, setCopiedMetaLocaleIds] = useState<Set<string>>(
+    () => new Set(),
+  )
+  const [resultLocaleId, setResultLocaleId] = useState(
+    () =>
+      restoredSession?.resultLocaleId ??
+      restoredSession?.results[0]?.localeId ??
+      "",
+  )
   const [busy, setBusy] = useState(false)
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
   const [hasApiKey, setHasApiKey] = useState(false)
@@ -157,6 +204,12 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
   const [pageContentLoading, setPageContentLoading] = useState(false)
   const [manualPageMode, setManualPageMode] = useState(false)
   const [generateProgress, setGenerateProgress] = useState(0)
+  const [generateStartedAt, setGenerateStartedAt] = useState<number | null>(
+    null,
+  )
+  const [generateNowMs, setGenerateNowMs] = useState(() => Date.now())
+  const [generateCurrentLocaleLabel, setGenerateCurrentLocaleLabel] =
+    useState("")
   const [suggestBusy, setSuggestBusy] = useState<MetaSetupSuggestField | null>(
     null,
   )
@@ -164,9 +217,23 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
     field: MetaSetupSuggestField
     text: string
   } | null>(null)
+  const [finishConfirmOpen, setFinishConfirmOpen] = useState(false)
   const cancelGenerateRef = useRef(false)
-  const lastGenerateSignatureRef = useRef<string | null>(null)
+  const generateProgressPanelRef = useRef<HTMLDivElement>(null)
+  const lastGenerateSignatureRef = useRef<string | null>(
+    restoredSession?.draftSignature ?? null,
+  )
   const didNotifySessionRestoreRef = useRef(false)
+  const didRestoreSessionRef = useRef(
+    Boolean(restoredSession?.results.length),
+  )
+  const sessionSnapshotRef = useRef({
+    results: [] as MetaResult[],
+    step: "page" as MetaStep,
+    resultLocaleId: "",
+    draftSignature: "",
+    selectedPageId: undefined as string | undefined,
+  })
 
   const allProviders: Provider[] = useMemo(
     () => [
@@ -240,43 +307,96 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
     return { providerId: activeId, apiKey: key, hasKey }
   }, [providerId, setField])
 
+  const syncWizardSession = useCallback(() => {
+    if (!onPersistSession) return
+    if (results.length === 0) {
+      onPersistSession(null)
+      return
+    }
+    onPersistSession({
+      draftSignature,
+      selectedPageId,
+      step,
+      resultLocaleId: resultLocaleId || results[0]?.localeId || "",
+      results,
+    })
+  }, [
+    draftSignature,
+    onPersistSession,
+    resultLocaleId,
+    results,
+    selectedPageId,
+    step,
+  ])
+
   useEffect(() => {
-    if (draft.status === "loading") return
+    syncWizardSession()
+  }, [syncWizardSession])
+
+  useEffect(() => {
+    if (draft.status === "loading" || didRestoreSessionRef.current) return
     let cancelled = false
     void Promise.all([
       readString(StorageKeys.BrandVoice),
-      readJson<PersistedMetaResults | null>(StorageKeys.LastMetaResults, null),
+      readMetaSessionPersist(),
     ]).then(([voice, persisted]) => {
       if (cancelled) return
       if (voice) setBrandVoice(voice)
-      if (
-        persisted?.results?.length &&
-        persisted.draftSignature === draftSignature
-      ) {
-        setResults(persisted.results)
-        lastGenerateSignatureRef.current = persisted.draftSignature
-        const localeId =
-          persisted.resultLocaleId ?? persisted.results[0]?.localeId ?? ""
-        setResultLocaleId(localeId)
-        const restoredStep =
-          persisted.step === "page" ||
-          persisted.step === "generate" ||
-          persisted.step === "review"
-            ? persisted.step
-            : "review"
-        if (persisted.results.length > 0) {
-          setStep(restoredStep)
-        }
-        if (!didNotifySessionRestoreRef.current) {
-          didNotifySessionRestoreRef.current = true
-          framer.notify(t("meta.sessionRestored"), { variant: "info" })
-        }
+      if (results.length > 0) return
+      if (!persisted?.results.length) return
+      didRestoreSessionRef.current = true
+      const restored = fromMetaSessionRows(persisted.results)
+      setResults(restored)
+      lastGenerateSignatureRef.current = persisted.draftSignature || null
+      const localeId =
+        persisted.resultLocaleId ?? restored[0]?.localeId ?? ""
+      setResultLocaleId(localeId)
+      const restoredStep =
+        persisted.step === "page" ||
+        persisted.step === "generate" ||
+        persisted.step === "review"
+          ? persisted.step
+          : "review"
+      setStep(restoredStep)
+      if (!didNotifySessionRestoreRef.current) {
+        didNotifySessionRestoreRef.current = true
+        const stale =
+          persisted.draftSignature.length > 0 &&
+          persisted.draftSignature !== draftSignature
+        framer.notify(
+          t(stale ? "meta.sessionRestoredStale" : "meta.sessionRestored"),
+          { variant: stale ? "warning" : "info" },
+        )
       }
     })
     return () => {
       cancelled = true
     }
-  }, [draft.status, draftSignature, t])
+  }, [draft.status, draftSignature, results.length, t])
+
+  useEffect(() => {
+    sessionSnapshotRef.current = {
+      results,
+      step,
+      resultLocaleId,
+      draftSignature,
+      selectedPageId,
+    }
+  }, [results, step, resultLocaleId, draftSignature, selectedPageId])
+
+  useEffect(() => {
+    return () => {
+      const snap = sessionSnapshotRef.current
+      if (snap.results.length === 0) return
+      void flushMetaSessionPersist({
+        draftSignature: snap.draftSignature,
+        selectedPageId: snap.selectedPageId,
+        step: snap.step,
+        resultLocaleId: snap.resultLocaleId,
+        results: snap.results,
+      })
+    }
+  }, [pageContext, selectedPageId, staticPages])
 
   useEffect(() => {
     if (draft.status === "loading") return
@@ -293,6 +413,23 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
     if (step !== "generate") return
     void ensureActiveProviderHasKey()
   }, [step, ensureActiveProviderHasKey])
+
+  useEffect(() => {
+    if (!busy || step !== "generate") return
+    const id = window.setInterval(() => setGenerateNowMs(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [busy, step])
+
+  useEffect(() => {
+    if (!busy || step !== "generate") return
+    const id = window.setTimeout(() => {
+      generateProgressPanelRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      })
+    }, 80)
+    return () => window.clearTimeout(id)
+  }, [busy, step])
 
   useEffect(() => {
     if (!currentProvider.models.some((m) => m.id === modelId)) {
@@ -318,40 +455,57 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
     if (selectedPageId || !pageContext.trim()) return
     if (staticPages !== null) return
     setManualPageMode(true)
-  }, [])
+  }, [pageContext, selectedPageId, staticPages])
 
-  const persistSession = useCallback(
-    (
-      nextResults: MetaResult[],
-      sessionStep: MetaStep,
-      localeId: string,
-    ) => {
-      if (nextResults.length === 0) {
-        void writeJson(StorageKeys.LastMetaResults, null)
-        return
-      }
-      const payload: PersistedMetaResults = {
-        savedAt: Date.now(),
-        selectedPageId,
-        draftSignature,
-        step: sessionStep,
-        resultLocaleId: localeId || nextResults[0]?.localeId,
-        results: nextResults,
-      }
-      void writeJson(StorageKeys.LastMetaResults, payload)
+  const flushSession = useCallback(async () => {
+    if (results.length === 0) {
+      await clearMetaSessionPersist()
+      return
+    }
+    const ok = await flushMetaSessionPersist({
+      draftSignature,
+      selectedPageId,
+      step,
+      resultLocaleId: resultLocaleId || results[0]?.localeId || "",
+      results,
+    })
+    if (ok) {
       lastGenerateSignatureRef.current = draftSignature
-    },
-    [draftSignature, selectedPageId],
-  )
+    }
+  }, [draftSignature, selectedPageId, step, resultLocaleId, results])
 
   useEffect(() => {
     if (results.length === 0) return
-    persistSession(
-      results,
+    void flushSession()
+  }, [results, step, resultLocaleId, flushSession])
+
+  useEffect(() => {
+    setCopiedMetaLocaleIds((prev) => {
+      const validIds = new Set(results.map((r) => r.localeId))
+      const next = new Set([...prev].filter((id) => validIds.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [results])
+
+  const handleLeaveMeta = useCallback(() => {
+    syncWizardSession()
+    void flushMetaSessionPersist({
+      draftSignature,
+      selectedPageId,
       step,
-      resultLocaleId || results[0]?.localeId || "",
-    )
-  }, [results, step, resultLocaleId, persistSession])
+      resultLocaleId: resultLocaleId || results[0]?.localeId || "",
+      results,
+    })
+    onBack()
+  }, [
+    draftSignature,
+    onBack,
+    resultLocaleId,
+    results,
+    selectedPageId,
+    step,
+    syncWizardSession,
+  ])
 
   const generateForLocale = async (
     locale: { id: string; code: string; name: string; isDefault: boolean },
@@ -372,6 +526,7 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
         providerId,
         modelId,
         apiKey,
+        feature: "meta_generate",
         prompt,
         customProvider: currentProvider.custom ? currentProvider : undefined,
         // CJK meta JSON is token-heavy; truncation mid-array caused ko parse-failed.
@@ -621,8 +776,20 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
       cancelGenerateRef.current = false
       setBusy(true)
       setResults([])
+      setCopiedMetaLocaleIds(new Set())
       setGenerateProgress(0)
+      setGenerateStartedAt(Date.now())
+      setGenerateNowMs(Date.now())
+      const firstLocale = targetLocales[0]
+      setGenerateCurrentLocaleLabel(
+        firstLocale ? `${firstLocale.name} (${firstLocale.code})` : "",
+      )
     } else {
+      setCopiedMetaLocaleIds((prev) => {
+        const next = new Set(prev)
+        next.delete(options!.localeId!)
+        return next
+      })
       setRegeneratingId(options!.localeId!)
     }
 
@@ -632,6 +799,9 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
         targetLocales,
         META_AI_CONCURRENCY,
         async (locale) => {
+          if (!isSingleRegen && !cancelGenerateRef.current) {
+            setGenerateCurrentLocaleLabel(`${locale.name} (${locale.code})`)
+          }
           const row = await generateForLocale(locale, apiKey)
           if (!isSingleRegen && !cancelGenerateRef.current) {
             done += 1
@@ -675,19 +845,28 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
         const issueCount = completed.filter(
           (r) => r.qualityFlags.length > 0,
         ).length
+        const singleResult = completed.length === 1
         framer.notify(
           issueCount > 0
-            ? t("meta.generatedSuccessWithIssues", {
-                n: completed.length,
-                issues: issueCount,
-              })
-            : t("meta.generatedSuccess", { n: completed.length }),
+            ? singleResult
+              ? t("meta.generatedSuccessWithIssuesOne")
+              : t("meta.generatedSuccessWithIssues", {
+                  n: completed.length,
+                  issues: issueCount,
+                })
+            : singleResult
+              ? t("meta.generatedSuccessOne")
+              : t("meta.generatedSuccess", { n: completed.length }),
           { variant: issueCount > 0 ? "warning" : "success" },
         )
         if (options?.goToReview !== false) setStep("review")
       }
     } finally {
       setBusy(false)
+      if (!isSingleRegen) {
+        setGenerateStartedAt(null)
+        setGenerateCurrentLocaleLabel("")
+      }
       setRegeneratingId(null)
     }
   }
@@ -696,37 +875,148 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
     cancelGenerateRef.current = true
   }
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      framer.notify(t("meta.copyAllSuccess"), { variant: "success" })
-    } catch {
-      framer.notify(t("meta.copyAllFailed"), { variant: "warning" })
-    }
+  const openFramerProject = () => {
+    void focusFramerEditorCanvas().then(() => {
+      framer.notify(t("meta.openProjectEditorHint"), { variant: "info" })
+    })
   }
 
-  const openFramerProject = () => {
-    void openCurrentFramerProject()
-  }
+  const metaFieldLabels = useMemo(
+    () => ({
+      title: t("meta.fields.title"),
+      metaDescription: t("meta.fields.metaDescription"),
+      ogTitle: t("meta.fields.ogTitle"),
+      ogDescription: t("meta.fields.ogDescription"),
+      twitterTitle: t("meta.fields.twitterTitle"),
+      twitterDescription: t("meta.fields.twitterDescription"),
+    }),
+    [t],
+  )
+
+  const reviewPageTitle =
+    staticPages?.find((p) => p.id === selectedPageId)?.title ?? selectedPagePath
+
+  const reviewCopiedLocaleCount = useMemo(
+    () => results.filter((r) => copiedMetaLocaleIds.has(r.localeId)).length,
+    [copiedMetaLocaleIds, results],
+  )
+  const generateElapsedMs =
+    busy && generateStartedAt ? generateNowMs - generateStartedAt : 0
+
+  const handleFinishHandoff = useCallback(() => {
+    if (results.length > 0 && reviewCopiedLocaleCount < results.length) {
+      setFinishConfirmOpen(true)
+      return
+    }
+    handleLeaveMeta()
+  }, [handleLeaveMeta, results.length, reviewCopiedLocaleCount, t])
+
+  const handleDownloadLocale = useCallback(() => {
+    const active =
+      results.find((r) => r.localeId === resultLocaleId) ?? results[0]
+    if (!active?.parsed && !active?.rawText) return
+    const text = formatMetaLocaleExport(active, metaFieldLabels, {
+      pageTitle: reviewPageTitle,
+      pagePath: selectedPagePath,
+    })
+    downloadTextFile(
+      metaLocaleFilename(active.localeCode, reviewPageTitle),
+      text,
+    )
+    framer.notify(t("meta.downloadSuccess"), { variant: "success" })
+  }, [
+    metaFieldLabels,
+    resultLocaleId,
+    results,
+    reviewPageTitle,
+    selectedPagePath,
+    t,
+  ])
+
+  const handleDownloadAll = useCallback(() => {
+    const withContent = results.filter((r) => r.parsed || r.rawText)
+    if (withContent.length === 0) return
+    const zip = buildMetaZipArchive(withContent, metaFieldLabels, {
+      pageTitle: reviewPageTitle,
+      pagePath: selectedPagePath,
+    })
+    const ab = new ArrayBuffer(zip.byteLength)
+    new Uint8Array(ab).set(zip)
+    const blob = new Blob([ab], { type: "application/zip" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `polyglot-meta-${(reviewPageTitle ?? "page").toLowerCase().replace(/[^a-z0-9]+/g, "-") || "page"}.zip`
+    a.click()
+    URL.revokeObjectURL(url)
+    framer.notify(t("meta.downloadAllSuccess", { n: withContent.length }), {
+      variant: "success",
+    })
+  }, [metaFieldLabels, results, reviewPageTitle, selectedPagePath, t])
+
+  useEffect(() => {
+    if (!restoredSession?.results.length || didNotifySessionRestoreRef.current) {
+      return
+    }
+    didNotifySessionRestoreRef.current = true
+    framer.notify(t("meta.sessionRestored"), { variant: "info" })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once on memory restore
+  }, [])
 
   const totalCost = results.reduce((sum, r) => sum + (r.costUsd ?? 0), 0)
 
-  const perCallEstimate =
-    (600 * currentModel.pricePerMTokenInput +
-      250 * currentModel.pricePerMTokenOutput) /
-    1_000_000
   const generateLocaleCount = gate.isPro
     ? locales.length
     : Math.min(locales.length || 1, 1)
-  const totalEstimate = perCallEstimate * generateLocaleCount
-  const showCostEstimate = perCallEstimate > 0
+
+  const generateLocaleCodes = useMemo(() => {
+    if (gate.isPro) {
+      return locales.map((l) => l.code)
+    }
+    const def = locales.find((l) => l.isDefault) ?? locales[0]
+    return def ? [def.code] : ["en"]
+  }, [gate.isPro, locales])
+
+  const metaCostEstimate = useMemo(
+    () =>
+      estimateMetaBatchCost(
+        currentModel,
+        providerId,
+        generateLocaleCodes,
+        {
+          pageContext,
+          pageType,
+          primaryKeyword,
+          brandVoice,
+        },
+      ),
+    [
+      brandVoice,
+      currentModel,
+      generateLocaleCodes,
+      pageContext,
+      pageType,
+      primaryKeyword,
+      providerId,
+    ],
+  )
 
   const generateLabel =
     generateLocaleCount === 1
       ? t("meta.generateButton", { n: 1 })
       : t("meta.generateButtonPlural", { n: generateLocaleCount })
 
-  const canProceedFromPage = pageContext.trim().length > 0
+  const pageFlowStepDone = useMemo(
+    () =>
+      deriveMetaFlowStepDone(
+        manualPageMode,
+        staticPages,
+        selectedPageId,
+        pageContext,
+      ),
+    [manualPageMode, pageContext, selectedPageId, staticPages],
+  )
+  const canProceedFromPage = pageFlowStepDone.content
   const canGenerate = canProceedFromPage && hasApiKey
 
   const generateNextBlockReason = useMemo(() => {
@@ -752,6 +1042,23 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
     t,
   ])
 
+  const pageNextLabel = useMemo(() => {
+    if (canProceedFromPage) return t("meta.stepNextGenerate")
+    if (!manualPageMode && staticPages === null) {
+      return t("meta.stepNextLoadFirst")
+    }
+    if (!manualPageMode && !selectedPageId) {
+      return t("meta.stepNextSelectFirst")
+    }
+    return t("meta.stepNextAddContext")
+  }, [
+    canProceedFromPage,
+    manualPageMode,
+    selectedPageId,
+    staticPages,
+    t,
+  ])
+
   useKeyboardShortcut(
     "Enter",
     () => {
@@ -762,6 +1069,7 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
 
   const goNextStep = () => {
     if (step === "page") {
+      setSuggestion(null)
       void ensureActiveProviderHasKey().then(() => setStep("generate"))
     } else if (step === "generate") void handleGenerate({ goToReview: true })
   }
@@ -785,15 +1093,16 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
     <>
       <TopBar
         title={t("meta.title")}
-        onBack={onBack}
+        onBack={handleLeaveMeta}
         onOpenSettings={onOpenSettings}
+        onOpenOnboarding={onOpenOnboarding}
       />
       <MetaStepBar
         step={step}
         hasGenerated={results.length > 0}
         onStepChange={handleStepChange}
       />
-      <div className="pa-scroll">
+      <div className="pa-scroll pa-scroll--with-footer">
         {configChangedSinceGenerate &&
           (step === "page" || step === "generate") && (
             <p className="pa-section-helper" style={{ margin: "0 0 8px" }}>
@@ -828,12 +1137,20 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
             onManualOnlyChange={handleManualPageMode}
             suggestBusy={suggestBusy}
             suggestion={suggestion}
+            localeCount={generateLocaleCount}
+            providerId={providerId}
+            modelId={modelId}
+            allProviders={allProviders}
+            currentProvider={currentProvider}
+            currentModel={currentModel}
             onSuggestField={(f, opts) => void handleSuggestField(f, opts)}
             selectedPageIsHomepage={staticPages?.find(
               (p) => p.id === selectedPageId,
             )?.isHomepage}
             onAcceptSuggestion={handleAcceptSuggestion}
             onDismissSuggestion={() => setSuggestion(null)}
+            onProviderChange={(id) => setField("providerId", id)}
+            onModelChange={(id) => setField("modelId", id)}
           />
         )}
 
@@ -847,9 +1164,13 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
             currentProvider={currentProvider}
             currentModel={currentModel}
             hasApiKey={hasApiKey}
-            perCallEstimate={perCallEstimate}
-            totalEstimate={totalEstimate}
-            showCostEstimate={showCostEstimate}
+            costEstimate={metaCostEstimate}
+            busy={busy}
+            progress={generateProgress}
+            elapsedLabel={formatElapsed(generateElapsedMs)}
+            currentLocaleLabel={generateCurrentLocaleLabel}
+            isSlow={generateElapsedMs > 30_000}
+            progressPanelRef={generateProgressPanelRef}
             onProviderChange={(id) => setField("providerId", id)}
             onModelChange={(id) => setField("modelId", id)}
           />
@@ -859,19 +1180,24 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
           <MetaReviewStep
             results={results}
             resultLocaleId={resultLocaleId || results[0]?.localeId || ""}
+            copiedLocaleIds={copiedMetaLocaleIds}
             selectedPageTitle={
               staticPages?.find((p) => p.id === selectedPageId)?.title
             }
             selectedPagePath={selectedPagePath}
             onResultLocaleChange={setResultLocaleId}
+            onCopiedLocaleIdsChange={setCopiedMetaLocaleIds}
             onOpenFramerProject={openFramerProject}
             totalCost={totalCost}
+            providerId={providerId}
             busy={busy}
             regeneratingId={regeneratingId}
             onRegenerateLocale={(id) =>
               void handleGenerate({ localeId: id, goToReview: false })
             }
-            onCopyAll={(text) => void copyToClipboard(text)}
+            onRegenerateAll={() => void handleGenerate({ goToReview: false })}
+            onDownloadLocale={handleDownloadLocale}
+            onDownloadAll={handleDownloadAll}
           />
         )}
       </div>
@@ -898,7 +1224,7 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
               onClick={goNextStep}
               disabled={!canProceedFromPage}
             >
-              {t("meta.stepNext")}
+              {pageNextLabel}
             </button>
           </div>
         )}
@@ -934,31 +1260,30 @@ export function MetaAiView({ onBack, onOpenSettings }: Props) {
           </>
         )}
         {step === "review" && (
-          <>
-            <button
-              type="button"
-              className="pa-footer-secondary"
-              onClick={() => void handleGenerate({ goToReview: false })}
-              disabled={busy || !canGenerate}
-            >
-              {busy
-                ? t("meta.generatingProgress", {
-                    current: generateProgress,
-                    total: generateLocaleCount,
-                  })
-                : t("meta.regenerateAll")}
-            </button>
-            <button
-              type="button"
-              className="pa-button-primary"
-              onClick={onBack}
-              disabled={busy}
-            >
-              {t("meta.reviewDone")}
-            </button>
-          </>
+          <button
+            type="button"
+            className="pa-button-primary"
+            onClick={handleFinishHandoff}
+            disabled={busy}
+          >
+            {t("meta.finishHandoff")}
+          </button>
         )}
       </div>
+
+      <ConfirmDialog
+        open={finishConfirmOpen}
+        message={t("meta.finishUncopiedConfirm", {
+          done: reviewCopiedLocaleCount,
+          total: results.length,
+        })}
+        confirmLabel={t("common.close")}
+        onConfirm={() => {
+          setFinishConfirmOpen(false)
+          handleLeaveMeta()
+        }}
+        onCancel={() => setFinishConfirmOpen(false)}
+      />
     </>
   )
 }

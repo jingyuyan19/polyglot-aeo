@@ -40,16 +40,21 @@ npx wrangler secret put CREEM_API_KEY
 ## Plugin environment (production build)
 
 ```bash
-VITE_LICENSE_API_BASE=https://polyglot-license.<your-subdomain>.workers.dev
+VITE_LICENSE_API_BASE=https://license.polyglotaeo.com
 ```
 
 Upgrade buttons open `{VITE_LICENSE_API_BASE}/checkout`, and the Worker redirects
 to Creem after creating a fresh checkout session. `VITE_CREEM_CHECKOUT_*` can
 still be set as a static emergency fallback.
 
+Do not use the `workers.dev` Worker URL for production checkout traffic. Keep
+the Worker behind `license.polyglotaeo.com`, make sure that domain belongs to
+the approved Polyglot AEO business/store in Creem, and keep the success URL on
+`https://polyglotaeo.com/success`.
+
 ## polyglotaeo.com (optional)
 
-Static/marketing only: pricing copy, privacy, refund policy, `schema-rules-v1.json`.  
+Static/marketing only: pricing copy, privacy, refund policy, and contact pages.
 No license API on Next.js — see `polyglotaeo-web/README.md`.
 
 ## Manual test script

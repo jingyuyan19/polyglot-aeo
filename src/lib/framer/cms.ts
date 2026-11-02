@@ -1,5 +1,8 @@
 import { framer } from "framer-plugin"
 
+export type { OpenCmsCollectionResult } from "./open-cms-collection"
+export { openCmsCollection } from "./open-cms-collection"
+
 export interface CollectionSummary {
   id: string
   name: string

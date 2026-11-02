@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "pilot": {
+    "name": "Framer plugin Reddit organic pilot",
+    "start_date": "2026-07-10",
+    "end_date": "2026-09-03",
+    "timezone": "Asia/Shanghai",
+    "weekly_hours": "3-5",
+    "organic_only": true,
+    "min_non_promotional_contributions": 9,
+    "contribution_lookback_days": 14,
+    "promotion_exclusivity_days": 7,
+    "rules_max_age_hours": 24,
+    "public_health_max_age_hours": 24,
+    "review_windows": ["24h", "72h", "7d"],
+    "phases": [
+      {
+        "id": "foundation",
+        "start_date": "2026-07-10",
+        "end_date": "2026-07-23",
+        "label": "Weeks 1-2: context and contribution"
+      },
+      {
+        "id": "polyglot",
+        "start_date": "2026-07-24",
+        "end_date": "2026-08-06",
+        "label": "Weeks 3-4: Polyglot AEO experiment"
+      },
+      {
+        "id": "ally",
+        "start_date": "2026-08-07",
+        "end_date": "2026-08-20",
+        "label": "Weeks 5-6: Ally Auditor experiment"
+      },
+      {
+        "id": "conditional",
+        "start_date": "2026-08-21",
+        "end_date": "2026-09-03",
+        "label": "Weeks 7-8: conditional Loka experiment and portfolio decision"
+      }
+    ]
+  },
+  "thresholds": {
+    "single_experiment_min_installs": 1,
+    "single_experiment_min_insights": 2,
+    "continue_min_installs": 4,
+    "continue_min_activation_rate": 0.3,
+    "scale_min_installs": 10,
+    "scale_min_activation_rate": 0.4,
+    "scale_min_insights": 5
+  },
+  "subreddits": {
+    "nocode": {
+      "label": "r/nocode",
+      "url": "https://www.reddit.com/r/nocode/",
+      "rules_url": "https://www.reddit.com/r/nocode/",
+      "last_verified": "2026-07-10",
+      "mode": "promotion_allowed_with_conditions",
+      "promotion_allowed": true,
+      "requires_disclosure": true,
+      "required_flair": "Promoted",
+      "launch_posts_in_monthly_thread": true,
+      "max_product_links": 1,
+      "notes": "Promotion must be value-first, disclose the connection, and use the Promoted flair. Product launch posts belong in the monthly launch thread."
+    },
+    "framer": {
+      "label": "r/framer",
+      "url": "https://www.reddit.com/r/framer/",
+      "rules_url": "https://www.reddit.com/r/framer/",
+      "last_verified": "2026-07-10",
+      "mode": "research_only_without_mod_approval",
+      "promotion_allowed": false,
+      "requires_mod_approval": true,
+      "max_product_links": 0,
+      "notes": "Rule 4 says no self-promotion or advertisements. Participate without product names or links unless moderators approve the exact post in writing."
+    },
+    "accessibility": {
+      "label": "r/accessibility",
+      "url": "https://www.reddit.com/r/accessibility/",
+      "rules_url": "https://www.reddit.com/r/accessibility/",
+      "last_verified": "2026-07-10",
+      "mode": "research_only",
+      "promotion_allowed": false,
+      "requires_accessible_media": true,
+      "max_product_links": 0,
+      "notes": "Use for lived-experience and WCAG learning. Do not promote Ally Auditor during the pilot; all media must be accessible."
+    },
+    "SEO": {
+      "label": "r/SEO",
+      "url": "https://www.reddit.com/r/SEO/",
+      "rules_url": "https://www.reddit.com/r/SEO/",
+      "last_verified": "2026-07-10",
+      "mode": "research_only",
+      "promotion_allowed": false,
+      "max_product_links": 0,
+      "notes": "The current rules prohibit links, self-promotion, branded content, guides, and apps. Listen and answer without mentioning products."
+    },
+    "localization": {
+      "label": "r/localization",
+      "url": "https://www.reddit.com/r/localization/",
+      "rules_url": "https://www.reddit.com/r/localization/",
+      "last_verified": "2026-07-10",
+      "mode": "conditional_manual_review",
+      "promotion_allowed": true,
+      "requires_disclosure": true,
+      "requires_same_day_rules_check": true,
+      "max_product_links": 1,
+      "notes": "Small experimental community. Use only after Loka compliance clears and a same-day manual rules check confirms the post is appropriate."
+    },
+    "SaaS": {
+      "label": "r/SaaS",
+      "url": "https://www.reddit.com/r/SaaS/",
+      "rules_url": "https://www.reddit.com/r/SaaS/",
+      "last_verified": "2026-07-10",
+      "mode": "hold_first_eight_weeks",
+      "promotion_allowed": false,
+      "notes": "Founder audience is not the core Framer ICP. Current rules limit promotion to one mention per 60 days and require disclosure."
+    },
+    "SideProject": {
+      "label": "r/SideProject",
+      "url": "https://www.reddit.com/r/SideProject/",
+      "rules_url": "https://www.reddit.com/r/SideProject/",
+      "last_verified": "2026-07-10",
+      "mode": "hold_first_eight_weeks",
+      "promotion_allowed": false,
+      "notes": "Large but low-fit founder audience; intentionally excluded from the first eight weeks."
+    }
+  },
+  "plugins": {
+    "polyglot-aeo": {
+      "name": "Polyglot AEO",
+      "tier": "A",
+      "sequence": 1,
+      "phase": "polyglot",
+      "campaign": "polyglot-aeo_reddit_pilot",
+      "public_health_id": "polyglot_aeo",
+      "marketplace_slug": "polyglot-aeo",
+      "marketplace_url": "https://www.framer.com/community/marketplace/plugins/polyglot-aeo/",
+      "draft": "docs/growth/reddit/drafts/polyglot-aeo-nocode.md",
+      "community_drafts": {
+        "framer": "docs/growth/reddit/drafts/polyglot-aeo-framer-educational.md"
+      },
+      "allowed_subreddits": ["nocode", "framer"],
+      "activation_event": "first schema install or completed published-site verification",
+      "requires_previous_plugin": ""
+    },
+    "ally-auditor": {
+      "name": "Ally Auditor",
+      "tier": "A",
+      "sequence": 2,
+      "phase": "ally",
+      "campaign": "ally-auditor_reddit_pilot",
+      "public_health_id": "ally_auditor",
+      "marketplace_slug": "ally-auditor",
+      "marketplace_url": "https://www.framer.com/community/marketplace/plugins/ally-auditor/",
+      "draft": "docs/growth/reddit/drafts/ally-auditor-nocode.md",
+      "allowed_subreddits": ["nocode"],
+      "activation_event": "completed accessibility scan",
+      "requires_previous_plugin": "polyglot-aeo"
+    },
+    "loka-localization-hub": {
+      "name": "Loka - Localization Hub",
+      "tier": "B",
+      "sequence": 3,
+      "phase": "conditional",
+      "campaign": "loka-localization-hub_reddit_pilot",
+      "public_health_id": "loka_pro",
+      "marketplace_slug": "loka-localization-hub",
+      "marketplace_url": "https://www.framer.com/community/marketplace/plugins/loka-localization-hub/",
+      "draft": "docs/growth/reddit/drafts/loka-localization-hub.md",
+      "allowed_subreddits": ["localization", "nocode"],
+      "activation_event": "connected a Google Sheet and reviewed or applied selected text",
+      "requires_previous_plugin": "ally-auditor"
+    },
+    "gaode-maps-assistant": {
+      "name": "Gaode Maps Assistant",
+      "tier": "C",
+      "sequence": 4,
+      "phase": "response_only",
+      "campaign": "gaode-maps-assistant_reddit_response",
+      "public_health_id": "gaode_maps_assistant",
+      "marketplace_slug": "gaode-maps-assistant",
+      "marketplace_url": "https://www.framer.com/community/marketplace/plugins/gaode-maps-assistant/",
+      "draft": "",
+      "allowed_subreddits": [],
+      "activation_event": "generated a Gaode/AMap component",
+      "requires_previous_plugin": "",
+      "response_only": true
+    }
+  }
+}

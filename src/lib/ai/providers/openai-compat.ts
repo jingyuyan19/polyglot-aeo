@@ -348,7 +348,7 @@ export const minimaxGlobalProvider: Provider = createOpenAiCompatibleProvider({
 export const minimaxCnProvider: Provider = createOpenAiCompatibleProvider({
   id: "minimax-cn",
   name: "MiniMax 国内",
-  description: "MiniMax — 国内端点，.com（中国大陆推荐）",
+  description: "MiniMax — minimaxi.com 国内端点（中国大陆推荐）",
   consoleUrl: "https://platform.minimaxi.com/",
   baseUrl: "https://api.minimaxi.com/v1",
   models: MINIMAX_MODELS,

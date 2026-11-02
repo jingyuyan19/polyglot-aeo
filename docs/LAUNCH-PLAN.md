@@ -10,7 +10,7 @@ A 30-day plan from "build complete" to "first 100 paying customers".
 - [x] Cloudflare Worker (`api/`) — Creem checkout/activate/validate proxy.
 - [x] Creem dynamic checkout via Worker (`/checkout`) with product IDs in `api/wrangler.toml`.
 - [x] Deploy Worker: `cd api && npx wrangler deploy` + live Creem secret.
-- [x] Optional: static `polyglotaeo-web` for marketing + `schema-rules-v1.json`.
+- [x] Optional: static `polyglotaeo-web` for marketing pages.
 - [x] Configure Creem Founding / Loka coupons — see [CREEM-PRODUCTS.md](./CREEM-PRODUCTS.md).
 - [ ] Stand up `/changelog` so customers see we ship — major AEO update in
       the first 30 days is a strong retention signal.
