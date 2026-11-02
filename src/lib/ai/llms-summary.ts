@@ -59,6 +59,8 @@ export interface GenerateLlmsSummaryResult {
    * "low confidence — review carefully".
    */
   qualityOk: boolean
+  /** True when optimize mode produced a material change from the draft. */
+  changed: boolean
   costUsd: number
 }
 
@@ -223,6 +225,99 @@ function sanitizeBareText(input: string): string {
   return s
 }
 
+function normalizeForSimilarity(input: string): string {
+  return input
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function tokenOverlapRatio(a: string, b: string): number {
+  const aTokens = new Set(a.split(" ").filter(Boolean))
+  const bTokens = new Set(b.split(" ").filter(Boolean))
+  if (aTokens.size === 0 || bTokens.size === 0) return 0
+  let overlap = 0
+  for (const token of aTokens) {
+    if (bTokens.has(token)) overlap += 1
+  }
+  return overlap / Math.max(aTokens.size, bTokens.size)
+}
+
+function levenshteinRatio(a: string, b: string): number {
+  if (a === b) return 1
+  const maxLen = Math.max(a.length, b.length)
+  if (maxLen === 0) return 1
+  // Long descriptions can be hundreds of characters. Token overlap is
+  // enough there; avoid an expensive O(n*m) edit-distance matrix.
+  if (maxLen > 800) return tokenOverlapRatio(a, b)
+
+  const prev = Array.from({ length: b.length + 1 }, (_, i) => i)
+  const curr = new Array<number>(b.length + 1)
+  for (let i = 1; i <= a.length; i += 1) {
+    curr[0] = i
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      curr[j] = Math.min(
+        curr[j - 1] + 1,
+        prev[j] + 1,
+        prev[j - 1] + cost,
+      )
+    }
+    for (let j = 0; j <= b.length; j += 1) prev[j] = curr[j]
+  }
+  return 1 - prev[b.length] / maxLen
+}
+
+function isNearIdenticalDraft(candidate: string, draft: string): boolean {
+  const normalizedCandidate = normalizeForSimilarity(candidate)
+  const normalizedDraft = normalizeForSimilarity(draft)
+  if (!normalizedCandidate || !normalizedDraft) return false
+  if (normalizedCandidate === normalizedDraft) return true
+
+  const maxLen = Math.max(normalizedCandidate.length, normalizedDraft.length)
+  const minLen = Math.min(normalizedCandidate.length, normalizedDraft.length)
+  const lengthRatio = minLen / maxLen
+
+  if (maxLen < 24) {
+    return (
+      lengthRatio > 0.92 &&
+      levenshteinRatio(normalizedCandidate, normalizedDraft) > 0.92
+    )
+  }
+
+  const overlap = tokenOverlapRatio(normalizedCandidate, normalizedDraft)
+  const editSimilarity = levenshteinRatio(
+    normalizedCandidate,
+    normalizedDraft,
+  )
+  return lengthRatio > 0.82 && (overlap >= 0.9 || editSimilarity >= 0.88)
+}
+
+function summaryQualityFor(
+  cleaned: string,
+  trimmedDraft: string,
+  targetLanguage: string,
+): { qualityOk: boolean; changed: boolean } {
+  let qualityOk = true
+  if (!validateLocaleScript(cleaned, targetLanguage)) {
+    qualityOk = false
+  }
+
+  let changed = true
+  if (trimmedDraft) {
+    changed = !isNearIdenticalDraft(cleaned, trimmedDraft)
+    const passthrough = looksUntranslatedText(
+      { description: cleaned },
+      { description: trimmedDraft },
+    )
+    if (passthrough || !changed) qualityOk = false
+  }
+
+  return { qualityOk, changed }
+}
+
 /**
  * Generate or optimize the site-summary line for an llms.txt file.
  *
@@ -246,73 +341,71 @@ export async function generateLlmsSummary(
   const trimmedDraft = (params.draft ?? "").trim()
   const trimmedKeywords = (params.keywords ?? "").trim()
 
-  const prompt = buildLlmsSummaryPrompt({
-    siteName: params.siteName,
-    draft: trimmedDraft || undefined,
-    keywords: trimmedKeywords || undefined,
-    targetLanguage: params.targetLanguage,
-    brandVoice: params.brandVoice,
-  })
+  const attempt = async (forceRewrite: boolean) => {
+    const prompt = buildLlmsSummaryPrompt({
+      siteName: params.siteName,
+      draft: trimmedDraft || undefined,
+      keywords: trimmedKeywords || undefined,
+      targetLanguage: params.targetLanguage,
+      brandVoice: params.brandVoice,
+      forceRewrite,
+    })
 
-  const result = await callAiFn({
-    providerId: params.ai.providerId as AiProvider,
-    modelId: params.ai.modelId,
-    apiKey: params.ai.apiKey,
-    prompt,
-    customProvider: params.ai.customProvider,
-    // Summaries are short, but two budgets force this cap higher
-    // than the visible-output size:
-    //
-    //   1. CJK languages use ~2-3 tokens/char of output.
-    //   2. "Reasoning" models (DeepSeek R1, Qwen QwQ / Qwen3-think,
-    //      GLM-Z1) emit a long `<think>…</think>` chain BEFORE the
-    //      answer. With a 400-token cap they get cut off mid-think
-    //      and our parser sees a truncated `<think>` tag with no
-    //      payload (we shipped a build that did exactly this).
-    //
-    // 1500 tokens is enough thinking budget for every reasoning
-    // model we've tested. Cost is unaffected — providers only bill
-    // for actual output tokens, not the cap.
-    maxTokens: 1500,
-  })
-  const costUsd = result.estimatedCostUsd ?? 0
+    const result = await callAiFn({
+      providerId: params.ai.providerId as AiProvider,
+      modelId: params.ai.modelId,
+      apiKey: params.ai.apiKey,
+      feature: "llms_summary",
+      prompt,
+      customProvider: params.ai.customProvider,
+      // Summaries are short, but two budgets force this cap higher
+      // than the visible-output size:
+      //
+      //   1. CJK languages use ~2-3 tokens/char of output.
+      //   2. "Reasoning" models (DeepSeek R1, Qwen QwQ / Qwen3-think,
+      //      GLM-Z1) emit a long `<think>…</think>` chain BEFORE the
+      //      answer. With a 400-token cap they get cut off mid-think
+      //      and our parser sees a truncated `<think>` tag with no
+      //      payload (we shipped a build that did exactly this).
+      //
+      // 1500 tokens is enough thinking budget for every reasoning
+      // model we've tested. Cost is unaffected — providers only bill
+      // for actual output tokens, not the cap.
+      maxTokens: 1500,
+    })
 
-  const parsed = parseSummaryResponse(result.parsed, result.rawText)
-  if (!parsed) {
-    throw new Error(
-      "AI returned an unparseable response. Try again or switch to a stronger model.",
+    const parsed = parseSummaryResponse(result.parsed, result.rawText)
+    if (!parsed) {
+      throw new Error(
+        "AI returned an unparseable response. Try again or switch to a stronger model.",
+      )
+    }
+
+    const cleaned = parsed.summary
+      .replace(/^["「"」'']+|["「"」'']+$/g, "")
+      .trim()
+    const quality = summaryQualityFor(
+      cleaned,
+      trimmedDraft,
+      params.targetLanguage,
     )
+    return {
+      summary: cleaned,
+      costUsd: result.estimatedCostUsd ?? 0,
+      ...quality,
+    }
   }
 
-  // Strip outer quotes the model might wrap around a single-string
-  // response (some providers do this defensively even when asked
-  // for plain text inside a JSON envelope).
-  const cleaned = parsed.summary.replace(/^["「"」'']+|["「"」'']+$/g, "").trim()
-
-  let qualityOk = true
-
-  // Script integrity — lenient: short brand-name Latin tokens are
-  // allowed in CJK output, but a long Latin sentence in a Japanese
-  // summary is rejected.
-  if (!validateLocaleScript(cleaned, params.targetLanguage)) {
-    qualityOk = false
+  const first = await attempt(false)
+  if (trimmedDraft && !first.changed) {
+    const second = await attempt(true)
+    return {
+      ...second,
+      costUsd: first.costUsd + second.costUsd,
+    }
   }
 
-  // Byte-equal passthrough check (optimize mode only — generate
-  // mode has no draft to compare against).
-  if (qualityOk && trimmedDraft) {
-    const passthrough = looksUntranslatedText(
-      { description: cleaned },
-      { description: trimmedDraft },
-    )
-    if (passthrough) qualityOk = false
-  }
-
-  return {
-    summary: cleaned,
-    qualityOk,
-    costUsd,
-  }
+  return first
 }
 
 /**
@@ -348,6 +441,8 @@ export interface GenerateLlmsLongDescriptionParams {
 export interface GenerateLlmsLongDescriptionResult {
   longDescription: string
   qualityOk: boolean
+  /** True when optimize mode produced a material change from the draft. */
+  changed: boolean
   costUsd: number
 }
 
@@ -427,55 +522,61 @@ export async function generateLlmsLongDescription(
   const trimmedDraft = (params.draft ?? "").trim()
   const trimmedKeywords = (params.keywords ?? "").trim()
 
-  const prompt = buildLlmsLongDescriptionPrompt({
-    siteName: params.siteName,
-    siteSummary: params.siteSummary,
-    draft: trimmedDraft || undefined,
-    keywords: trimmedKeywords || undefined,
-    targetLanguage: params.targetLanguage,
-    brandVoice: params.brandVoice,
-    knownPaths: params.knownPaths,
-  })
+  const attempt = async (forceRewrite: boolean) => {
+    const prompt = buildLlmsLongDescriptionPrompt({
+      siteName: params.siteName,
+      siteSummary: params.siteSummary,
+      draft: trimmedDraft || undefined,
+      keywords: trimmedKeywords || undefined,
+      targetLanguage: params.targetLanguage,
+      brandVoice: params.brandVoice,
+      knownPaths: params.knownPaths,
+      forceRewrite,
+    })
 
-  const result = await callAiFn({
-    providerId: params.ai.providerId as AiProvider,
-    modelId: params.ai.modelId,
-    apiKey: params.ai.apiKey,
-    prompt,
-    customProvider: params.ai.customProvider,
-    // Long descriptions are 300-1200 chars in the source. CJK
-    // outputs use ~2-3 tokens/char. Reasoning models (DeepSeek R1
-    // etc.) need extra budget for `<think>` chains. 3000 covers
-    // every case we've tested without leaving the model truncated
-    // mid-bullet.
-    maxTokens: 3000,
-  })
-  const costUsd = result.estimatedCostUsd ?? 0
+    const result = await callAiFn({
+      providerId: params.ai.providerId as AiProvider,
+      modelId: params.ai.modelId,
+      apiKey: params.ai.apiKey,
+      feature: "llms_summary",
+      prompt,
+      customProvider: params.ai.customProvider,
+      // Long descriptions are 300-1200 chars in the source. CJK
+      // outputs use ~2-3 tokens/char. Reasoning models (DeepSeek R1
+      // etc.) need extra budget for `<think>` chains. 3000 covers
+      // every case we've tested without leaving the model truncated
+      // mid-bullet.
+      maxTokens: 3000,
+    })
 
-  const parsed = parseLongDescriptionResponse(result.parsed, result.rawText)
-  if (!parsed) {
-    throw new Error(
-      "AI returned an unparseable response. Try again or switch to a stronger model.",
+    const parsed = parseLongDescriptionResponse(result.parsed, result.rawText)
+    if (!parsed) {
+      throw new Error(
+        "AI returned an unparseable response. Try again or switch to a stronger model.",
+      )
+    }
+
+    const cleaned = parsed.longDescription.trim()
+    const quality = summaryQualityFor(
+      cleaned,
+      trimmedDraft,
+      params.targetLanguage,
     )
+    return {
+      longDescription: cleaned,
+      costUsd: result.estimatedCostUsd ?? 0,
+      ...quality,
+    }
   }
 
-  const cleaned = parsed.longDescription.trim()
-
-  let qualityOk = true
-  if (!validateLocaleScript(cleaned, params.targetLanguage)) {
-    qualityOk = false
-  }
-  if (qualityOk && trimmedDraft) {
-    const passthrough = looksUntranslatedText(
-      { description: cleaned },
-      { description: trimmedDraft },
-    )
-    if (passthrough) qualityOk = false
+  const first = await attempt(false)
+  if (trimmedDraft && !first.changed) {
+    const second = await attempt(true)
+    return {
+      ...second,
+      costUsd: first.costUsd + second.costUsd,
+    }
   }
 
-  return {
-    longDescription: cleaned,
-    qualityOk,
-    costUsd,
-  }
+  return first
 }

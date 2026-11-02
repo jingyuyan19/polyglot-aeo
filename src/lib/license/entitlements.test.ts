@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest"
 import {
   canUseFeature,
   countDistinctInstallPages,
-  FREE_META_GENERATE_LIMIT,
   FREE_SCHEMA_INSTALL_PAGE_LIMIT,
 } from "./entitlements"
 
@@ -13,25 +12,12 @@ describe("canUseFeature", () => {
     expect(canUseFeature("pro", "llms_ai_translate")).toBe(true)
   })
 
-  it("allows limited default-locale meta generation on free", () => {
-    expect(
-      canUseFeature("free", "meta_generate", {
-        localeCount: 1,
-        metaGenerateCount: FREE_META_GENERATE_LIMIT - 1,
-      }),
-    ).toBe(true)
-    expect(
-      canUseFeature("free", "meta_generate", {
-        localeCount: 1,
-        metaGenerateCount: FREE_META_GENERATE_LIMIT,
-      }),
-    ).toBe(false)
-    expect(
-      canUseFeature("free", "meta_generate", {
-        localeCount: 2,
-        metaGenerateCount: 0,
-      }),
-    ).toBe(false)
+  it("blocks AI-backed meta generation on free", () => {
+    expect(canUseFeature("free", "meta_generate", { localeCount: 1 })).toBe(
+      false,
+    )
+    expect(canUseFeature("free", "meta_ai_suggest")).toBe(false)
+    expect(canUseFeature("free", "custom_openai_endpoint")).toBe(false)
   })
 
   it("blocks schema translate with multiple locales", () => {

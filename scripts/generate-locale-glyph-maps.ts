@@ -1,6 +1,6 @@
 /**
  * Build-time generator: OpenCC dictionary → compact glyph maps for runtime
- * locale-script validation. Run via `npm run generate:locale-maps`.
+ * locale-script validation. Run via `pnpm run generate:locale-maps`.
  */
 import { mkdirSync, readFileSync, writeFileSync } from "fs"
 import { dirname, join } from "path"
@@ -152,7 +152,6 @@ function main(): void {
 
   const metadata = {
     openccVersion: pkg.version,
-    generatedAt: new Date().toISOString(),
     entryCounts: {
       cnToJp: Object.keys(cnToJp).length,
       twToJp: Object.keys(twToJp).length,

@@ -1,8 +1,12 @@
-import { POLYGLOT_PRICING } from "../links"
+import { POLYGLOT_CHECKOUT_BRIDGE, POLYGLOT_PRICING } from "../links"
+import { isBillingTestMode } from "./environment"
 import type {
   ActivateResponse,
   BillingMode,
+  BillingPlan,
+  CheckoutPlanUrls,
   DeactivateResponse,
+  UpgradeReason,
   ValidateResponse,
 } from "./types"
 
@@ -17,8 +21,7 @@ export function licenseApiBase(): string | null {
 }
 
 function isTestMode(mode?: BillingMode): boolean {
-  if (mode) return mode === "test"
-  return import.meta.env.VITE_CREEM_TEST_MODE === "true"
+  return isBillingTestMode(mode)
 }
 
 /**
@@ -28,7 +31,7 @@ function isTestMode(mode?: BillingMode): boolean {
  * checkout with project metadata. Direct Creem URLs remain as an emergency
  * fallback for static builds.
  */
-export function checkoutUrls(): { monthly: string; yearly: string } {
+export function checkoutUrls(): CheckoutPlanUrls {
   const monthly = import.meta.env.VITE_CREEM_CHECKOUT_MONTHLY as
     | string
     | undefined
@@ -44,7 +47,27 @@ export function checkoutUrls(): { monthly: string; yearly: string } {
 }
 
 export function buildCheckoutUrl(
-  plan: "monthly" | "yearly",
+  plan: BillingPlan,
+  projectId?: string | null,
+  billingMode?: BillingMode,
+  reason?: UpgradeReason,
+): string {
+  const target = buildDirectCheckoutUrl(plan, projectId, billingMode)
+  const bridge = new URL(POLYGLOT_CHECKOUT_BRIDGE)
+  bridge.searchParams.set("target", target)
+  bridge.searchParams.set("plan", plan)
+  bridge.searchParams.set("utm_source", "framer_plugin")
+  bridge.searchParams.set("utm_medium", "plugin")
+  bridge.searchParams.set("utm_campaign", "plugin_upgrade")
+  bridge.searchParams.set("utm_content", reason || plan)
+  if (reason) bridge.searchParams.set("reason", reason)
+  if (projectId) bridge.searchParams.set("project_id", projectId)
+  if (isTestMode(billingMode)) bridge.searchParams.set("test_mode", "true")
+  return bridge.toString()
+}
+
+function buildDirectCheckoutUrl(
+  plan: BillingPlan,
   projectId?: string | null,
   billingMode?: BillingMode,
 ): string {
@@ -81,8 +104,7 @@ async function postJson<T>(
   }
   if (!res.ok) {
     throw new Error(
-      (data as { error?: string }).error ||
-        `License API error (${res.status})`,
+      (data as { error?: string }).error || `License API error (${res.status})`,
     )
   }
   return data

@@ -165,6 +165,7 @@ export async function proposeSchemaForPage(
   try {
     const result = await callAi({
       ...ai,
+      feature: "schema_scan",
       prompt: { system, user },
       maxTokens: 1024,
     })
@@ -413,6 +414,7 @@ export async function orchestrateTranslate(
 
           const result = await callAi({
             ...params.ai,
+            feature: "schema_translate",
             prompt: { system, user },
             maxTokens,
           })

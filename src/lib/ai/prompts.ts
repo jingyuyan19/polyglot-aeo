@@ -852,6 +852,11 @@ export interface LlmsSummaryPromptInput {
   targetLanguage: string
   /** Optional brand-voice hint, persisted in plugin storage. */
   brandVoice?: string
+  /**
+   * Set after a first optimize pass returns near-verbatim text. This
+   * tightens the instruction without changing the public call shape.
+   */
+  forceRewrite?: boolean
 }
 
 export function buildLlmsSummaryPrompt(
@@ -878,8 +883,13 @@ STYLE — these are AI-search-tuned, NOT human-marketing-tuned:
 MODE: ${mode}.
 ${
   hasDraft
-    ? "You are given a DRAFT. Rewrite it tighter, scan-friendlier, and AEO-aligned. Preserve the user's intended meaning and any concrete facts. If the draft is already excellent, return it close to verbatim — don't rewrite for the sake of rewriting."
+    ? "You are given a DRAFT. Rewrite it tighter, scan-friendlier, and AEO-aligned. Preserve the user's intended meaning and any concrete facts, but DO NOT return the draft verbatim or near-verbatim. If the draft is already strong, make a conservative but visible improvement."
     : "You are NOT given a draft. Write a summary from scratch using the site name and any provided keywords as primary signals. If keywords are absent, write a generic-but-true summary inferring from the brand name's hint at category."
+}
+${
+  hasDraft && input.forceRewrite
+    ? "REPAIR PASS: the previous answer was too similar to the draft. Produce a materially different rewrite now. Shorten, sharpen, change sentence structure, or improve specificity while preserving facts."
+    : ""
 }
 
 LANGUAGE: write in ${input.targetLanguage}.
@@ -910,6 +920,8 @@ Keywords / instructions (optional, may be empty):
 """
 ${input.keywords ?? ""}
 """
+
+${hasDraft ? "Material rewrite required: yes. Do not echo the draft." : ""}
 
 Write the one-line site summary now.`
 
@@ -994,6 +1006,12 @@ export interface LlmsLongDescriptionPromptInput {
    * generic feature claims.
    */
   knownPaths?: ReadonlyArray<string>
+  /**
+   * Set after a first optimize pass returns near-verbatim text. This
+   * asks the same model for a stricter rewrite before surfacing the
+   * result to the user.
+   */
+  forceRewrite?: boolean
 }
 
 export function buildLlmsLongDescriptionPrompt(
@@ -1024,8 +1042,13 @@ STYLE — AI-search-tuned, NOT human-marketing:
 MODE: ${mode}.
 ${
   hasDraft
-    ? "You are given a DRAFT. Rewrite it tighter, more bullet-dense, and more factual. Preserve the user's intended meaning and any concrete facts. If the draft is already excellent, return it close to verbatim."
+    ? "You are given a DRAFT. Rewrite it tighter, more bullet-dense, and more factual. Preserve the user's intended meaning and any concrete facts, but DO NOT return the draft verbatim or near-verbatim. If the draft is already strong, make a conservative but visible improvement."
     : "You are NOT given a draft. Use the site name, optional keywords, and any known site paths as your factual scaffolding. Each bullet should map to a real capability you can infer from those signals — never fabricate."
+}
+${
+  hasDraft && input.forceRewrite
+    ? "REPAIR PASS: the previous answer was too similar to the draft. Produce a materially different rewrite now. Tighten paragraphs, improve bullet density, and change sentence structure while preserving facts."
+    : ""
 }
 
 LANGUAGE: write in ${input.targetLanguage}.
@@ -1062,6 +1085,8 @@ Keywords / instructions (optional, may be empty):
 """
 ${input.keywords ?? ""}
 """
+
+${hasDraft ? "Material rewrite required: yes. Do not echo the draft." : ""}
 
 ${knownPathsBlock}Write the long description now.`
 

@@ -19,7 +19,7 @@ import { StorageKeys, writeString } from "../lib/storage"
  * full-section selector for users who go looking there.
  */
 export function LocaleSwitcher() {
-  const { locale: active, preference, detected, setPreference } = useI18n()
+  const { t, locale: active, preference, detected, setPreference } = useI18n()
   const [open, setOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
 
@@ -56,9 +56,11 @@ export function LocaleSwitcher() {
         type="button"
         className="pa-locale-switcher-button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Change plugin language"
+        aria-label={t("common.uiLanguage")}
         aria-expanded={open}
-        title={`UI: ${LOCALE_METADATA[active].nativeName}`}
+        title={t("common.uiLanguageTitle", {
+          name: LOCALE_METADATA[active].nativeName,
+        })}
       >
         <GlobeIcon />
         <span className="pa-locale-switcher-code">{shortCodeFor(active)}</span>

@@ -1,0 +1,44 @@
+# Polyglot AEO
+
+Site: https://polyglotaeo.com
+Product: Polyglot AEO
+Marketplace: https://www.framer.com/community/marketplace/plugins/polyglot-aeo/
+Summary: Polyglot AEO is a Framer plugin for multilingual public-site QA. It helps Framer teams prepare localized schema and metadata, check locale declarations and CMS gaps, verify published sites, and optionally export llms.txt handoff files.
+
+Note: llms.txt is an optional interoperability file. Google Search does not use it, and Polyglot AEO does not include its presence or absence in the public readiness score.
+
+## Primary Pages
+
+- https://polyglotaeo.com/ - Product overview and Framer Marketplace install path.
+- https://polyglotaeo.com/framer-aeo-benchmark/ - Transparent multilingual Framer public-site benchmark and checklist.
+- https://polyglotaeo.com/llms-txt/ - Optional Framer llms.txt handoff checklist and scoped check request.
+- https://polyglotaeo.com/audit/ - Free public-site AEO mini audit request.
+- https://polyglotaeo.com/audit/sample/ - Sample 3-point mini audit format.
+- https://polyglotaeo.com/agency/ - Agency AEO QA handoff workflow and client-ready template.
+- https://polyglotaeo.com/pricing/ - Free and Pro plan comparison with checkout links.
+- https://polyglotaeo.com/contact/ - Support and contact path.
+
+## Product Capabilities
+
+- Generate and install localized JSON-LD schema for Framer pages and CMS content.
+- Optionally build default and locale-specific llms.txt handoff files for Framer static-file publishing.
+- Check localized titles, descriptions, summaries, slugs, and CMS content gaps.
+- Verify published Framer domains for schema, metadata, canonicals, hreflang, language coverage, and optional llms.txt reachability.
+- Export concise client-ready AEO QA reports for launch and handoff.
+
+## Audience
+
+- Framer agencies shipping multilingual client sites.
+- Founders and marketing teams preparing localized product launches.
+- Designers and developers who need a compact AEO QA workflow inside Framer.
+
+## Commercial Paths
+
+- Free plugin: install from the Framer Marketplace to run the basic AEO workflow.
+- Pro plan: $19/month or $190/year for full multilingual workflows.
+- Agency service path: request a 3-point handoff note for one public Framer client URL.
+
+## Contact
+
+Support: jimmymjing@gmail.com
+Public audit request: https://polyglotaeo.com/audit/

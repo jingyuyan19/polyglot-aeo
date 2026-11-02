@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react"
 
+import { CmsCollectionGapCard } from "../components/CmsCollectionGapCard"
 import { TopBar } from "../components/TopBar"
+import { CmsIcon, VerifyIcon } from "../components/icons"
 import { useI18n } from "../i18n"
 import {
   analyzeCmsCollectionLocalization,
@@ -17,6 +19,7 @@ import { getAllLocales } from "../lib/framer/locales"
 interface Props {
   onBack: () => void
   onOpenSettings: () => void
+  onOpenOnboarding?: () => void
 }
 
 const EMPTY_SUMMARY: CmsGapSummary = {
@@ -33,11 +36,22 @@ function csvEscape(value: string | number): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
-export function CmsGapManagerView({ onBack, onOpenSettings }: Props) {
+export function CmsGapManagerView({
+  onBack,
+  onOpenSettings,
+  onOpenOnboarding,
+}: Props) {
   const { t } = useI18n()
   const [loading, setLoading] = useState(true)
   const [reports, setReports] = useState<CmsCollectionGapReport[]>([])
   const [summary, setSummary] = useState<CmsGapSummary>(EMPTY_SUMMARY)
+  const launchBlockerCount =
+    summary.missingTitleCount + summary.missingSummaryCount
+  const affectedCmsRowCount = new Set(
+    reports.flatMap((report) =>
+      report.localeIssues.map((issue) => `${report.collectionId}:${issue.rowId}`),
+    ),
+  ).size
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -67,27 +81,71 @@ export function CmsGapManagerView({ onBack, onOpenSettings }: Props) {
   }, [load])
 
   const downloadCsv = () => {
+    const duplicateTitleByRowId = new Map<string, string>()
+    for (const report of reports) {
+      for (const group of report.duplicateTitles) {
+        for (const row of group.rows) {
+          duplicateTitleByRowId.set(
+            `${report.collectionId}:${row.rowId}`,
+            group.title,
+          )
+        }
+      }
+    }
+    const issueRows = reports.flatMap((report) =>
+      report.localeIssues.map((issue) => [
+        report.collectionName,
+        issue.rowId,
+        issue.rowTitle,
+        issue.defaultSlug,
+        issue.localeCode,
+        issue.missingTitle ? "yes" : "",
+        issue.missingSummary ? "yes" : "",
+        issue.missingSlug ? "yes" : "",
+        duplicateTitleByRowId.get(`${report.collectionId}:${issue.rowId}`) ??
+          "",
+      ]),
+    )
+    const issueRowKeys = new Set(
+      reports.flatMap((report) =>
+        report.localeIssues.map(
+          (issue) => `${report.collectionId}:${issue.rowId}`,
+        ),
+      ),
+    )
+    const duplicateOnlyRows = reports.flatMap((report) =>
+      report.duplicateTitles.flatMap((group) =>
+        group.rows
+          .filter(
+            (row) => !issueRowKeys.has(`${report.collectionId}:${row.rowId}`),
+          )
+          .map((row) => [
+            report.collectionName,
+            row.rowId,
+            row.rowTitle,
+            row.defaultSlug,
+            "",
+            "",
+            "",
+            "",
+            group.title,
+          ]),
+      ),
+    )
     const rows = [
       [
         "collection",
+        "row_id",
+        "row_title",
+        "default_slug",
         "locale",
-        "rows",
-        "missing_titles",
-        "missing_summaries",
-        "missing_slugs",
-        "duplicate_title_groups",
+        "missing_title",
+        "missing_summary",
+        "missing_slug",
+        "duplicate_title",
       ],
-      ...reports.flatMap((report) =>
-        report.localeGaps.map((gap) => [
-          report.collectionName,
-          gap.localeCode,
-          report.rowCount,
-          gap.missingTitles,
-          gap.missingSummaries,
-          gap.missingSlugs,
-          report.duplicateTitles.length,
-        ]),
-      ),
+      ...issueRows,
+      ...duplicateOnlyRows,
     ]
     const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n")
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
@@ -105,27 +163,56 @@ export function CmsGapManagerView({ onBack, onOpenSettings }: Props) {
         title={t("cmsGaps.title")}
         onBack={onBack}
         onOpenSettings={onOpenSettings}
+        onOpenOnboarding={onOpenOnboarding}
       />
       <div className="pa-scroll">
-        <section className="pa-card">
+        <section className="pa-card pa-control-hero">
           <div className="pa-row-spread">
-            <span className="pa-section-title">{t("cmsGaps.summaryTitle")}</span>
+            <div className="pa-section-headline">
+              <span className="pa-section-title">{t("cmsGaps.summaryTitle")}</span>
+              <h2 className="pa-card-title">{t("control.cmsTitle")}</h2>
+            </div>
             <span className="pa-pill">
               {t("control.cmsCollections", { n: summary.collectionCount })}
             </span>
           </div>
-          <p className="pa-section-helper">
-            {t("control.cmsSummary", {
-              titles: summary.missingTitleCount,
-              summaries: summary.missingSummaryCount,
-              slugs: summary.missingSlugCount,
-              duplicates: summary.duplicateTitleCount,
-            })}
+          <div className="pa-metric-grid">
+            <span className="pa-metric-tile">
+              <CmsIcon size={15} />
+              <span>
+                <strong>{launchBlockerCount}</strong>
+                <small>{t("cmsGaps.metricLaunchBlockers")}</small>
+              </span>
+            </span>
+            <span className="pa-metric-tile">
+              <CmsIcon size={15} />
+              <span>
+                <strong>{affectedCmsRowCount}</strong>
+                <small>{t("cmsGaps.metricRowFixes")}</small>
+              </span>
+            </span>
+            <span className="pa-metric-tile">
+              <VerifyIcon size={15} />
+              <span>
+                <strong>{summary.missingSlugCount}</strong>
+                <small>{t("cmsGaps.metricSlugs")}</small>
+              </span>
+            </span>
+            <span className="pa-metric-tile">
+              <VerifyIcon size={15} />
+              <span>
+                <strong>{summary.duplicateTitleCount}</strong>
+                <small>{t("cmsGaps.metricDuplicates")}</small>
+              </span>
+            </span>
+          </div>
+          <p className="pa-section-helper pa-health-meta-hint">
+            {t("cmsGaps.summaryHint")}
           </p>
-          <div className="pa-row" style={{ gap: 8 }}>
+          <div className="pa-action-strip">
             <button
               type="button"
-              className="pa-button"
+              className="pa-footer-secondary"
               onClick={() => void load()}
               disabled={loading}
             >
@@ -133,7 +220,7 @@ export function CmsGapManagerView({ onBack, onOpenSettings }: Props) {
             </button>
             <button
               type="button"
-              className="pa-button"
+              className="pa-footer-secondary"
               onClick={downloadCsv}
               disabled={reports.length === 0}
             >
@@ -142,59 +229,19 @@ export function CmsGapManagerView({ onBack, onOpenSettings }: Props) {
           </div>
         </section>
 
-        <section className="pa-card">
+        <section className="pa-card pa-control-section">
           <span className="pa-section-title">{t("cmsGaps.detailsTitle")}</span>
+          <p className="pa-section-helper">{t("cmsGaps.detailsHint")}</p>
+          <p className="pa-section-helper">{t("cmsGaps.csvHint")}</p>
           {reports.length === 0 && !loading ? (
             <p className="pa-section-helper">{t("cmsGaps.empty")}</p>
           ) : (
             <div className="pa-health-list">
               {reports.map((report) => (
-                <div key={report.collectionId} className="pa-verify-item">
-                  <span className="pa-health-marker" aria-hidden="true">
-                    {report.localeGaps.some(
-                      (gap) =>
-                        gap.missingTitles +
-                          gap.missingSummaries +
-                          gap.missingSlugs >
-                        0,
-                    ) || report.duplicateTitles.length > 0
-                      ? "!"
-                      : "✓"}
-                  </span>
-                  <span className="pa-stack">
-                    <span className="pa-health-title">
-                      {report.collectionName} ·{" "}
-                      {t("cmsGaps.rows", { n: report.rowCount })}
-                    </span>
-                    <span className="pa-section-helper" style={{ margin: 0 }}>
-                      {t("cmsGaps.fields", {
-                        title: report.titleField ?? t("common.none"),
-                        summary: report.summaryField ?? t("common.none"),
-                      })}
-                    </span>
-                    {report.localeGaps.map((gap) => (
-                      <span
-                        key={gap.localeId}
-                        className="pa-section-helper"
-                        style={{ margin: 0 }}
-                      >
-                        {t("control.cmsLocaleLine", {
-                          locale: gap.localeCode,
-                          titles: gap.missingTitles,
-                          summaries: gap.missingSummaries,
-                          slugs: gap.missingSlugs,
-                        })}
-                      </span>
-                    ))}
-                    {report.duplicateTitles.length > 0 ? (
-                      <span className="pa-section-helper" style={{ margin: 0 }}>
-                        {t("control.cmsDuplicates", {
-                          n: report.duplicateTitles.length,
-                        })}
-                      </span>
-                    ) : null}
-                  </span>
-                </div>
+                <CmsCollectionGapCard
+                  key={report.collectionId}
+                  report={report}
+                />
               ))}
             </div>
           )}

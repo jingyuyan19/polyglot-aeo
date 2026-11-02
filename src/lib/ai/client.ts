@@ -1,11 +1,17 @@
-import { readJson, readString, writeJson, writeString } from "../storage"
+import { readJson, writeJson } from "../storage"
 import {
-  BUILTIN_PROVIDERS,
+  ALL_PROVIDERS,
   materializeCustomProvider,
   type CustomProviderConfig,
   type Provider,
   type ProviderId,
 } from "./providers"
+import {
+  callManagedAi,
+  isManagedAiEnabled,
+  isManagedProviderId,
+  MANAGED_AI_KEY_SENTINEL,
+} from "./managed"
 import type { MetaPromptOutput } from "./prompts"
 
 export type {
@@ -15,11 +21,7 @@ export type {
   ProviderId,
 } from "./providers"
 
-/**
- * Backward-compatible alias. Older call sites (Settings, the dashboard's
- * PreferredProvider key) still use the string union "anthropic" | "openai"
- * — the registry treats both as plain ProviderIds.
- */
+/** Backward-compatible alias for stored provider ids. */
 export type AiProvider = ProviderId
 
 export interface AiCallOptions {
@@ -27,6 +29,8 @@ export interface AiCallOptions {
   modelId: string
   apiKey: string
   prompt: MetaPromptOutput
+  /** Server-side quota bucket. Used only by Polyglot Managed AI. */
+  feature?: string
   /** Maximum tokens for the response. Defaults vary by provider. */
   maxTokens?: number
   /** When provided, overrides the registry — used by custom providers. */
@@ -37,6 +41,7 @@ export interface AiCallResult {
   rawText: string
   parsed: unknown
   estimatedCostUsd?: number
+  estimatedCostRmb?: number
   tokensIn?: number
   tokensOut?: number
 }
@@ -50,7 +55,7 @@ export function resolveProvider(
   providerId: ProviderId,
   customConfigs: CustomProviderConfig[] = [],
 ): Provider | null {
-  const builtin = BUILTIN_PROVIDERS.find((p) => p.id === providerId)
+  const builtin = ALL_PROVIDERS.find((p) => p.id === providerId)
   if (builtin) return builtin
   const customConfig = customConfigs.find((c) => c.id === providerId)
   return customConfig ? materializeCustomProvider(customConfig) : null
@@ -61,6 +66,14 @@ export function resolveProvider(
  * registry, calls its adapter, and returns a normalized result.
  */
 export async function callAi(options: AiCallOptions): Promise<AiCallResult> {
+  if (isManagedAiEnabled()) {
+    return callManagedAi({
+      prompt: options.prompt,
+      maxTokens: options.maxTokens,
+      feature: options.feature,
+    })
+  }
+
   const provider =
     options.customProvider ?? resolveProvider(options.providerId)
   if (!provider) {
@@ -77,46 +90,22 @@ export async function callAi(options: AiCallOptions): Promise<AiCallResult> {
   return result
 }
 
-/**
- * Storage-key helpers — the per-provider API key is stored under a derived
- * key so we never leak one provider's key when reading another's.
- */
-export function apiKeyStorageKeyFor(providerId: ProviderId): string {
-  return `provider-key:${providerId}`
-}
-
-/**
- * Read a provider's API key. Transparently migrates the legacy keys
- * (`anthropic-key`, `openai-key`) to the new per-provider scheme on first
- * read so existing users don't lose their keys when upgrading.
- */
+/** Read the managed AI sentinel used by older call sites' readiness checks. */
 export async function readProviderKey(
   providerId: ProviderId,
 ): Promise<string | null> {
-  const value = await readString(apiKeyStorageKeyFor(providerId))
-  if (value) return value
-  if (providerId === "anthropic") {
-    const legacy = await readString("anthropic-key")
-    if (legacy) {
-      await writeString(apiKeyStorageKeyFor(providerId), legacy)
-      return legacy
-    }
-  }
-  if (providerId === "openai") {
-    const legacy = await readString("openai-key")
-    if (legacy) {
-      await writeString(apiKeyStorageKeyFor(providerId), legacy)
-      return legacy
-    }
-  }
-  return null
+  return isManagedAiEnabled() && isManagedProviderId(providerId)
+    ? MANAGED_AI_KEY_SENTINEL
+    : null
 }
 
 export async function writeProviderKey(
   providerId: ProviderId,
   value: string | null,
 ): Promise<boolean> {
-  return writeString(apiKeyStorageKeyFor(providerId), value)
+  void providerId
+  void value
+  return true
 }
 
 const CUSTOM_PROVIDERS_KEY = "custom-providers"
@@ -134,8 +123,8 @@ export async function writeCustomProviders(
 /**
  * Pick the provider to surface as the active selection on view mount.
  *
- * BYOK rule: a designer who has configured ANY provider key should
- * never see a "未配置 / unconfigured" warning out of the box. So:
+ * A designer who already has a usable managed provider should never see an
+ * unconfigured warning out of the box. So:
  *   1. If `preferred` is set AND has a key, use it (respects explicit choice).
  *   2. Otherwise, use the first `candidate` that has a key.
  *   3. Otherwise, fall back: `preferred` if set (so the dropdown still

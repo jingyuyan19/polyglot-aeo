@@ -1,4 +1,11 @@
-import { readJson, readString, StorageKeys, writeJson, writeString } from "../storage"
+import {
+  readJson,
+  readString,
+  StorageKeys,
+  writeJson,
+  writeString,
+} from "../storage"
+import { defaultBillingMode, normalizeBillingMode } from "./environment"
 import type { BillingMode, LicenseRecord, Tier } from "./types"
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000
@@ -6,7 +13,7 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000
 export function maskLicenseKey(key: string): string {
   const trimmed = key.trim()
   if (trimmed.length <= 8) return "••••••••"
-  return `${trimmed.slice(0, 8)}••••${trimmed.slice(-4)}`
+  return `••••-${trimmed.slice(-4)}`
 }
 
 function licenseStorageKey(mode: BillingMode): string {
@@ -15,14 +22,14 @@ function licenseStorageKey(mode: BillingMode): string {
 
 export async function readBillingMode(): Promise<BillingMode> {
   const stored = await readString(StorageKeys.LicenseBillingMode)
-  if (stored === "test" || stored === "production") return stored
-  return import.meta.env.VITE_CREEM_TEST_MODE === "true"
-    ? "test"
-    : "production"
+  if (stored === "test" || stored === "production") {
+    return normalizeBillingMode(stored)
+  }
+  return defaultBillingMode()
 }
 
 export async function writeBillingMode(mode: BillingMode): Promise<boolean> {
-  return writeString(StorageKeys.LicenseBillingMode, mode)
+  return writeString(StorageKeys.LicenseBillingMode, normalizeBillingMode(mode))
 }
 
 export async function readLicenseRecord(

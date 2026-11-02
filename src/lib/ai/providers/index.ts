@@ -1,16 +1,5 @@
-import { anthropicProvider } from "./anthropic"
-import { geminiProvider } from "./gemini"
-import {
-  createOpenAiCompatibleProvider,
-  deepseekProvider,
-  glmProvider,
-  minimaxCnProvider,
-  minimaxGlobalProvider,
-  moonshotProvider,
-  qwenProvider,
-} from "./openai-compat"
-import { openaiProvider } from "./openai"
 import type { CustomProviderConfig, Provider, ProviderId } from "./types"
+import { MANAGED_MODEL_ID, MANAGED_PROVIDER_ID } from "../managed"
 
 export type {
   CustomProviderConfig,
@@ -23,27 +12,39 @@ export type {
 export { estimateCost, safeJsonParse } from "./types"
 
 /**
- * Built-in provider list. Order matters — it's also the display order in
- * the UI dropdown. Anthropic + OpenAI lead because they have the broadest
- * baseline quality, followed by the China-market favorites that give
- * Polyglot AEO its differentiation.
+ * Marketplace builds use Polyglot Managed AI only. Keeping third-party AI
+ * adapters out of this registry also keeps browser-call endpoint strings
+ * out of the plugin package that Framer reviews.
  */
-export const BUILTIN_PROVIDERS: Provider[] = [
-  anthropicProvider,
-  openaiProvider,
-  geminiProvider,
-  deepseekProvider,
-  glmProvider,
-  moonshotProvider,
-  qwenProvider,
-  minimaxGlobalProvider,
-  minimaxCnProvider,
-]
+const managedProvider: Provider = {
+  id: MANAGED_PROVIDER_ID,
+  name: "Polyglot Managed AI",
+  description: "Server-side MiniMax M3 with license checks and quota limits",
+  consoleUrl: "https://polyglotaeo.com/privacy",
+  models: [
+    {
+      id: MANAGED_MODEL_ID,
+      name: "MiniMax M3",
+      badge: "balanced",
+      pricePerMTokenInput: 0,
+      pricePerMTokenOutput: 0,
+    },
+  ],
+  builtin: true,
+  call: async () => {
+    throw new Error("Managed AI must be called through Polyglot's backend.")
+  },
+}
+
+export const ALL_PROVIDERS: Provider[] = [managedProvider]
+
+export const BUILTIN_PROVIDERS: Provider[] = [managedProvider]
 
 /**
- * Materialize a custom (user-created) provider from its persisted config.
- * The custom provider always uses the OpenAI-compatible adapter, since
- * that's the only protocol shape we can usefully target without code.
+ * Materialize historical custom-provider records without importing any
+ * browser-side third-party adapter code. The provider remains readable so
+ * old saved settings don't crash, but calls are intentionally disabled in
+ * Marketplace builds.
  */
 export function materializeCustomProvider(
   config: CustomProviderConfig,
@@ -53,12 +54,11 @@ export function materializeCustomProvider(
     .map((id) => id.trim())
     .filter(Boolean)
 
-  return createOpenAiCompatibleProvider({
+  return {
     id: config.id,
     name: config.name,
-    description: config.description ?? "Custom OpenAI-compatible endpoint",
+    description: config.description ?? "Historical custom provider",
     consoleUrl: config.baseUrl,
-    baseUrl: config.baseUrl,
     custom: true,
     builtin: false,
     // Custom providers don't ship pricing data — show 0/0 and the UI will
@@ -78,8 +78,13 @@ export function materializeCustomProvider(
               pricePerMTokenInput: 0,
               pricePerMTokenOutput: 0,
             },
-          ],
-  })
+        ],
+    call: async () => {
+      throw new Error(
+        "Custom AI providers are unavailable in the Marketplace build. Use Polyglot Managed AI.",
+      )
+    },
+  }
 }
 
 /**

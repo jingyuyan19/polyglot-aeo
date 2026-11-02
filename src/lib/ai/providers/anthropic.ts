@@ -56,7 +56,7 @@ async function callAnthropic(
       "anthropic-version": "2023-06-01",
       // Anthropic blocks browser-origin requests by default; this header is
       // the documented opt-in for plugins/extensions that legitimately call
-      // from a browser context. Required for Framer plugin BYOK.
+      // from a browser context. Kept only for the legacy direct-call adapter.
       "anthropic-dangerous-direct-browser-access": "true",
       "Content-Type": "application/json",
     },

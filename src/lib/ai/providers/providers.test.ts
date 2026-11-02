@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { resolveProvider } from "../client"
 import {
+  ALL_PROVIDERS,
   BUILTIN_PROVIDERS,
   generateCustomProviderId,
   materializeCustomProvider,
@@ -16,31 +17,13 @@ import {
 } from "./types"
 
 describe("BUILTIN_PROVIDERS", () => {
-  it("includes the 9 expected providers in display order", () => {
-    expect(BUILTIN_PROVIDERS.map((p) => p.id)).toEqual([
-      "anthropic",
-      "openai",
-      "gemini",
-      "deepseek",
-      "glm",
-      "moonshot",
-      "qwen",
-      "minimax-global",
-      "minimax-cn",
-    ])
+  it("includes the expected providers in display order", () => {
+    const ids = BUILTIN_PROVIDERS.map((p) => p.id)
+    expect(ids).toEqual(["polyglot-managed"])
   })
 
-  it("MiniMax global and CN have different base URLs but identical model lists", () => {
-    const globalP = BUILTIN_PROVIDERS.find((p) => p.id === "minimax-global")
-    const cnP = BUILTIN_PROVIDERS.find((p) => p.id === "minimax-cn")
-    expect(globalP).toBeDefined()
-    expect(cnP).toBeDefined()
-    // Models are listed by id-then-name; both should match.
-    expect(globalP!.models.map((m) => m.id)).toEqual(
-      cnP!.models.map((m) => m.id),
-    )
-    expect(globalP!.consoleUrl).toContain(".io")
-    expect(cnP!.consoleUrl).toContain(".com")
+  it("does not bundle legacy direct-call providers in Marketplace builds", () => {
+    expect(ALL_PROVIDERS.map((p) => p.id)).toEqual(["polyglot-managed"])
   })
 
   it("every provider has at least one model", () => {
@@ -58,7 +41,7 @@ describe("BUILTIN_PROVIDERS", () => {
     }
   })
 
-  it("every provider exposes a console URL for users to grab a key", () => {
+  it("every provider exposes a console URL for product details", () => {
     for (const p of BUILTIN_PROVIDERS) {
       expect(p.consoleUrl).toMatch(/^https?:\/\//)
     }
@@ -71,8 +54,8 @@ describe("resolveProvider", () => {
   })
 
   it("returns the built-in for a known id", () => {
-    const p = resolveProvider("openai")
-    expect(p?.name).toBe("OpenAI")
+    const p = resolveProvider("polyglot-managed")
+    expect(p?.name).toBe("Polyglot Managed AI")
   })
 
   it("materializes a custom provider when listed in customConfigs", () => {
@@ -116,6 +99,23 @@ describe("materializeCustomProvider", () => {
     }
     const p = materializeCustomProvider(config)
     expect(p.models.map((m) => m.id)).toEqual(["model-a", "model-b", "model-c"])
+  })
+
+  it("keeps historical custom providers readable but disables browser calls", async () => {
+    const config: CustomProviderConfig = {
+      id: "custom:abc",
+      name: "Historical Provider",
+      baseUrl: "https://x/v1",
+      modelIds: "model-a",
+    }
+    const p = materializeCustomProvider(config)
+    await expect(
+      p.call({
+        apiKey: "ignored",
+        modelId: "model-a",
+        prompt: { system: "Return JSON.", user: "ping" },
+      }),
+    ).rejects.toThrow(/Marketplace build/)
   })
 })
 

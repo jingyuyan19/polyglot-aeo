@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  computeCoreProgress,
   computeProgress,
   computeSteps,
+  getNextPendingStep,
   isAllDone,
+  shouldOfferControlCenter,
   type OnboardingSignals,
 } from "./onboarding"
 
@@ -11,78 +14,118 @@ const EMPTY: OnboardingSignals = {
   localeCount: 0,
   schemaInstalled: false,
   llmsGenerated: false,
+  llmsDeployAcknowledged: false,
   hasApiKey: false,
+  metaGenerated: false,
+  publishedVerifyRan: false,
 }
 
 const FULLY_SETUP: OnboardingSignals = {
   localeCount: 3,
   schemaInstalled: true,
   llmsGenerated: true,
+  llmsDeployAcknowledged: true,
   hasApiKey: true,
+  metaGenerated: true,
+  publishedVerifyRan: true,
 }
 
 describe("computeSteps", () => {
-  it("returns 5 steps in stable order regardless of state", () => {
-    const a = computeSteps(EMPTY).map((s) => s.id)
-    const b = computeSteps(FULLY_SETUP).map((s) => s.id)
-    expect(a).toEqual(b)
-    expect(a).toHaveLength(5)
+  it("returns 7 steps in stable order", () => {
+    const ids = computeSteps(EMPTY).map((s) => s.id)
+    expect(ids).toHaveLength(7)
+    expect(ids[0]).toBe("addLocales")
+    expect(ids[6]).toBe("verifyPublished")
   })
 
-  it("marks addLocales done only when there are 2+ locales", () => {
+  it("marks addLocales done at 2+ locales, optional at 1, pending at 0", () => {
     expect(stateOf("addLocales", { ...EMPTY, localeCount: 0 })).toBe("pending")
-    expect(stateOf("addLocales", { ...EMPTY, localeCount: 1 })).toBe("pending")
+    expect(stateOf("addLocales", { ...EMPTY, localeCount: 1 })).toBe("optional")
     expect(stateOf("addLocales", { ...EMPTY, localeCount: 2 })).toBe("done")
-    expect(stateOf("addLocales", { ...EMPTY, localeCount: 14 })).toBe("done")
   })
 
-  it("marks addApiKey as optional when missing — never blocks dismissal", () => {
-    expect(stateOf("addApiKey", EMPTY)).toBe("optional")
-    expect(stateOf("addApiKey", FULLY_SETUP)).toBe("done")
+  it("deployLlms pending until ack after generate", () => {
+    expect(stateOf("deployLlms", EMPTY)).toBe("pending")
+    expect(
+      stateOf("deployLlms", { ...EMPTY, llmsGenerated: true }),
+    ).toBe("pending")
+    expect(
+      stateOf("deployLlms", {
+        ...EMPTY,
+        llmsGenerated: true,
+        llmsDeployAcknowledged: true,
+      }),
+    ).toBe("done")
   })
 
-  it("verify is only relevant after schema is installed", () => {
-    expect(stateOf("verify", { ...EMPTY, schemaInstalled: false })).toBe(
-      "pending",
-    )
-    expect(stateOf("verify", { ...EMPTY, schemaInstalled: true })).toBe(
-      "optional",
-    )
-  })
-})
-
-describe("computeProgress", () => {
-  it("counts done + optional as completed toward total", () => {
-    const steps = computeSteps(EMPTY)
-    const progress = computeProgress(steps)
-    // EMPTY → addApiKey is optional (1), the rest are pending (4)
-    expect(progress.total).toBe(5)
-    expect(progress.done).toBe(1)
-    expect(progress.ratio).toBeCloseTo(1 / 5)
-  })
-
-  it("hits 5/5 when fully set up", () => {
-    const steps = computeSteps(FULLY_SETUP)
-    const progress = computeProgress(steps)
-    expect(progress.done).toBe(5)
-    expect(progress.total).toBe(5)
-    expect(progress.ratio).toBe(1)
+  it("verifyPublished done after run, pending when schema installed", () => {
+    expect(stateOf("verifyPublished", EMPTY)).toBe("optional")
+    expect(
+      stateOf("verifyPublished", { ...EMPTY, schemaInstalled: true }),
+    ).toBe("pending")
+    expect(
+      stateOf("verifyPublished", {
+        ...EMPTY,
+        schemaInstalled: true,
+        publishedVerifyRan: true,
+      }),
+    ).toBe("done")
   })
 })
 
 describe("isAllDone", () => {
-  it("returns false on a fresh project", () => {
-    expect(isAllDone(computeSteps(EMPTY))).toBe(false)
-  })
-
-  it("returns true once core steps (locales + schema + llms) are done, regardless of API key", () => {
-    const noKey: OnboardingSignals = {
-      localeCount: 3,
+  it("returns true for single-locale project with core + optional steps", () => {
+    const single: OnboardingSignals = {
+      localeCount: 1,
       schemaInstalled: true,
       llmsGenerated: true,
+      llmsDeployAcknowledged: true,
       hasApiKey: false,
+      metaGenerated: false,
+      publishedVerifyRan: true,
     }
-    expect(isAllDone(computeSteps(noKey))).toBe(true)
+    expect(isAllDone(computeSteps(single))).toBe(true)
+  })
+
+  it("returns true when fully set up", () => {
+    expect(isAllDone(computeSteps(FULLY_SETUP))).toBe(true)
+  })
+})
+
+describe("shouldOfferControlCenter", () => {
+  it("is true when all done", () => {
+    expect(shouldOfferControlCenter(computeSteps(FULLY_SETUP))).toBe(true)
+  })
+})
+
+describe("computeProgress", () => {
+  it("hits 7/7 when fully set up", () => {
+    const progress = computeProgress(computeSteps(FULLY_SETUP))
+    expect(progress.done).toBe(7)
+    expect(progress.total).toBe(7)
+  })
+})
+
+describe("computeCoreProgress", () => {
+  it("counts only core steps as done", () => {
+    const steps = computeSteps({
+      ...EMPTY,
+      localeCount: 1,
+      schemaInstalled: true,
+      llmsGenerated: true,
+      llmsDeployAcknowledged: true,
+      publishedVerifyRan: false,
+    })
+    const core = computeCoreProgress(steps)
+    expect(core.total).toBe(4)
+    expect(core.done).toBe(3)
+  })
+})
+
+describe("getNextPendingStep", () => {
+  it("returns first pending step id", () => {
+    const steps = computeSteps({ ...EMPTY, localeCount: 1 })
+    expect(getNextPendingStep(steps)).toBe("installSchema")
   })
 })
 

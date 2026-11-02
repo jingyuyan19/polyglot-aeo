@@ -1,6 +1,8 @@
 # Pricing strategy
 
-> **Status:** Marketplace ships as **Free install + Pro subscription** (Creem).
+> **Positioning:** Polyglot AEO is the **pre-launch and post-publish AEO
+> quality console for multilingual Framer sites**. Marketplace ships as
+> **Free install + Pro subscription** (Creem).
 > Checkout and license activation run on [polyglotaeo.com](https://polyglotaeo.com);
 > the plugin gates AI production features via entitlements. See
 > [CREEM-LICENSING.md](./CREEM-LICENSING.md).
@@ -43,8 +45,8 @@ the buyer profile we should optimize for.
 
 | Tier | Price | Target buyer | Gating logic |
 |---|---|---|---|
-| **Free** | $0 | Tire-kickers, single-locale sites | AEO Control Center; issue preview; CMS gap preview; default locale only for AI outputs; schema scan + ≤5 page AI install; manual schema unlimited; single `llms.txt`; 3 default-locale Meta AI samples; published-site verifier |
-| **Pro** | **$19 / month** *(or $190/year — 17% off)* | Indie designers, agencies | All locales, full Meta AI, llms per locale + AI translate, unlimited schema install/translate, install history, quality checks, local translation memory, full client report export (BYOK) |
+| **Free** | $0 | Tire-kickers, single-locale sites | Default-locale AEO QA and a small real repair: Control Center issue preview; CMS gap preview; manual schema; limited schema install; single `llms.txt`; published-site verifier |
+| **Pro** | **$19 / month** *(or $190/year — 17% off)* | Framer Pro+ users, agencies | The full multilingual launch QA loop: every locale, managed AI Meta/schema/llms generation, unlimited schema install/translate, install history, quality checks, local translation memory, full client report export |
 
 > **Business tier (deferred to v1.1+).** A higher-priced tier built around
 > **AI citation monitoring** (ChatGPT / Perplexity / Claude / Gemini per
@@ -126,17 +128,21 @@ broken (price, expectations, or product).
 
 ## Free → paid conversion levers
 
-1. **Locale gate**: Free is hard-locked to 1 locale. Anyone with 2+ locales
+1. **Locale gate**: Free is hard-locked to 1 production locale. Anyone with 2+ locales
    must upgrade. This is the primary monetization signal — it's also the
    exact buyer profile we want. Conveniently, Framer also gates multiple
    locales behind Pro+, so the user who has 2+ locales is already paying
    Framer at least $30/mo and is unlikely to balk at our $19.
-2. **AI meta gate**: Free gets 3 real default-locale generations so users can
+2. **Visible-risk gate**: Free shows the AEO Control Center, CMS gaps, and
+   default-locale issues so users see what will fail before they hit a paywall.
+   The upgrade asks for money only after the product has shown a concrete launch
+   risk.
+3. **AI meta gate**: Free gets 3 real default-locale generations so users can
    feel quality. Bulk generation and non-default locales show the upgrade modal.
-3. **llms.txt gate**: Free can generate the default-locale `llms.txt` only;
+4. **llms.txt gate**: Free can generate the default-locale `llms.txt` only;
    localized variants require Pro. (Framer Static Files is Pro+ on Framer's
    side too — so this gate aligns naturally.)
-4. **Schema template freshness**: Free locks templates at install time;
+5. **Schema template freshness**: Free locks templates at install time;
    Pro receives auto-updates as Google / OpenAI / Anthropic publish new
    schema preferences.
 

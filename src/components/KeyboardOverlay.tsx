@@ -1,5 +1,6 @@
 import { useEffect } from "react"
 
+import { ModalOverlay } from "./ModalOverlay"
 import { useI18n } from "../i18n"
 
 interface Props {
@@ -50,12 +51,7 @@ export function KeyboardOverlay({ open, onClose }: Props) {
   ]
 
   return (
-    <div
-      className="pa-overlay-scrim"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
+    <ModalOverlay onBackdropClick={onClose} role="dialog" aria-modal>
       <div
         className="pa-overlay-panel"
         onClick={(e) => e.stopPropagation()}
@@ -82,6 +78,6 @@ export function KeyboardOverlay({ open, onClose }: Props) {
           ))}
         </ul>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

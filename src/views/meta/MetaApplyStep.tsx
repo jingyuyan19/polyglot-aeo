@@ -92,6 +92,9 @@ export function MetaApplyGuide({
       <p className="pa-section-helper" style={{ margin: "8px 0 0" }}>
         {t("meta.applyHelper")}
       </p>
+      <p className="pa-section-helper" style={{ margin: "6px 0 0" }}>
+        {t("meta.applyFriction")}
+      </p>
     </div>
   )
 }

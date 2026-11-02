@@ -3,6 +3,8 @@ import { useCallback, useState } from "react"
 import { ProBadge } from "../components/ProBadge"
 import { useEntitlement } from "../components/entitlement-hooks"
 import { useI18n } from "../i18n"
+import { canUseTestBillingMode } from "../lib/license/environment"
+import { maskLicenseKey } from "../lib/license/storage"
 import type { BillingMode } from "../lib/license/types"
 
 export function LicenseSettingsSection() {
@@ -21,6 +23,7 @@ export function LicenseSettingsSection() {
   } = useEntitlement()
   const [keyInput, setKeyInput] = useState("")
   const [status, setStatus] = useState<"idle" | "ok" | "error">("idle")
+  const showBillingModeSelector = canUseTestBillingMode()
 
   const handleActivate = useCallback(async () => {
     setStatus("idle")
@@ -34,6 +37,7 @@ export function LicenseSettingsSection() {
   }, [activate, keyInput])
 
   const isPro = tier === "pro"
+  const activeKeyHint = license ? maskLicenseKey(license.key) : ""
   const changeBillingMode = useCallback(
     (mode: BillingMode) => {
       if (mode !== billingMode) void setBillingMode(mode)
@@ -49,37 +53,39 @@ export function LicenseSettingsSection() {
       </div>
       <p className="pa-section-helper">{t("license.settingsHelper")}</p>
 
-      <div className="pa-field-block">
-        <span className="pa-label">{t("license.billingModeLabel")}</span>
-        <div className="pa-segmented" role="group" aria-label="Billing mode">
-          <button
-            type="button"
-            data-selected={billingMode === "production"}
-            disabled={validating}
-            onClick={() => changeBillingMode("production")}
-          >
-            {t("license.productionMode")}
-          </button>
-          <button
-            type="button"
-            data-selected={billingMode === "test"}
-            disabled={validating}
-            onClick={() => changeBillingMode("test")}
-          >
-            {t("license.testMode")}
-          </button>
+      {showBillingModeSelector ? (
+        <div className="pa-field-block">
+          <span className="pa-label">{t("license.billingModeLabel")}</span>
+          <div className="pa-segmented" role="group" aria-label="Billing mode">
+            <button
+              type="button"
+              data-selected={billingMode === "production"}
+              disabled={validating}
+              onClick={() => changeBillingMode("production")}
+            >
+              {t("license.productionMode")}
+            </button>
+            <button
+              type="button"
+              data-selected={billingMode === "test"}
+              disabled={validating}
+              onClick={() => changeBillingMode("test")}
+            >
+              {t("license.testMode")}
+            </button>
+          </div>
+          <p className="pa-section-helper">
+            {billingMode === "test"
+              ? t("license.testModeHelper")
+              : t("license.productionModeHelper")}
+          </p>
         </div>
-        <p className="pa-section-helper">
-          {billingMode === "test"
-            ? t("license.testModeHelper")
-            : t("license.productionModeHelper")}
-        </p>
-      </div>
+      ) : null}
 
       {isPro && license ? (
         <>
           <p className="pa-section-helper">
-            {t("license.activeKey", { hint: license.keyHint })}
+            {t("license.activeKey", { hint: activeKeyHint })}
           </p>
           <div className="pa-license-actions">
             <button

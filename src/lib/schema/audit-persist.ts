@@ -33,7 +33,7 @@ export async function writeAuditWorkspacePersist(
     ...data,
   }
   const json = JSON.stringify(payload)
-  if (new TextEncoder().encode(json).length > 3500) {
+  if (new TextEncoder().encode(json).length > 900) {
     return false
   }
   return writeJson(StorageKeys.AuditWorkspacePersist, payload)

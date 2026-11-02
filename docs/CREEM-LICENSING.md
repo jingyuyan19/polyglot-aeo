@@ -40,30 +40,39 @@ npx wrangler secret put CREEM_API_KEY
 ## Plugin environment (production build)
 
 ```bash
-VITE_LICENSE_API_BASE=https://polyglot-license.<your-subdomain>.workers.dev
+VITE_LICENSE_API_BASE=https://license.polyglotaeo.com
 ```
 
 Upgrade buttons open `{VITE_LICENSE_API_BASE}/checkout`, and the Worker redirects
 to Creem after creating a fresh checkout session. `VITE_CREEM_CHECKOUT_*` can
 still be set as a static emergency fallback.
 
+Do not use the `workers.dev` Worker URL for production checkout traffic. Keep
+the Worker behind `license.polyglotaeo.com`, make sure that domain belongs to
+the approved Polyglot AEO business/store in Creem, and keep the success URL on
+`https://polyglotaeo.com/success`.
+
 ## polyglotaeo.com (optional)
 
-Static/marketing only: pricing copy, privacy, refund policy, `schema-rules-v1.json`.  
+Static/marketing only: pricing copy, privacy, refund policy, and contact pages.
 No license API on Next.js — see `polyglotaeo-web/README.md`.
 
 ## Manual test script
 
 ### 1. Sandbox purchase
 
-1. Open plugin Settings → Polyglot AEO Pro.
-2. Switch **Checkout and license environment** to **Test**.
-3. Click **Get Pro** / **Upgrade** inside the plugin.
-4. Complete checkout; copy license key from email.
+1. Point the plugin at a non-production Worker with `ENVIRONMENT=development`
+   (or `dev` / `staging` / `preview` / `test` / `local`) and `CREEM_TEST_MODE=true`.
+   The production Worker ignores client `test_mode` and rejects
+   `/checkout?test_mode=true`.
+2. Open plugin Settings → Polyglot AEO Pro.
+3. Switch **Checkout and license environment** to **Test**.
+4. Click **Get Pro** / **Upgrade** inside the plugin.
+5. Complete checkout; copy license key from email.
 
 ### 2. Plugin activate
 
-1. Set `VITE_LICENSE_API_BASE` to your Worker (or `wrangler dev` + localhost).
+1. Set `VITE_LICENSE_API_BASE` to a non-production Worker with `CREEM_TEST_MODE=true` (or `wrangler dev` with that flag and a non-production `ENVIRONMENT`).
 2. Keep the Settings environment switched to **Test** while testing sandbox keys.
 3. Settings → Polyglot AEO Pro → paste key → Activate.
 4. Pro badge; Meta generate on 2+ locales.

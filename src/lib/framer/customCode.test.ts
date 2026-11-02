@@ -8,6 +8,7 @@ import {
   stripFencedBlock,
   userCodeSize,
   wrapJsonLdBlocks,
+  normalizeJsonLdForScript,
 } from "./customCode"
 
 /**
@@ -68,6 +69,28 @@ describe("wrapJsonLdBlocks", () => {
     expect(html).toContain("&quot;")
     expect(html).toContain("&lt;")
     expect(html).toContain("&gt;")
+  })
+
+  it("normalizes JSON-LD before injecting it into a script tag", () => {
+    const html = wrapJsonLdBlocks([
+      { language: "en-US", jsonLd: '{"@context":"https://schema.org","@type":"WebSite"}' },
+    ])
+    expect(html).toContain('"@context": "https://schema.org"')
+    expect(html).toContain('"@type": "WebSite"')
+  })
+
+  it("refuses invalid JSON-LD", () => {
+    expect(() =>
+      wrapJsonLdBlocks([{ language: "en-US", jsonLd: "{not json}" }]),
+    ).toThrow("invalid JSON-LD")
+  })
+
+  it("escapes closing script tags inside JSON-LD strings", () => {
+    const normalized = normalizeJsonLdForScript(
+      JSON.stringify({ name: "</script><script>alert(1)</script>" }),
+    )
+    expect(normalized).toContain("<\\/script>")
+    expect(normalized).not.toContain("</script>")
   })
 })
 

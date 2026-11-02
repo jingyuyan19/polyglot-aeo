@@ -48,8 +48,8 @@ export const zhCN: Translations = {
     hide: "隐藏",
     none: "无",
     chars: "{n} 字符",
-    apiKeyMissing: "未配置 API Key",
-    apiKeyMissingHelper: "请先在设置里添加 API Key。",
+    apiKeyMissing: "托管 AI 暂不可用",
+    apiKeyMissingHelper: "请先激活 Pro 以启用 AI 生成。",
     default: "默认",
     confirmDiscardChanges:
       "有未保存的修改。切换 schema 类型会丢弃这些内容。要继续吗？",
@@ -59,6 +59,8 @@ export const zhCN: Translations = {
     helpOpen: "查看说明",
     aiSettingsTitle: "AI 设置",
     openSettings: "打开设置",
+    uiLanguage: "切换插件界面语言",
+    uiLanguageTitle: "界面语言：{name}",
     copied: "已复制",
   },
 
@@ -68,8 +70,7 @@ export const zhCN: Translations = {
       "schema.org 的一个属性，告诉 AI 爬虫这个页面是用哪种语言写的。没有这个标记，AI 可能在用户用日语提问时引用英文页面 —— 或者干脆把你跳过。",
     bcp47:
       "BCP-47 是 IETF 的语言代码标准，比如 en-US、zh-CN、ja-JP。Schema.org 和 llms.txt 都要求用这个格式。Polyglot AEO 会自动把 Framer 的 locale 代码转换好，不用手动处理。",
-    byok:
-      "Bring Your Own Key（自带密钥）。用自己的 API Key（Anthropic、OpenAI 等）调用 AI。Polyglot AEO 不做中转 —— Key 只存在你本地，请求直发到 AI 提供方，按提供方原价计费（通常每页几分钱）。",
+    managedAi: "托管 AI 生成通过 Polyglot AEO 后端执行。模型凭据只保存在服务器端，请求需要有效 Pro license，并由短期 session token 与用量配额保护。",
     canonicalUrl:
       "页面的唯一官方 URL。搜索引擎和 AI 爬虫用它做去重，决定引用哪个版本。多语言站点里，每种语言一般有各自的 canonical（比如 /about 和 /zh/about）。",
     llmsTxt:
@@ -78,13 +79,14 @@ export const zhCN: Translations = {
       "Polyglot AEO 注入到 Framer Custom Code 的所有内容都会用 HTML 注释（polyglot-aeo:start / :end）包起来。卸载只会移除这对注释里的部分 —— 手写的脚本（GA、Hotjar、Stripe）一字不动。",
     brandVoice:
       "一段简短的写作风格描述，会传给 AI 用于生成本地化 meta。越具体越好：「自信、技术、简洁；用 you 而非 your business」比「专业友好」效果好十倍。",
+    perLocaleSchema:
+      "Google 建议：每种语言页面都应有独立 JSON-LD，并标注对应 inLanguage。AI 搜索据此决定在用户用某种语言提问时引用哪一版。多数 AEO 插件只给默认语言一份 schema，Polyglot AEO 为每种语言生成正确变体。",
   },
 
   dashboard: {
-    subtitle:
-      "让 ChatGPT、Perplexity、Claude、Google AI Overviews 在每种语言里都引用你的网站。",
+    subtitle: "面向 Framer 多语言站点的上线前与发布后 AEO 质检台。",
     subtitleSecondary:
-      "为 Framer 而生 —— Schema 自动注入 Custom Code、Meta 粘贴到页面 Title / Page Description、llms.txt 通过 Framer Static Files 部署。",
+      "Schema 写入 Custom Code · Meta 粘贴到页面设置 · llms.txt 通过 Static Files 发布。",
     statusInstalled: "Schema 已安装",
     statusDisabled: "Schema 已禁用",
     statusNotInstalled: "未安装",
@@ -103,48 +105,63 @@ export const zhCN: Translations = {
     healthMetaDone: "Meta 文案已生成",
     healthMetaTodoFree: "试生成 Meta（默认语言）",
     healthMetaTodoPro: "生成 Meta 文案",
-    healthMetaHint:
-      "连上 API Key 只表示能用 AI，还需在 Meta AI 里完成一次生成才会打勾。",
-    healthKeyDone: "API Key 已配置",
-    healthKeyTodo: "配置 API Key",
+    healthKeyDone: "托管 AI 已就绪",
+    healthKeyTodo: "激活 Pro 使用托管 AI",
     healthLocalesDone: "所有语言已解锁",
     healthLocalesTodo: "升级 Pro 解锁全部语言",
     openControl: "打开控制台",
     reportDownload: "下载客户报告",
+    stackTitle: "与你的 Framer 工作流配合",
+    stackBadge: "3 步流程",
+    stackIntro: "先诊断，再翻译正文，最后在本插件交付各语言的 AEO 资产。",
+    stackScannerRole: "第 1 步 · 诊断",
+    stackScannerLink: "Framer AEO 扫描器",
+    stackScannerDesc: "全站 AEO 体检，找出待修复项。",
+    stackLokaRole: "第 2 步 · 正文",
+    stackLokaLink: "Loka Localization Hub",
+    stackLokaDesc: "在 Google Sheets 管理各语言正文翻译。",
+    stackPolyglotRole: "第 3 步 · AEO",
+    stackPolyglotDesc:
+      "在本插件生成并安装 Schema、llms.txt、可粘贴的 Meta。不负责页面正文，与 Loka 搭配使用。",
     toolsTitle: "工具",
     controlTool: "AEO 控制台",
     controlToolDesc:
-      "上线前检查、CMS 翻译缺口、发布后验证，集中在一处。",
+      "按优先级修 schema、CMS、Meta、llms.txt 和线上问题。",
     schemaTool: "多语言 Schema",
-    schemaToolDesc:
-      "为 Article、Product、LocalBusiness、FAQ 等生成 JSON-LD，每种语言一份，inLanguage 自动正确。",
+    schemaToolDesc: "每种语言安装一份 JSON-LD。",
     llmsTool: "多语言 llms.txt",
-    llmsToolDesc:
-      "读取 CMS，按语言生成 llms.txt，方便 AI 爬虫索引各语言版本。",
+    llmsToolDesc: "每种语言生成一份 AI 爬取文件。",
     cmsGapsTool: "CMS 多语言缺口",
-    cmsGapsToolDesc:
-      "找出缺失的本地化标题、摘要、slug 和重复 CMS 标题。",
+    cmsGapsToolDesc: "找出缺标题、摘要、slug 和重复行。",
     metaTool: "Meta 文案生成",
-    metaToolDesc:
-      "为各语言生成地道的标题、描述、OG 与 Twitter 标签，按当地表达重写而非直译。",
+    metaToolDesc: "按语言重写标题和描述。",
     verifyTool: "上线验证",
-    verifyToolDesc:
-      "发布后检查首页、JSON-LD、meta description 和 llms.txt 是否真的在线。",
+    verifyToolDesc: "验证线上 schema、meta 与 llms.txt。",
     settingsTool: "设置",
-    settingsToolDesc: "API Key、品牌语调、安装状态。",
-    whyTitle: "为什么需要按语言生成 Schema？",
-    whyBody:
-      "Google 建议：每种语言页面都应有独立 JSON-LD，并标注对应 {code}。AI 搜索据此决定在用户用某种语言提问时引用哪一版。多数 AEO 插件只给默认语言一份 schema，Polyglot AEO 为每种语言生成正确变体。",
+    settingsToolDesc: "授权、托管 AI、品牌语调。",
+    launchChecklistTitle: "上线清单",
+    launchChecklistControlHint:
+      "完整就绪度（含 CMS 缺口与 live 检查）请在 AEO 控制台查看。",
+    localesShow: "展开语言列表",
+    localesHide: "收起语言列表",
+    localesMore: "另 {n} 个",
+    proBannerPlan: "Free",
+    proBannerTitle: "Free 负责体检",
+    proBannerBody:
+      "Pro 解锁 {count} 种语言的生成与安装。",
+    proBannerAction: "解锁全部语言",
     quickStartTitle: "快速开始",
     quickStartProgress: "{done} / {total}",
+    quickStartCoreProgress: "核心 {done} / {total}",
+    quickStartNext: "下一步",
+    quickStartNextUp: "下一步",
     quickStartAllDone: "全部就绪",
     quickStartDismiss: "关闭",
     quickStartCollapse: "收起",
     quickStartExpand: "展开",
     quickStartSteps: {
       addLocalesTitle: "在 Framer 添加语言",
-      addLocalesDesc:
-        "语言越多，插件价值越大。请在 Framer 本地化面板至少添加一种非默认语言。",
+      addLocalesDesc: "多语言价值最大；单语言站也可先完成 Schema 与 llms.txt。",
       addLocalesAction: "查看文档",
       installSchemaTitle: "安装多语言 Schema",
       installSchemaDesc:
@@ -154,25 +171,61 @@ export const zhCN: Translations = {
       generateLlmsDesc:
         "给 ChatGPT、Perplexity、Claude 一份「导航地图」，让它们看懂你站点的每种语言。",
       generateLlmsAction: "打开 llms.txt",
-      addApiKeyTitle: "添加 AI API Key（可选）",
+      deployLlmsTitle: "上传 llms.txt 到 Framer",
+      deployLlmsDesc:
+        "下载 ZIP，在 Domains → Files 上传到站点根目录并发布。ZIP 内含 DEPLOY.md。",
+      deployLlmsAction: "打开 llms.txt",
+      addApiKeyTitle: "Pro 已包含托管 AI",
       addApiKeyDesc:
-        "解锁 AI Schema 审查和本地化 Meta。任何视图右上角齿轮 icon 都能直达密钥管理。推荐 Claude 或 GPT-4o-mini。",
+        "AI Schema 审查和本地化 Meta 通过 Polyglot 后端执行。在设置里激活 Pro 即可；插件内不需要填写模型凭据。",
       addApiKeyAction: "打开设置",
-      verifyTitle: "用 Google Rich Results Test 验证",
-      verifyDesc:
-        "把站点 URL 粘到 Google 官方校验工具，确认 AI 搜索引擎能正确读到 schema。",
-      verifyAction: "打开校验工具",
+      generateMetaTitle: "生成 Meta 文案（可选）",
+      generateMetaDesc: "各语言标题与描述 —— 粘贴到 Framer 页面设置。",
+      generateMetaAction: "打开 Meta",
+      verifyPublishedTitle: "验证已发布站点",
+      verifyPublishedDesc:
+        "发布后在插件内检查首页、JSON-LD、meta 与 llms.txt 路径是否在线。",
+      verifyPublishedAction: "运行验证",
     },
   },
 
   control: {
     title: "AEO 控制台",
     readiness: "上线准备度",
+    readinessHint:
+      "检查本地化 CMS 内容、schema 覆盖、llms.txt、Meta 文案与线上站点验证。",
     scanning: "扫描中…",
     rescan: "重新扫描",
     downloadReport: "下载报告",
+    scanFailed:
+      "扫描未能完成。请先重试，或在设置里检查 Pro license。{error}",
+    verifyRescanNote:
+      "重新扫描会在有发布 URL 时执行 live HTTP 检查（首页、JSON-LD、llms 路径）。",
+    verifyNoProxy:
+      "未配置 VITE_LICENSE_API_BASE 时，浏览器可能拦截跨域请求——live 显示失败不一定代表站点有问题。请手动打开路径或部署 Worker 代理。",
+    liveVerifySkipped:
+      "尚无发布 URL，已跳过 live 检查。请先发布站点或在 llms.txt 设置中填写基础 URL，再点重新扫描。",
+    liveVerifySummary:
+      "上次 live 检查（{time}）：{url} 上有 {failures} 项失败。详情见「上线验证」。",
+    liveVerifyCompact: "上次检查：{url} 有 {failures} 个线上验证失败。",
+    cmsGapCountExplain:
+      "标题和摘要会影响上线分数；slug 单独列出，方便每种语言发布干净 URL。",
     summary: "{critical} 个关键问题 · {warning} 个警告 · {info} 个提示",
+    status: {
+      blocked: "暂不适合上线",
+      needsWork: "上线前还需修复",
+      readyWithNotes: "基本就绪，有少量提示",
+      ready: "可以上线",
+    },
+    metricLaunchBlockers: "关键阻塞项",
+    metricCmsGaps: "CMS 标题/摘要缺口",
+    metricLocales: "语言数量",
+    metricLiveFailures: "线上验证失败",
     issuesTitle: "上线阻塞项",
+    taskQueueTitle: "下一步上线任务",
+    taskQueueHelper:
+      "按顺序处理这些任务。每一项都会跳到对应工具，修完后重新扫描即可看到分数变化。",
+    taskStep: "任务 {n}",
     noIssues: "暂未发现上线阻塞项。下次发布后请运行上线验证。",
     severity: {
       critical: "关键",
@@ -183,51 +236,65 @@ export const zhCN: Translations = {
       schema_missing: {
         title: "多语言 schema 尚未安装",
         body: "上线前安装 JSON-LD，让 AI 系统能理解每个页面。",
+        action: "打开 Schema 审查",
       },
       schema_disabled: {
         title: "已安装 schema 处于禁用状态",
         body: "Framer Custom Code 被禁用，爬虫看不到 Polyglot AEO block。",
+        action: "重新启用 Schema",
       },
       llms_missing: {
         title: "还没有生成 llms.txt",
         body: "先生成默认语言文件，Pro 可继续生成各语言版本。",
+        action: "生成 llms.txt",
       },
       meta_missing: {
         title: "尚未生成 Meta 文案",
         body: "上线前请至少生成一组各语言的标题与描述。",
+        action: "生成 Meta 文案",
       },
       api_key_missing: {
-        title: "尚未配置 API Key",
-        body: "配置 API Key 后才能使用 AI 审查、本地化与重试。",
+        title: "托管 AI 暂不可用",
+        body: "激活 Pro 后才能使用 AI 审查、本地化与重试。",
+        action: "打开 license 设置",
       },
       multi_locale_locked: {
-        title: "项目有 {count} 种语言，尚未开通 Pro",
-        body: "免费版可查看缺口；Pro 可为每种语言安装并生成完整 AEO 资产。",
+        title: "检测到 {count} 种语言，Pro 可解锁完整覆盖",
+        body: "免费版可查看缺口；Pro 可为每种语言生成并安装原生 AEO 资产。",
+        action: "解锁全部语言",
       },
       cms_locale_gaps: {
-        title: "{count} 个 CMS 本地化缺口",
-        body: "缺少本地化标题或摘要会导致 llms.txt 跳过条目，schema 质量也更弱。",
+        title: "{count} 个 CMS 标题或摘要缺口",
+        body: "仅统计缺失的本地化 CMS 标题与摘要（不含 slug）。请在 Framer CMS 补全，以免各语言 llms.txt 与 schema 不完整。",
+        action: "打开 CMS 缺口",
       },
       cms_duplicate_titles: {
         title: "{count} 行 CMS 标题重复",
         body: "重复标题会让 AI 爬虫把不同记录折叠成一个模糊条目。",
+        action: "检查重复标题",
       },
       published_failures: {
         title: "{count} 个上线验证失败",
         body: "交付前请运行上线验证并修复 live URL。",
+        action: "打开上线验证",
       },
     },
     cmsTitle: "CMS 多语言缺口",
     cmsCollections: "{n} 个 collection",
     cmsSummary:
       "{titles} 个标题缺失 · {summaries} 个摘要缺失 · {slugs} 个 slug 缺失 · {duplicates} 行标题重复",
-    cmsLocaleLine:
-      "{locale}: {titles} 标题，{summaries} 摘要，{slugs} slug",
+    cmsLocaleLine: "{locale}: {titles} 标题，{summaries} 摘要，{slugs} slug",
     cmsDuplicates: "{n} 组重复",
     cmsNoGaps: "没有发现 CMS 多语言缺口。",
     openCmsGaps: "CMS 缺口",
     openVerifier: "验证线上站点",
     fixPrimary: "修复 schema",
+    runVerifier: "运行验证",
+    proBadge: "可选",
+    proCoverageTitle: "完整覆盖 {count} 种语言",
+    proCoverageBody:
+      "免费版可持续审查缺口；当你想为每种语言一键生成并安装时再升级。",
+    proCoverageAction: "升级覆盖全部语言",
   },
 
   cmsGaps: {
@@ -236,22 +303,108 @@ export const zhCN: Translations = {
     detailsTitle: "Collection 明细",
     rows: "{n} 行",
     fields: "字段：标题 = {title}，摘要 = {summary}",
+    summaryHint:
+      "标题和摘要会影响上线准备度；slug 属于 URL 清洁度，单独列出，方便每种语言都有干净 URL。",
+    fieldTitles: "标题",
+    fieldSummaries: "摘要",
+    fieldSlugs: "slug",
+    fieldTitle: "标题",
+    fieldSummary: "摘要",
+    fieldSlug: "slug",
+    fieldContent: "内容",
+    needsLocalized: "{locales} 需要补全本地化 {fields}。",
+    collectionClean: "这个 Collection 没有发现 CMS 多语言缺口。",
+    rowIssueCount: "{n} 行受影响",
+    showFixes: "看修复项",
+    localeFixCount: "{locale} 需要 {count} 处修复",
+    localeFixBreakdown:
+      "{locale}: {titles} 个标题 · {summaries} 个摘要 · {slugs} 个 slug",
+    moreLocales: "另有 {n} 种语言",
+    duplicateFixCount: "{n} 组重复标题需要改成唯一标题",
+    openCollectionAction: "打开 {name} CMS",
+    metricTitles: "标题",
+    metricSummaries: "摘要",
+    metricLaunchBlockers: "标题/摘要阻塞",
+    metricRowFixes: "受影响 CMS 行",
+    metricSlugs: "slug",
+    metricDuplicates: "重复",
     downloadCsv: "下载 CSV",
     empty: "没有找到 CMS Collection。",
+    detailsHint:
+      "打开 Collection，按下面列出的行在 Framer CMS 里修复，然后重新扫描。",
+    csvHint:
+      "CSV 已升级为逐行修复清单：包含 row id、标题、默认 slug、locale、缺失字段和重复标题标记，适合交给客户或同事处理。",
+    manualHint:
+      "你是 Owner 也足够编辑 CMS。若点击后未自动打开面板，请点 Framer 左侧 CMS 图标并选择同名 Collection（canvas 插件有时只能选中、不能自动切视图）。",
+    rowIssuesTitle: "需要修复的行",
+    defaultSlug: "Slug：/{slug}",
+    moreRowIssues: "CSV 里还有 {n} 个逐行修复项",
+    duplicateRowsTitle: "重复标题",
+    duplicateRowsShared: "{n} 行共用这个标题",
+    moreDuplicateGroups: "CSV 里还有 {n} 组重复标题",
+    openInFramer: "在 Framer CMS 中打开 {name}",
+    opened:
+      "已在 Framer CMS 中打开 {name}。插件窗口会保持打开，点「返回」可回到控制台。",
+    openedSelectOnly:
+      "已选中 {name}。若未看到 CMS 面板，请点击 Framer 左侧 CMS 标签。",
+    openManualSteps:
+      "Framer 未接受自动跳转（与 Owner 无关）。请点左侧 CMS（数据库图标）→「{name}」→ 补全 ja / ko / fr。",
   },
 
   verify: {
     title: "上线验证",
+    ringLabel: "LIVE",
+    heroEyebrow: "上线 QA",
+    statusIdle: "准备验证",
+    statusReady: "可以交付",
+    statusWarnings: "可交付，但有提醒",
+    statusNotReady: "暂不建议交付",
+    summaryLine: "{fail} 个失败 · {warn} 个提醒 · {pass} 个通过",
+    emptySummaryLine: "首页 · Schema · Meta · llms 路径",
+    heroBody:
+      "发布后检查首页、JSON-LD、Meta description，以及每个 llms.txt 文件路径是否真实可访问。",
+    metricFailures: "线上失败项",
+    metricLlms: "llms 文件",
+    metricSchema: "JSON-LD",
+    metricMeta: "Meta 描述",
+    metricOk: "通过",
+    metricReview: "复核",
     siteUrl: "已发布站点 URL",
+    helperShort:
+      "填写公开的生产环境 URL。上传 llms.txt 或重新安装 Schema 后，再运行一次验证。",
     helper:
-      "发布后运行。部分站点会阻止插件浏览器读取页面；遇到这种情况时，把结果当作手动检查清单。",
+      "发布后运行。验证会通过 Polyglot 服务器读取你的公开 URL（与 License API 同源）；llms.txt 需先在 Framer Static Files 上传并重新发布。",
     run: "验证已发布站点",
+    runShort: "验证",
+    rerun: "重新验证",
     running: "验证中…",
     results: "结果",
+    copyReport: "复制报告",
+    downloadReport: "下载报告",
+    reportCopied: "上线验证报告已复制。",
+    reportDownloaded: "上线验证报告已下载。",
+    verifyFailed: "验证失败：{error}",
+    lastChecked: "上次验证：{time}，站点 {url}。",
+    beforeRunTitle: "验证内容",
+    beforeRunBody:
+      "建议在交付前运行。它会确认你在插件里生成的 AEO 资产，是否已经真正发布到线上。",
+    checkHomepage: "首页 HTML",
+    checkSchema: "JSON-LD 脚本",
+    checkMeta: "Meta 描述",
+    checkLlms: "llms.txt 路径",
+    fixFirst: "交付前先修这些",
+    passedChecks: "已通过项目",
+    openTool: "打开工具",
+    openSchemaAudit: "打开 Schema 审查",
+    openLlmsGenerator: "打开 llms.txt 生成器",
+    openMetaGenerator: "打开 Meta 生成器",
     homepage: "首页可访问",
     homepageOk: "已读取首页 HTML，HTTP {status}。",
-    homepageBlocked:
-      "插件浏览器无法读取首页。请手动打开 URL 并检查页面源码。",
+    homepageBlocked: "无法读取首页。请手动打开 URL 并检查页面源码。",
+    homepageBlockedNoProxy:
+      "插件无法跨域读取该站点。请在 .env 配置 VITE_LICENSE_API_BASE（部署 Worker 的 /verify-fetch）后重试，或手动在浏览器检查。",
+    homepageHttpError: "首页返回 HTTP {status}，无法解析 HTML。",
+    invalidUrl: "请输入以 https:// 开头的公开站点 URL。",
     schema: "JSON-LD 存在",
     schemaOk: "首页里找到了 {n} 个有效 JSON-LD script。",
     schemaParseWarning: "{n} 个 JSON-LD script 无法解析。",
@@ -269,7 +422,16 @@ export const zhCN: Translations = {
     llmsOk: "/llms.txt 返回 HTTP {status}。",
     llmsLocaleOk: "/{filename} 返回 HTTP {status}。",
     llmsLocaleMissing: "/{filename} 不可访问。",
-    llmsMissing: "/llms.txt 不可访问。请上传到 Framer Static Files 并重新发布。",
+    llmsFetchBlocked:
+      "无法读取 /{filename}（跨域限制）。配置 Worker 代理后重试，或手动在浏览器打开该路径。",
+    llmsLocale404:
+      "/{filename} 返回 404。请在 Framer → Domains → Files 上传对应文件并重新发布。",
+    llmsHttpError: "/{filename} 返回 HTTP {status}。",
+    llmsMissing:
+      "/llms.txt 返回 404。请在 Framer Static Files 上传并重新发布。",
+    proxyHint:
+      "开发环境：将 VITE_LICENSE_API_BASE 设为 License Worker 地址，通过 /verify-fetch 拉取。否则插件在浏览器内无法读取线上站点——这是 CORS 限制，不能证明文件未部署。",
+    proxyHintTitle: "Worker 代理未配置",
   },
 
   schema: {
@@ -279,17 +441,61 @@ export const zhCN: Translations = {
       heroTitle: "AI 自动为每个页面提议 Schema",
       heroBody:
         "Polyglot AEO 会扫描 Framer 站点，自动判定每页适合的 Schema 类型，抽取字段，并按已启用的各语言真正翻译，而不只改 inLanguage。",
+      wizardTimeHint: "首次扫描通常需 3–5 分钟，视站点规模而定。",
       providerLabel: "AI 提供商",
       modelLabel: "模型",
+      auditSetupTitle: "审查设置",
+      auditSetupEyebrow: "上线准备度",
+      auditSetupSnapshotEyebrow: "已安装",
+      auditSetupHelper:
+        "安装前先看覆盖范围、复核风险、locale 资产和预估 AI 费用。",
+      auditSetupSnapshotHelper:
+        "已安装的 JSON-LD 不受影响。重新扫描后会恢复审查队列，并和当前 Framer 内容对比。",
+      summaryScanning: "扫描中…",
+      summaryNeedsReview: "安装前需复核",
+      summaryReady: "可以安装",
+      summaryNoInstallable: "暂无可安装的 Schema",
+      summaryInstalled: "已有安装快照",
+      summaryNotScanned: "尚未扫描",
+      summaryLine: "已启用 {enabled} 个 · {review} 个需复核",
+      summarySnapshotLine: "已安装 {blocks} 块 · {locales} 个 locale",
+      summaryEmptyLine: "激活 Pro 后扫描，生成审查队列。",
+      blocksRingLabel: "块",
+      installedBlocksMetric: "已安装块",
+      localeVariantsMetric: "locale",
+      reviewQueueMetric: "扫描后恢复",
+      scanNeededMetricValue: "—",
+      enabledPagesMetric: "已启用页面",
+      estimatedCostMetric: "预估费用",
       translateContentLabel: "把内容翻译到各语言",
       translateContentHelper:
         "为非默认语言生成地道的 headline、description、body，而不只改 inLanguage。会有一点 AI 费用，但能得到真正本地化的 JSON-LD。",
-      aiNeeded: "请先在「设置」里添加 AI API 密钥，才能启用 AI 扫描。",
+      aiNeeded: "请先在「设置」里激活 Pro，才能启用 AI 扫描。",
       scanButton: "扫描站点",
       rescan: "重新扫描",
       scanning: "正在扫描站点…",
       scanProgress: "{current} / {total}",
       translateProgress: "正在翻译 {current} / {total}",
+      progressSiteTitle: "正在读取 Framer 项目",
+      progressSiteHelper:
+        "正在加载页面、CMS 记录、locale，以及已安装的 Schema 块。",
+      progressAiTitle: "正在调用 AI 生成 Schema 提议",
+      progressAiHelper:
+        "模型正在判断每个页面类型并草拟 JSON-LD。免费额度或订阅套餐在高峰时可能会变慢。",
+      progressTranslateTitle: "正在本地化 Schema 内容",
+      progressTranslateHelper:
+        "正在为非默认语言生成地道的 headline、description 和正文内容。",
+      progressCurrentItem: "当前项目",
+      progressProvider: "提供方",
+      progressModel: "模型",
+      progressCalls: "进度",
+      progressPreparing: "准备中",
+      progressReadingFramer: "正在读取项目数据",
+      progressWaitingForProvider: "等待 AI 提供方响应",
+      progressSlowTitle: "这次比平时更久",
+      progressSlowHelper:
+        "常见原因是托管 AI 暂时繁忙、配额不足、模型较慢或页面内容较大。排查时可以到「设置」检查 license，或先关闭多语言内容翻译后重新扫描。",
+      homepageLabel: "首页",
       scanCalls: "次扫描调用",
       translateCalls: "次翻译调用",
       scanFailed: "扫描失败：{error}",
@@ -297,22 +503,23 @@ export const zhCN: Translations = {
       partial: "部分页面读取失败，可重新扫描重试。",
       scanSummary: "已扫描 {n} 个页面。",
       snapshotTitle: "上次安装",
-      snapshotInstalledAt:
-        "{time} · {locales} 种语言，共 {n} 块",
+      snapshotInstalledAt: "{time} · {locales} 种语言，共 {n} 块",
       snapshotChanges: "{n} 个有变更",
       snapshotAdded: "{n} 个新增",
       snapshotRemoved: "{n} 个已删除",
       snapshotUpToDate: "已是最新",
+      snapshotNeedsUpdate: "需要更新",
       snapshotRescanHint: "重新扫描以检测自上次安装以来的内容变化。",
       snapshotSessionListHint:
         "审查列表仅在本轮打开插件期间保留；返回后需点下方「扫描站点」恢复。已安装的 JSON-LD 不受影响。",
+      snapshotRestoreHintShort:
+        "重新扫描可恢复审查队列；已安装的 JSON-LD 不受影响。",
       snapshotResetByDrift:
         "Custom Code 中已不存在 polyglot-aeo 块——已重置安装记录。",
       identityCardTitle: "品牌身份",
       identityCardSubtitle: "用于所有 Schema 的发布方和作者署名。",
       identityCardDeriving: "正在识别品牌身份…",
-      identityCardLowConfidence:
-        "AI 信心不足，建议先确认品牌名再安装。",
+      identityCardLowConfidence: "AI 信心不足，建议先确认品牌名再安装。",
       identityCardSourceAi: "AI 自动识别",
       identityCardSourceFallback: "域名兜底",
       identityCardSourceUserEdit: "手动设置",
@@ -329,9 +536,18 @@ export const zhCN: Translations = {
         "{n} 个语种的品牌身份未翻译成功，安装时将使用源语言品牌名。",
       proposalsTitle: "提议的 Schema",
       proposalsCount: "已启用 {enabled} / {total}",
+      reviewQueueSummary: "已启用 {enabled} 个 · {review} 个需复核",
+      installScope: "{n} 块 · {proposals} 页 × {locales} 个 locale",
+      installScopeWithReview:
+        "{n} 块 · {proposals} 页 × {locales} 个 locale · {review} 个需复核",
+      installScopeDisabled: "至少启用一个提议后才能安装。",
       proposalConfidence: "置信度 {n}%",
       proposalLowConfidence: "置信度偏低，请人工复核。",
       proposalAiError: "AI 未能分析该页面，已默认禁用。可手动启用或复核。",
+      proposalAiProviderBilling:
+        "AI 提供商阻止了本次扫描。请充值或切换提供商后重新扫描。",
+      proposalAiErrorNoResponse:
+        "模型返回为空或不是合法 JSON。请重新扫描，或在设置里检查托管 AI 状态。",
       proposalReviewBadge: "建议审查",
       translationWarning: "{n} 个格子需要重译。",
       translationHealthTitle: "翻译质量",
@@ -344,14 +560,15 @@ export const zhCN: Translations = {
       translationHealthIssueListTitle: "问题列表",
       translationHealthLocaleSummary: "按语言汇总",
       nextIssue: "下一项问题 ({current}/{total})",
-      footerRetryHint:
-        "全量重新安装所有块。建议先点「重译」只处理漏译格子。",
+      footerRetryHint: "全量重新安装所有块。建议先点「重译」只处理漏译格子。",
       footerRetryLabel: "重译 {n} 格",
       footerReinstallShort: "重新安装",
       footerInstallShort: "安装",
       footerUpdateInstallShort: "更新安装",
-      footerInstallTitle:
-        "{n} 块 · {proposals} 页 × {locales} 种语言",
+      footerInstallSelected: "安装 {n} 个已选",
+      footerReinstallSelected: "重装 {n} 个已选",
+      footerUpdateSelected: "更新 {n} 个已选",
+      footerInstallTitle: "{n} 块 · {proposals} 页 × {locales} 种语言",
       footerReinstallTitle:
         "{n} 块 · {proposals} 页 × {locales} 种语言。{hint}",
       installSuccessWithUntranslated:
@@ -378,7 +595,7 @@ export const zhCN: Translations = {
         "标题和描述与默认语言完全一致——AI 原样返回英文，但 inLanguage 标成了该语言。请换更强模型重译，或在 Framer 里手改。",
       untranslatedReasonHintAiError:
         "AI 返回的内容无法解析（缺字段或 JSON 无效）。请重译或手动填写字段。",
-      enableAll: "全部启用",
+      enableAll: "启用可安装项",
       disableAll: "全部禁用",
       filterSearchPlaceholder: "按 URL 或页面名搜索…",
       filterNoMatch: "没有匹配的提议。",
@@ -392,10 +609,8 @@ export const zhCN: Translations = {
       badgeNew: "新增",
       badgeChanged: "已变更",
       badgeInstalled: "已安装",
-      installAllButton:
-        "安装 {n} 块（{proposals} 页 × {locales} 种语言）",
-      reinstallButton:
-        "重新安装 {n} 块（{proposals} 页 × {locales} 种语言）",
+      installAllButton: "安装 {n} 块（{proposals} 页 × {locales} 种语言）",
+      reinstallButton: "重新安装 {n} 块（{proposals} 页 × {locales} 种语言）",
       reinstallButtonHint:
         "自上次安装以来没有内容变化。点击仍可强制重写 Custom Code 中的 schema。",
       updateInstallButton: "更新安装（{summary}）",
@@ -403,8 +618,7 @@ export const zhCN: Translations = {
       diffFragmentAdded: "{n} 新增",
       diffFragmentChanged: "{n} 变更",
       diffFragmentRemoved: "{n} 删除",
-      installSuccess:
-        "已安装 {blocks} 块 JSON-LD，覆盖 {pages} 个页面。",
+      installSuccess: "已安装 {blocks} 块 JSON-LD，覆盖 {pages} 个页面。",
       installSuccessWithPreserved:
         "已安装 {blocks} 块 JSON-LD。原有 Custom Code 中的 {bytes} 字节已保留。",
       installFailed: "安装失败：{error}",
@@ -412,6 +626,7 @@ export const zhCN: Translations = {
       installUndoDone: "已恢复到安装前的 Custom Code。",
       installUndoFailed: "撤销失败：{error}",
       editorOpen: "编辑字段",
+      editorReview: "复核字段",
       editorHelper:
         "微调这条 {kind} schema。保存后下次安装生效。如果要换成别的 schema 类型，请切到手动模式。",
       editorReset: "恢复 AI 建议",
@@ -457,8 +672,7 @@ export const zhCN: Translations = {
       FAQPage: "FAQ Page",
       FAQPageHelper: "AEO 杠杆最高的类型 —— ChatGPT、Perplexity 直接引用。",
       Organization: "Organization",
-      OrganizationHelper:
-        "品牌身份。在站点根级别加一次就够了，全局生效。",
+      OrganizationHelper: "品牌身份。在站点根级别加一次就够了，全局生效。",
     },
     fields: {
       canonicalUrl: "Canonical URL",
@@ -490,6 +704,28 @@ export const zhCN: Translations = {
 
   llms: {
     title: "多语言 llms.txt",
+    wizardTimeHint: "设置、数据源与生成约需 3–5 分钟。",
+    setupHeroEyebrow: "设置",
+    setupHeroTitle: "先描述一次站点，再生成每种语言的文件。",
+    setupHeroBody:
+      "这里会成为每份 llms.txt 的开头，放在 CMS 与页面小节之前。",
+    outputFilesLabel: "将生成的文件",
+    outputFilesMore: "+{n} 个",
+    setupFilesMetric: "{n} 个文件",
+    setupFilesMetricHelper: "每个 locale 一份",
+    setupTimeMetric: "3–5 分钟",
+    setupTimeMetricHelper: "从设置到生成",
+    siteProfileTitle: "站点档案",
+    setupAutoSaveBadge: "草稿已保存",
+    setupEditHint: "编辑",
+    aiRefine: "AI 优化",
+    outputPreviewTitle: "输出预览",
+    outputPreviewHelper:
+      "文件头已准备好。下一步选择要写入的小节：CMS collection 和静态页面。",
+    outputPreviewReady: "可继续",
+    outputNextTitle: "下一步：选择内容来源",
+    outputNextBody:
+      "把 CMS collection 和静态页面作为独立小节写进生成文件。",
     siteInfoTitle: "网站信息",
     siteName: "网站名称",
     siteNamePlaceholder: "Acme Studio",
@@ -513,8 +749,19 @@ export const zhCN: Translations = {
     longSuggestKeywordsPlaceholder:
       "例如：侧重技术能力、受众是 product-led 创业公司…",
     suggestAppliedLong: "长描述已更新。",
-    aiPanelHeader: "AI 助手 · {field}",
+    aiPanelHeader: "AI 优化 · {field}",
     aiPanelKeywordsLabel: "想让 AI 侧重什么？（可选）",
+    aiQuickLabel: "AI 快捷方向",
+    aiQuickTighter: "更精炼",
+    aiQuickTighterInstruction: "把内容写得更短、更紧凑",
+    aiQuickAeo: "更适合 AEO",
+    aiQuickAeoInstruction: "让内容更利于 answer engines 和 AI crawlers 理解",
+    aiQuickBrand: "更有品牌感",
+    aiQuickBrandInstruction: "让语气更有辨识度，更贴合品牌",
+    aiAdvancedSettings: "高级 AI 设置",
+    aiResultCurrent: "当前版本",
+    aiResultSuggested: "AI 建议",
+    aiKeepOriginal: "保留原文",
     cmsSourceTitle: "CMS 数据源（可选）",
     collectionLabel: "Collection",
     collectionNone: "— 不使用（仅写入站点简介） —",
@@ -574,13 +821,16 @@ export const zhCN: Translations = {
       "把文件上传到 Hosting 层对应路径（比如 {default}、{localized}）。",
     deployTitle: "如何部署到 Framer 站点",
     deployPlanBadge: "需 Framer Pro+",
+    deployFileReady: "1 个文件已生成",
+    deployFilesReady: "{n} 个文件已生成",
+    deployFilesLabel: "已生成的 llms.txt 文件",
     deployStepDownload:
-      "上面每个文件点「下载」拿到本地（或「复制」直接粘贴到别处）。",
+      "回到「生成结果」下载或复制每个已生成文件。",
     deployStepFramer:
       "打开 Framer Dashboard → 左侧栏 Domains → 选你的域名 → Files 标签，把每个文件上传到根路径。",
     deployStepFramerLink: "查看 Framer 官方教程 →",
     deployStepPublish:
-      "重新 Publish 站点。文件会在 /llms.txt、/llms-zh-cn.txt 等路径开始服务。",
+      "重新 Publish 站点。文件会在 /llms.txt 和每个已生成的 locale 路径开始服务。",
     deployOtherHosting:
       "Static Files 是 Framer Pro+ 计划独享。Basic / Free 用户要部署 llms.txt，需自己搭代理（比如 Cloudflare Workers 套在你的自定义域名前），把文件放到 {default}、{localized} 路径。",
     setSiteFirst: "先填网站名称和根 URL。",
@@ -598,7 +848,12 @@ export const zhCN: Translations = {
     aiTranslateToggle: "用 AI 翻译缺失的条目",
     aiTranslateHelper:
       "某种语言未填本地化标题时，可用所选 AI 模型代为翻译。译文只写入生成的 llms.txt，**不会写回** CMS。",
-    aiProviderKeyMissing: "请在设置里为 {provider} 添加 API key 才能启用自动翻译。",
+    aiTranslateProTitle: "为每种语言生成自然译文",
+    aiTranslateProHelper:
+      "免费版会持续指出缺口；Pro 可在生成前用 AI 补齐 llms.txt 里缺失的条目。",
+    aiTranslateUnlock: "升级",
+    aiProviderKeyMissing:
+      "请在设置里激活 Pro，才能用 {provider} 启用自动翻译。",
     aiTranslatingProgress: "正在翻译 {locale} 的 {n} 个条目…",
     aiTranslatingHeader: "正在翻译 {locale} 的站点描述…",
     headerFlagPill: "站点描述未本地化",
@@ -640,14 +895,21 @@ export const zhCN: Translations = {
     suggestOptimizeAction: "优化我的草稿",
     suggestRetry: "再来一次",
     suggestUse: "使用",
+    suggestUseAnyway: "仍然使用",
+    suggestNotUsable: "不采用",
+    suggestNotUsableHint:
+      "这个建议和原文太接近，或没有通过质量检查。请再试一次，或切换模型。",
     suggestBusy: "AI 思考中…",
     suggestApplied: "站点描述已更新。",
     suggestResultTitle: "AI 建议",
     suggestLowQualityPill: "置信度低",
     suggestLowQualityHint:
-      "输出未通过质检（默认语言字符不对，或与草稿几乎相同）。仍可使用，但建议换更强模型再试。",
+      "输出未通过质检。可以加强指令再试一次，或换一个更强的模型。",
+    suggestNoChangeHint:
+      "模型几乎原样返回了你的文案，这不是一次有效优化。可以再来一次、写更明确的方向，或切换模型。",
     suggestFailed: "AI 建议失败：{error}",
-    suggestNoDefaultLocale: "未找到默认语言，请先在 Framer 项目中至少添加一种语言。",
+    suggestNoDefaultLocale:
+      "未找到默认语言，请先在 Framer 项目中至少添加一种语言。",
     suggestNeedsSiteName: "请先填站点名——AI 拿这个作为主要信号。",
     suggestModelHint:
       "提示：写一句话简介，用普通的快模型就够了（Claude Haiku、GPT-4o-mini、DeepSeek-V3、GLM-4-Plus 都行）。Thinking 模型会先在内部思考、占用大量 token，可能还没写出答案就被截断。",
@@ -659,12 +921,17 @@ export const zhCN: Translations = {
       deploy: "部署",
     },
     stepNext: "下一步",
+    stepNextSources: "下一步：内容来源",
     stepBack: "上一步",
     stepGenerate: "生成 {n} 个文件",
+    stepGenerateDefault: "生成默认 llms.txt",
     goToDeploy: "下一步：部署",
     backToReview: "返回结果",
+    deployDone: "完成",
+    reviewFileCountOne: "1 个文件",
     reviewFileCount: "{n} 个文件",
     reviewLocaleNeedsAttention: "{locale} 需关注（{n} 条 CMS）",
+    reviewLocaleNeedsAttentionNoCount: "{locale} 需关注",
     reviewLocaleTabs: "生成文件语言",
     reviewEmpty: "生成文件后可在此查看结果。",
     reviewNoIssues: "该语言无问题。",
@@ -672,10 +939,30 @@ export const zhCN: Translations = {
     previewTitle: "预览",
     configChangedHint: "配置已改，建议重新生成以更新文件。",
     regenerateAll: "重新生成全部",
+    regenerateDefault: "重新生成默认文件",
     setupOptionalTitle: "可选",
     setupAiEnabled: "已开启",
     stepProgress: "{current}/{total} · {label}",
     sourcesTitle: "内容来源",
+    sourcesSelectedPill: "已选 {n} 个",
+    sourcesHeroTitle: "选择每个文件要包含什么",
+    sourcesHeroBody:
+      "被选中的 CMS collection 和静态页面，会成为每个语言文件里的独立章节。",
+    freePlanPill: "免费版",
+    freeDefaultGenerateHint:
+      "免费版会生成默认语言 llms.txt；Pro 可生成全部 {n} 个语言文件。",
+    multiLocaleProTitle: "免费版先生成默认文件",
+    multiLocaleProHelper:
+      "这个项目有多个语言。你可以先生成 llms.txt；Pro 会解锁 llms-ja.txt、llms-ko.txt 等所有语言文件，并支持原生 AI 翻译。",
+    multiLocaleProAction: "解锁多语言文件",
+    collectionShortHelper: "选中的 Collection 会按顺序成为 ## 小节。",
+    pagesShortHelper: "添加 About、Services、Contact、Support 等静态页面。",
+    pagesLoadedHelper:
+      "已加载 {n} 个静态页面。只有 Framer 页面列表变了，才需要重新扫描。",
+    pagesRememberedHelper:
+      "已记住上次选择的 {n} 个页面。重新扫描可恢复最新名称和路径。",
+    pagesRememberedNotLoaded:
+      "上次选择的页面已经保存，但本次会话还没加载页面列表。生成前请重新扫描一次，确保文件使用最新页面标题和 URL。",
     cmsFoldSummary: "CMS · 已选 {n} 个",
     pagesFoldSummary: "页面 · 已选 {n} 个",
     showMoreCollections: "+ 还有 {n} 个 Collection",
@@ -684,28 +971,71 @@ export const zhCN: Translations = {
   meta: {
     title: "Meta 文案生成",
     sourceTitle: "源页面",
+    setupHeroEyebrow: "设置",
+    setupHeroTitle: "描述一个页面，一次生成所有语言的 Meta。",
+    setupHeroBody:
+      "这个页面资料会变成各语言的标题、描述和社交预览文案。",
+    setupFiles: "会生成的 Meta 字段",
+    setupFileDefault: "Title",
+    setupFileSearch: "Description",
+    setupFileSocial: "OG/Twitter",
+    setupLocaleOne: "1 种语言",
+    setupLocaleMany: "{n} 种语言",
+    setupLocalesStat: "种语言",
+    setupContextStat: "上下文字数",
+    sourceProject: "项目页面",
+    sourceManual: "手动上下文",
+    sourceProjectReady: "项目页面已加载",
+    sourceProjectSelected: "项目页面 · {title}",
+    sourceCurrent: "来源",
+    contextThinTitle: "上下文太短",
+    contextThinBody:
+      "补充这页给谁看、提供什么、为什么重要，生成的 Meta 才会具体。",
+    utilityPageTitle: "这看起来像工具/错误页面",
+    utilityPageBody:
+      "404、隐私、条款这类页面通常不需要营销型 Meta。可以继续，但用服务页或落地页测试质量会更准确。",
+    aiModelTitle: "AI 模型",
+    aiModelBody: "用于本步的 ✨ 优化，以及下一步生成各语言 Meta。",
+    outputPreviewTitle: "输出预览",
+    outputReady: "已就绪",
+    outputNeedsContext: "需要上下文",
+    outputPreviewBody:
+      "下一步选择提供方/模型，并生成本地化搜索与社交字段。",
+    outputNextTitle: "下一步：生成 Meta",
+    outputNextBody: "基于这份页面资料，为 {n} 种语言生成文案。",
+    outputNextBodyOne: "基于这份页面资料，为 1 种语言生成文案。",
     pageFlowIntro: "先从项目加载页面并选中一页，确认内容后再进入生成。",
     pageFlowTitle: "页面设置步骤",
     pageFlowLoad: "从项目加载页面",
     pageFlowLoadDone: "页面已加载",
+    pageFlowLoadShort: "加载",
+    pageFlowLoadDoneShort: "已加载",
     pageFlowLoadHint: "读取 Framer 静态页面列表，无需手抄 URL。",
     pageFlowSelect: "选择要优化的页面",
     pageFlowSelectDone: "已选：{title}",
+    pageFlowSelectShort: "选择",
+    pageFlowSelectDoneShort: "已选择",
     pageFlowSelectHint: "选中后会把页面文字填入「页面上下文」。",
     pageFlowSelectPlaceholder: "请选择页面…",
     pageFlowManual: "不加载，手动填写",
     pageFlowManualDone: "手动填写",
+    pageFlowManualDoneShort: "手动",
     pageFlowBackToPick: "改从项目选择页面",
     pageFlowRescan: "重新加载列表",
     pageFlowContent: "确认页面信息",
-    pageFlowContentHint: "可编辑摘要。填好「页面上下文」后，才能用 ✨ AI 补全。",
+    pageFlowContentShort: "确认",
+    pageFlowContentHint:
+      "可编辑摘要。填好「页面上下文」后，才能用 ✨ AI 补全。",
     pageFlowSelectedPage: "当前页面：{title}（{path}）",
     pageContentLoading: "正在读取页面…",
     stepNextNeedLoad: "请先加载项目页面。",
     stepNextNeedSelect: "请选择页面，或改用手动填写。",
     stepNextNeedContext: "请填写页面上下文后再继续。",
+    stepNextLoadFirst: "先加载页面",
+    stepNextSelectFirst: "先选择页面",
+    stepNextAddContext: "先填写页面上下文",
     generateNeedKey:
-      "请在设置中为 {provider} 添加 API Key，或改用已配置 Key 的提供商。",
+      "请在设置中激活 Pro，才能用 {provider} 生成。",
     stepNavLabel: "Meta 流程步骤",
     step: {
       page: "页面",
@@ -713,20 +1043,43 @@ export const zhCN: Translations = {
       review: "复制到 Framer",
     },
     stepNext: "下一步",
+    stepNextGenerate: "下一步：生成 Meta",
     stepBack: "上一步",
     stepProgress: "{current}/{total} · {label}",
+    reviewHeroEyebrow: "复制交付",
+    reviewHeroTitle: "复制当前语言到 Framer",
+    reviewHeroBody:
+      "先复制生成字段，显示画布，然后把它粘贴到当前语言的页面设置里。",
+    reviewCurrentPage: "页面",
+    reviewCurrentLocale: "语言",
+    reviewCopiedProgressLabel: "已复制",
+    reviewCopiedProgress: "{done} / {total} 种语言",
+    copyAllFields: "复制当前语言全部字段",
+    copyAllFieldsDone: "已复制",
+    copyAllFieldsAgain: "重新复制",
+    openFramerSettings: "显示 Framer 画布",
+    applyFoldTitle: "不知道粘贴到哪里？",
+    reviewMoreActions: "下载与重新生成",
+    copyFieldsTitle: "待复制字段",
+    localeCopied: "此语言已复制",
+    finishHandoff: "完成交付",
+    finishUncopiedConfirm:
+      "当前只有 {done} / {total} 种语言标记为已复制。仍然完成交付吗？",
+    regenerateAllConfirm: "确定重新生成所有语言吗？当前生成文案会被替换。",
     reviewIntro:
-      "下方是按语言生成的标题、描述与社交标签。Framer 暂不允许插件写入，请按语言粘贴到对应页面的设置里。",
+      "Framer 暂不允许插件直接写页面 SEO。请把这些字段按语言粘贴到 Page settings。",
     reviewDone: "完成",
     sessionRestored: "已恢复上次生成的 Meta，可继续复制到 Framer。",
-    applyNotSeoTab: "没有「SEO」菜单；也没有 Page settings 子菜单",
+    sessionRestoredStale:
+      "已恢复上次生成结果；第 1 步页面/上下文有变动，粘贴前请核对是否仍适用。",
+    applyNotSeoTab: "F 菜单里没有单页 SEO 设置",
     applySiteVsPage:
-      "你截图里 F → Site settings 只有 General、Custom Code 等，那是整站设置。单页 Meta 要从画布左侧 Pages 列表进（见下一步）。General 里的 Title/Description 是整站默认，不能代替各语言各页的文案。",
+      "F → Site settings 是整站设置。单页 Meta 要从画布左侧 Pages 列表打开，并且每种语言都要粘贴一次。",
     applyPageFallback: "目标页面",
     applyStepOpenPagePanel:
       "打开页面「{page}」的设置面板（顶部是 Title、Page Description）。",
     applyStepOpenPagePanelHow:
-      "先关掉或缩小本插件。左侧点 Pages 图标 → 在列表里悬停「Home」（或你的页面名）→ 点 ⋯ → Settings。弹出面板最上方就是 Title 与 Page Description。",
+      "先最小化本插件。在左侧 Pages 列表里悬停该页面 → ⋯ → Settings。",
     applyStepFieldMapping:
       "插件 Title → Framer 的 Title；Meta description → Page Description。OG/Twitter 贴在同页的社交预览区域。",
     applyStepFramerMetaDocs: "Framer 官方：页面标题与描述 →",
@@ -752,8 +1105,7 @@ export const zhCN: Translations = {
     suggestActionImprove: "优化",
     suggestSameBadge: "与当前一致",
     suggestSameAsCurrent:
-      "AI 认为当前填写已合适（{value}），无需替换，可直接进入下一步。",
-    suggestSameDismiss: "知道了",
+      "AI 认为当前填写已合适（{value}），无需替换，可直接点「下一步」。",
     suggestSameApplied: "已是当前值，无需修改。",
     suggestRetryFresh: "重新推断",
     suggestChangeFrom: "建议修改：{from} → {to}",
@@ -762,7 +1114,8 @@ export const zhCN: Translations = {
     suggestUse: "使用",
     suggestRetry: "重试",
     suggestNeedsContext: "请先填写页面上下文，AI 需要可读内容。",
-    suggestNoDefaultLocale: "未找到默认 locale，请在 Framer 中至少添加一种语言。",
+    suggestNoDefaultLocale:
+      "未找到默认 locale，请在 Framer 中至少添加一种语言。",
     suggestFailed: "AI 建议失败：{error}",
     suggestApplied: "已更新字段。",
     pageType: "页面类型",
@@ -778,28 +1131,72 @@ export const zhCN: Translations = {
     modelTitle: "模型",
     providerClaude: "Claude",
     providerOpenAi: "GPT-4o-mini",
-    providerKeyMissing: "请先在设置里配置 {provider} 的 API Key。",
+    providerKeyMissing: "请先在设置里激活 Pro，才能使用 {provider}。",
     estimatedCost: "预估费用",
+    estimatedCostListedOne:
+      "预估（模型标价）：~${total}（1 种语言 × 约 {tokensIn}+{tokensOut} tokens）",
+    estimatedCostListed:
+      "预估（模型标价）：~${total}（{n} 语言 × 约 {tokensIn}+{tokensOut} tokens/语言）",
+    estimatedCostConsoleUpper:
+      "DeepSeek 控制台参考上限：~${total}（按 cache miss 口径，实付可能更低）",
+    estimatedCostDisclaimer:
+      "仅供参考。步骤 1 的推断/优化、重新生成、其他功能不计入；实付以提供商账单为准。",
+    reviewCostDisclaimer:
+      "按本次 API 返回的 token × 模型标价汇总，可能与账单有偏差。",
+    reviewCostDisclaimerDeepSeek:
+      "按本次 API token × 模型标价汇总。DeepSeek 人民币账单常更高（cache miss、推断与其它功能另计）。",
+    generateReadyOne: "准备为 1 种语言生成 Meta。",
     generateReady: "准备为 {n} 种语言生成 Meta。",
+    generateHeroEyebrow: "生成",
+    generateHeroTitle: "生成各语言 Meta 文案。",
+    generateHeroHelper:
+      "先确认页面上下文、AI 提供方和预估费用，再让 AI 写搜索与社交分享字段。",
+    generateMetricLocales: "语言",
+    generateMetricContext: "上下文字数",
+    generateMetricProvider: "提供方",
+    generateMetricCost: "预估费用",
+    generateContextPreviewTitle: "来源上下文",
+    generateContextReady: "已就绪",
+    generateContextDraft: "需补上下文",
+    generateContextPreviewEmpty: "先补充页面上下文，生成的 Meta 才会更具体。",
+    generateReviewHelper:
+      "下一步将使用 {provider} 为 {locales} 种语言生成文案。",
+    generateAiSettingsTitle: "AI 设置",
     resultsTitle: "结果",
+    reviewLocaleCountOne: "1 种语言",
     reviewLocaleCount: "{n} 种语言",
     reviewLocalesNeedAttention: "{locales} 需关注",
     reviewLocaleTabs: "已生成 Meta 的语言",
     reviewEmpty: "生成后在此查看结果。",
     fieldGroupSearch: "搜索",
     fieldGroupSocial: "Open Graph 与 Twitter",
-    copyAll: "复制全部字段",
-    copyAllSuccess: "已复制该语言的全部字段。",
-    copyAllFailed: "复制失败，请手动选择复制。",
+    downloadLocale: "下载当前语言 (.txt)",
+    downloadAll: "打包下载全部 ({n})",
+    downloadAllHint: "ZIP 内每个语言一个 txt，便于对照粘贴到 Framer",
+    downloadSuccess: "已下载当前语言的 Meta 文本文件。",
+    downloadAllSuccess: "已下载 {n} 个语言的 Meta ZIP 包。",
     lengthSoftPill: "偏长（{max}）",
     lengthSoftHint: "Google 常在约 {max} 字符处截断，可考虑缩短。",
     addContextWarning: "先把页面上下文填上。",
-    setKeyWarning: "请先在设置里添加 API Key。",
+    setKeyWarning: "请先在设置里激活 Pro。",
     generateButton: "为 {n} 种语言生成",
     generateButtonPlural: "为 {n} 种语言生成",
     generatingProgress: "生成中… {current} / {total}",
+    generateProgressTitle: "正在调用 AI 生成 Meta 文案",
+    generateProgressHelper:
+      "模型正在写各语言的标题、描述和社交分享字段。免费或包月模型在高峰时可能会暂停。",
+    generateProgressCurrentLocale: "当前语言",
+    generateProgressProvider: "提供方",
+    generateProgressModel: "模型",
+    generateProgressCount: "进度",
+    generateProgressPreparing: "准备中…",
+    generateProgressSlowTitle: "这次比平时更久",
+    generateProgressSlowHelper:
+      "通常是托管 AI 暂时繁忙、配额不足、模型较慢，或页面内容过长。排查时可打开设置检查 license，缩短页面上下文，或重试。",
     generateCancelled: "已取消生成。",
+    generatedSuccessOne: "已为 1 种语言生成 Meta。",
     generatedSuccess: "已为 {n} 种语言生成 Meta。",
+    generatedSuccessWithIssuesOne: "已为 1 种语言生成 Meta，可能需要重试。",
     generatedSuccessWithIssues:
       "已为 {n} 种语言生成 Meta，其中 {issues} 种可能需要重试。",
     regenerate: "重新生成",
@@ -811,13 +1208,18 @@ export const zhCN: Translations = {
     applyStepLocale: "在 Framer 顶部栏切换到目标语言（地球/语言切换）。",
     applyStepLocaleLink: "Framer 本地化指南",
     applyStepPage: "打开该页的页面设置（Title + Page Description）。",
-    applyStepPageWithPath: "打开 {path} 的页面设置（Title + Page Description）。",
-    applyStepCopyBelow: "在下方选择语言标签，逐字段复制（或点「复制全部」）。",
+    applyStepPageWithPath:
+      "打开 {path} 的页面设置（Title + Page Description）。",
+    applyStepCopyBelow: "优先点上方「复制全部」，也可以在下方逐字段复制。",
     applyStepRepeatLocales: "每种语言重复一遍，确认后发布站点。",
     applyStepPublish: "各语言确认无误后发布站点。",
-    applyStepOpenProject: "打开 Framer 项目",
+    applyStepOpenProject: "显示画布（收起插件）",
+    openProjectEditorHint:
+      "你已在当前 Framer 项目中。请用左侧 Pages → ⋯ → Settings 打开页面 Meta 并粘贴下方文案。",
     applyHelper:
       "Framer 暂不允许插件写入页面 SEO，请按语言将内容粘贴到页面设置。",
+    applyFriction:
+      "需手动操作：在画布顶栏切换语言 → 打开各页的 Title / Page Description → 粘贴 → 发布。插件会在会话间保留已生成文案。",
     fields: {
       title: "Title",
       metaDescription: "Meta description",
@@ -827,7 +1229,8 @@ export const zhCN: Translations = {
       twitterDescription: "Twitter description",
     },
     qualityIssuePill: "⚠ {n} 个问题",
-    qualityIssueHint: "检测到疑似翻译问题。点击重新生成可以重试，也可以手动编辑下方字段。",
+    qualityIssueHint:
+      "检测到疑似翻译问题。点击重新生成可以重试，也可以手动编辑下方字段。",
     qualityUntranslatedPill: "疑似未翻译",
     qualityUntranslatedHelper:
       "Meta 描述与原文一致——AI 可能没有真正翻译。可以重新生成，或切换到能力更强的模型。",
@@ -841,27 +1244,31 @@ export const zhCN: Translations = {
 
   settings: {
     title: "设置",
-    apiKeysTitle: "AI 提供方（BYOK）",
+    apiKeysTitle: "托管 AI",
     apiKeysHelper:
-      "Polyglot AEO 看不到任何 Key。每个提供方的 Key 仅保存在当前 Framer 项目的插件数据里，生成时直接从浏览器发到对应提供方，按提供方原价计费。",
-    providerKeyPlaceholder: "{provider} 的 API Key",
-    providerGetKey: "获取 Key",
+      "AI 生成由 Polyglot AEO 后端处理，并通过 license 校验、短期 session token 和用量配额保护。",
+    managedAiTitle: "托管 AI",
+    managedAiHelper:
+      "AI 生成由 Polyglot AEO 后端处理，使用你的 Pro license、短期 session token 和用量配额。",
+    managedAiProvider: "Polyglot 托管 AI · MiniMax M3",
+    providerKeyPlaceholder: "{provider} 的托管凭据",
+    providerGetKey: "查看提供方详情",
     providersShowMore: "显示其他 {n} 个提供方",
     providersHide: "收起其他提供方",
     testKey: "测试",
     testing: "测试中…",
     testKeyOk: "已连通",
     testKeyFail: "失败",
-    testKeyEmpty: "先填入 key",
-    addCustomProvider: "+ 添加自定义提供方",
-    customProviderTitle: "自定义 OpenAI 兼容提供方",
+    testKeyEmpty: "托管 AI 暂不可用",
+    addCustomProvider: "+ 添加托管提供方",
+    customProviderTitle: "托管提供方",
     customProviderHelper:
-      "支持任何 OpenAI 兼容端点 —— Together、Groq、Ollama、LiteLLM、vLLM、企业内部网关等。Polyglot AEO 发标准的 /chat/completions 请求。",
+      "Marketplace 版本使用 Polyglot 托管 AI，生成请求始终走服务端，并受用量配额保护。",
     customProviderName: "显示名称",
-    customProviderNamePlaceholder: "我的私有 LLM",
+    customProviderNamePlaceholder: "托管提供方",
     customProviderBaseUrl: "Base URL",
     customProviderBaseUrlPlaceholder:
-      "https://api.example.com/v1（/chat/completions 的前缀路径）",
+      "托管服务端点",
     customProviderModelIds: "模型 ID（逗号分隔）",
     customProviderModelIdsPlaceholder: "llama-3.3-70b, mixtral-8x22b",
     customProviderSave: "保存提供方",
@@ -870,12 +1277,12 @@ export const zhCN: Translations = {
     customProviderRemoved: "自定义提供方已移除。",
     customProviderInvalid: "请填写显示名称、Base URL 和至少一个模型 ID。",
     customProviderRemoveConfirm:
-      "移除这个自定义提供方？关联的 API Key 也会一并清除，无法撤销。",
+      "移除这个托管提供方记录？此操作无法撤销。",
     customProviderDiscardConfirm:
-      "放弃这个自定义提供方草稿？API Key 和品牌语调的修改已自动保存。",
+      "放弃这个托管提供方草稿？品牌语调的修改已自动保存。",
     customProviderDiscard: "放弃草稿",
-    anthropicKey: "Anthropic API Key",
-    openaiKey: "OpenAI API Key",
+    anthropicKey: "旧版 Anthropic 凭据",
+    openaiKey: "旧版模型凭据",
     brandVoiceTitle: "品牌语调",
     brandVoiceHelper: "对所有语言生效。可选，但建议填写。",
     brandVoicePlaceholder:
@@ -887,6 +1294,11 @@ export const zhCN: Translations = {
     quickStartResetHelper: "在 Dashboard 重新显示新手引导清单。",
     quickStartResetButton: "显示快速开始",
     quickStartResetDone: "快速开始已重新开启。",
+    restartWizardTitle: "设置向导",
+    restartWizardHelper:
+      "下次打开插件时将自动进入分步向导；也可随时点击 Dashboard 顶栏 Settings 左侧的向导图标。",
+    restartWizardButton: "重置设置向导",
+    restartWizardDone: "已重置向导，下次打开插件将进入设置向导。",
     installedTitle: "已安装的 Schema",
     installedYes: "已安装",
     installedNo: "未安装",
@@ -921,23 +1333,22 @@ export const zhCN: Translations = {
     activateFailed: "无法激活，请检查密钥后重试。",
     getPro: "购买 Pro",
     comparePlans: "对比 Free 与 Pro",
-    activeKey: "已激活：{hint}",
+    activeKey: "Pro 已激活 · 许可证尾号 {hint}",
     refresh: "重新验证",
     validating: "验证中…",
     deactivate: "移除许可证",
     upgrade: {
       title: "升级到 Pro",
-      generic:
-        "解锁多语言 schema、Meta 文案、各语言 llms.txt 与无限安装。",
+      generic: "解锁多语言 schema、Meta 文案、各语言 llms.txt 与无限安装。",
       multi_locale:
         "检测到多种语言。Pro 可为每种语言生成原生 schema、Meta 与 llms。",
-      schema_install_limit:
-        "免费版最多 AI 安装 5 个页面，Pro 不限。",
+      schema_install_limit: "免费版最多 AI 安装 5 个页面，Pro 不限。",
       schema_install_all: "一键启用或安装全站页面需 Pro。",
       schema_translate: "按语言翻译 schema 内容需 Pro。",
       llms_generate:
         "AI 生成 llms.txt 需 Pro；免费版仍可编辑并复制默认语言稿。",
-      llms_multi_locale: "其他语言的 llms 文件（如 llms-ja.txt）需 Pro。",
+      llms_multi_locale:
+        "免费版会生成默认语言 llms.txt。Pro 解锁每个语言的 llms 文件，并支持原生 AI 翻译。",
       llms_ai_translate: "llms.txt 的 AI 翻译需 Pro。",
       meta_generate:
         "免费版默认语言可试生成 Meta 3 次；Pro 可批量生成全部语言。",
@@ -949,12 +1360,78 @@ export const zhCN: Translations = {
       bulletAgency: "接一个客户站，$19/月 就回本",
       ctaLabel: "升级到 Pro",
       ctaPrice: "$19/月",
-      pricingHint: "或 $190/年（约省 17%）。退款政策见 polyglotaeo.com。",
+      monthlyPlanLabel: "月付",
+      monthlyPlanPrice: "$19 / 月",
+      monthlyPlanHelper: "适合先跑通一个项目。",
+      monthlyPlanCta: "进入月付结账 →",
+      yearlyPlanLabel: "年付",
+      yearlyPlanPrice: "$190 / 年",
+      yearlyPlanHelper: "相当于免 2 个月，适合长期维护客户站。",
+      yearlyPlanCta: "进入年付结账 →",
+      yearlyBadge: "省 17%",
+      pricingHint: "14 天退款政策见 polyglotaeo.com。许可证会通过邮件发送。",
     },
     dashboardLocaleBanner:
       "本项目有 {count} 种语言。升级 Pro 可解锁各语言的 schema、Meta 与 llms。",
     dashboardLocaleFree: "免费版仅默认语言（{code}）。",
     freeInstallQuota: "免费版 AI Schema 已用 {used}/{max} 页",
+  },
+
+  wizard: {
+    reopen: "设置向导",
+    stepOf: "第 {current} / {total} 步",
+    exit: "退出",
+    skipAll: "稍后再说",
+    skipManualOnly: "仅用手动 Schema",
+    completeNotify: "设置完成",
+    cta: {
+      getStarted: "开始",
+      continue: "继续",
+      saveAndContinue: "保存并继续",
+      continueWithoutAi: "先不用 AI 继续",
+      openDashboard: "打开上线清单",
+    },
+    screens: {
+      welcome: {
+        title: "欢迎使用 Polyglot AEO",
+        body: "把 Framer 多语言站点上线前后的 AEO 缺口集中到一个控制台：各语言 Schema、llms.txt、Meta 和发布验证。先做一分钟基础设置，然后按上线清单处理。",
+      },
+      aiSetup: {
+        title: "先做免费的项目检查",
+        body: "先打开控制中心。不启用 AI，也能看到语言、CMS、Schema 和发布站点中的具体缺口。",
+      },
+      done: {
+        title: "准备就绪",
+        body: "打开上线清单，先处理第一个可见缺口。只有当免费检查发现值得自动化的工作时，再启用托管生成。",
+      },
+    },
+    snapshot: {
+      projectLabel: "当前项目",
+      locales: "{count} 种语言",
+      schemaInstalled: "已装 Schema",
+      schemaNotInstalled: "未装 Schema",
+      aiConnected: "AI 已连接",
+      aiNotConnected: "托管 AI 可选",
+      addLocales: "在 Framer 添加语言",
+    },
+    firstRun: {
+      freeLabel: "免费",
+      freeTitle: "检查项目就绪度",
+      freeBody: "无需激活 Pro，即可检查语言覆盖、CMS 缺口、现有 Schema 和发布站点。",
+      proLabel: "可选 Pro",
+      readyLabel: "Pro 已就绪",
+      proTitle: "使用托管 AI 生成",
+      proBody: "Pro 通过服务端生成 Schema、Meta 和本地化内容，并带有许可校验与用量额度。",
+      noKey: "模型凭据只保存在 Polyglot AEO 后端，插件不会接收或保存这些凭据。",
+    },
+    aiProviderLabel: "提供商",
+    aiKeyLabel: "托管 AI",
+    aiKeyPlaceholder: "由 Polyglot AEO 处理",
+    aiTest: "测试",
+    aiTesting: "测试中…",
+    aiSave: "保存并测试",
+    aiConnected: "托管 AI 已就绪",
+    aiMoreProviders: "托管 AI 设置",
   },
 
   shortcuts: {

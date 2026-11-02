@@ -454,16 +454,16 @@ describe("buildProposal", () => {
     expect(proposal.pageId).toBe(PAGE_FIXTURE.id)
   })
 
-  it("auto-disables proposals below 0.4 confidence", () => {
+  it("auto-disables proposals below 0.7 confidence", () => {
     const proposal = buildProposal(
       PAGE_FIXTURE,
-      { kind: "Article", confidence: 0.3, inputs: { headline: "X" } },
+      { kind: "Article", confidence: 0.5, inputs: { headline: "X" } },
       "en-US",
     )
     expect(proposal.enabled).toBe(false)
   })
 
-  it("auto-enables proposals at or above 0.4 confidence", () => {
+  it("auto-enables proposals at or above 0.7 confidence", () => {
     const proposal = buildProposal(
       PAGE_FIXTURE,
       { kind: "Article", confidence: 0.85, inputs: { headline: "X" } },

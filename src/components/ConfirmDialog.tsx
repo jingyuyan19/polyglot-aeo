@@ -1,5 +1,8 @@
 import { useEffect } from "react"
+import { createPortal } from "react-dom"
 
+import { useModalBackdrop } from "../hooks/useModalBackdrop"
+import { ModalOverlay } from "./ModalOverlay"
 import { useI18n } from "../i18n"
 
 interface Props {
@@ -32,6 +35,7 @@ export function ConfirmDialog({
   onCancel,
 }: Props) {
   const { t } = useI18n()
+  useModalBackdrop(open)
 
   useEffect(() => {
     if (!open) return
@@ -52,16 +56,15 @@ export function ConfirmDialog({
 
   if (!open) return null
 
-  return (
-    <div
-      className="pa-confirm-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onCancel()
-      }}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="pa-confirm-dialog">
+  const root = document.getElementById("root")
+  if (!root) return null
+
+  return createPortal(
+    <ModalOverlay onBackdropClick={onCancel} role="dialog" aria-modal>
+      <div
+        className="pa-confirm-dialog"
+        onClick={(e) => e.stopPropagation()}
+      >
         <p className="pa-confirm-message">{message}</p>
         <div className="pa-confirm-actions">
           <button type="button" onClick={onCancel}>
@@ -77,6 +80,7 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>,
+    root,
   )
 }

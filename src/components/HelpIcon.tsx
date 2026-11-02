@@ -3,7 +3,7 @@ import { useId, useState } from "react"
 import { useI18n, type TranslationKey } from "../i18n"
 
 interface Props {
-  /** Term id from the i18n `help.*` namespace, e.g. "aeo" or "byok". */
+  /** Term id from the i18n `help.*` namespace, e.g. "aeo" or "managedAi". */
   termId: HelpTermId
   /** Optional accessible label override; defaults to "Show help". */
   ariaLabel?: string
@@ -21,11 +21,12 @@ export type HelpTermId =
   | "aeo"
   | "inLanguage"
   | "bcp47"
-  | "byok"
+  | "managedAi"
   | "canonicalUrl"
   | "llmsTxt"
   | "fenced"
   | "brandVoice"
+  | "perLocaleSchema"
 
 /**
  * A clickable (?) icon. Click expands an inline panel with the term's

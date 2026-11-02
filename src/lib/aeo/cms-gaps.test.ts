@@ -53,8 +53,35 @@ describe("CMS localization gaps", () => {
       missingSummaries: 2,
       missingSlugs: 2,
     })
-    expect(report.duplicateTitles).toEqual([
-      { title: "Same", rowIds: ["a", "b"] },
+    expect(report.duplicateTitles[0]).toMatchObject({
+      title: "Same",
+      rowIds: ["a", "b"],
+      rows: [
+        { rowId: "a", rowTitle: "Same", defaultSlug: "a" },
+        { rowId: "b", rowTitle: "Same", defaultSlug: "b" },
+      ],
+    })
+    expect(report.localeIssues).toEqual([
+      {
+        rowId: "a",
+        rowTitle: "Same",
+        defaultSlug: "a",
+        localeId: "ja",
+        localeCode: "ja",
+        missingTitle: false,
+        missingSummary: true,
+        missingSlug: true,
+      },
+      {
+        rowId: "b",
+        rowTitle: "Same",
+        defaultSlug: "b",
+        localeId: "ja",
+        localeCode: "ja",
+        missingTitle: true,
+        missingSummary: true,
+        missingSlug: true,
+      },
     ])
   })
 

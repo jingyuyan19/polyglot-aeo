@@ -2,7 +2,7 @@ export default function PrivacyPage() {
   return (
     <main className="legal-layout">
       <h1>Privacy Policy</h1>
-      <p className="lead">Last updated: May 30, 2026</p>
+      <p className="lead">Last updated: July 7, 2026</p>
       <section className="legal-card">
         <h2>Overview</h2>
         <p>
@@ -19,13 +19,15 @@ export default function PrivacyPage() {
           <li>Basic website analytics and server logs used to keep the service secure and reliable.</li>
         </ul>
 
-        <h2>Plugin Content and AI Providers</h2>
+        <h2>Plugin Content and Managed AI</h2>
         <p>
-          The plugin is designed for bring-your-own-key AI usage. API keys are
-          stored in the Framer project environment. When you choose to run AI
-          generation, selected page or CMS content may be sent to the AI provider
-          you configured so the provider can return schema, metadata, or llms.txt
-          content.
+          The Marketplace plugin uses Polyglot AEO managed AI. Users do not
+          enter third-party model credentials inside the plugin. When you
+          choose to run AI generation, selected page or CMS content may be sent
+          to Polyglot AEO's backend and to MiniMax so the service can return
+          schema, metadata, translations, summaries, or llms.txt content.
+          Requests require an active license session and are subject to usage
+          quotas.
         </p>
 
         <h2>How We Use Information</h2>
@@ -39,9 +41,9 @@ export default function PrivacyPage() {
         <h2>Subprocessors</h2>
         <p>
           We may use Creem for checkout and subscription management, Cloudflare
-          for license infrastructure, Netlify for website hosting, Framer for
-          plugin distribution, and configured AI providers only when you choose
-          to use them through your own account.
+          for license and managed AI infrastructure, Netlify for website
+          hosting, Framer for plugin distribution, and MiniMax for AI generation
+          only when you choose to use AI-powered features.
         </p>
 
         <h2>Data Retention</h2>

@@ -27,7 +27,7 @@ describe("AEO issues", () => {
     expect(scoreAeoIssues(issues)).toBe(100)
   })
 
-  it("prioritizes critical launch blockers", () => {
+  it("prioritizes critical launch blockers before paid coverage notes", () => {
     const issues = buildAeoIssues({
       ...READY,
       isPro: false,
@@ -36,10 +36,14 @@ describe("AEO issues", () => {
       localeCount: 4,
     })
     expect(issues.map((issue) => issue.id).slice(0, 2)).toEqual([
-      "multi_locale_locked",
       "schema_missing",
+      "llms_missing",
     ])
-    expect(scoreAeoIssues(issues)).toBeLessThan(60)
+    expect(issues.at(-1)).toMatchObject({
+      id: "multi_locale_locked",
+      severity: "info",
+    })
+    expect(scoreAeoIssues(issues)).toBeLessThan(70)
   })
 
   it("counts issues by severity", () => {
@@ -51,5 +55,23 @@ describe("AEO issues", () => {
       }),
     )
     expect(counts).toEqual({ critical: 0, warning: 1, info: 1 })
+  })
+
+  it("penalizes high-volume CMS gaps more than a single missing row", () => {
+    const oneGapScore = scoreAeoIssues(
+      buildAeoIssues({
+        ...READY,
+        cmsLocaleGapCount: 1,
+      }),
+    )
+    const manyGapsScore = scoreAeoIssues(
+      buildAeoIssues({
+        ...READY,
+        cmsLocaleGapCount: 72,
+      }),
+    )
+
+    expect(manyGapsScore).toBeLessThan(oneGapScore)
+    expect(manyGapsScore).toBeLessThan(50)
   })
 })

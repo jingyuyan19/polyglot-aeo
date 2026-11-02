@@ -65,14 +65,29 @@ export function wrapJsonLdBlocks(
 
   const inner = blocks
     .map(
-      ({ language, jsonLd }) =>
-        `  <script type="application/ld+json" data-polyglot-aeo data-lang="${escapeAttr(
+      ({ language, jsonLd }) => {
+        const normalized = normalizeJsonLdForScript(jsonLd)
+        return `  <script type="application/ld+json" data-polyglot-aeo data-lang="${escapeAttr(
           language,
-        )}">\n${jsonLd}\n  </script>`,
+        )}">\n${normalized}\n  </script>`
+      },
     )
     .join("\n")
 
   return `${FENCE_OPEN}\n${inner}\n${FENCE_CLOSE}`
+}
+
+export function normalizeJsonLdForScript(jsonLd: string): string {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(jsonLd)
+  } catch {
+    throw new Error("Polyglot AEO refused to install invalid JSON-LD.")
+  }
+  if (parsed === null || typeof parsed !== "object") {
+    throw new Error("Polyglot AEO refused to install non-object JSON-LD.")
+  }
+  return JSON.stringify(parsed, null, 2).replace(/<\/script/gi, "<\\/script")
 }
 
 /**
