@@ -153,13 +153,18 @@ export function OnboardingWizardView({
         </div>
 
         <footer className="pa-wizard-footer">
-          <button
-            type="button"
-            className="pa-wizard-footer-link"
-            onClick={goBack}
-          >
-            {screenIndex === 0 ? t("common.close") : t("common.back")}
-          </button>
+          {/* The welcome step already offers "Maybe later"; a second Close there reads as a duplicate. */}
+          {screenId === "welcome" ? (
+            <span />
+          ) : (
+            <button
+              type="button"
+              className="pa-wizard-footer-link"
+              onClick={goBack}
+            >
+              {screenIndex === 0 ? t("common.close") : t("common.back")}
+            </button>
+          )}
           <div className="pa-wizard-footer-actions">
             {screenId === "welcome" && (
               <button

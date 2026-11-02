@@ -10,14 +10,19 @@ import type {
   ValidateResponse,
 } from "./types"
 
+/** Production License Worker, used when a release build has no override. */
+export const PRODUCTION_LICENSE_API_BASE = "https://license.polyglotaeo.com"
+
 /**
  * Cloudflare Worker base URL (no trailing slash).
- * Set in release builds — same pattern as Loka's WORKER_URL.
+ * Production builds fall back to the live Worker so a build made without
+ * .env.local cannot ship with activation, checkout, and AI silently off.
  */
 export function licenseApiBase(): string | null {
   const fromEnv = import.meta.env.VITE_LICENSE_API_BASE as string | undefined
   const trimmed = fromEnv?.trim().replace(/\/$/, "")
-  return trimmed || null
+  if (trimmed) return trimmed
+  return import.meta.env.PROD ? PRODUCTION_LICENSE_API_BASE : null
 }
 
 function isTestMode(mode?: BillingMode): boolean {

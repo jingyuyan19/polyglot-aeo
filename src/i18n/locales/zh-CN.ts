@@ -202,7 +202,7 @@ export const zhCN: Translations = {
     verifyRescanNote:
       "重新扫描会在有发布 URL 时执行 live HTTP 检查（首页、JSON-LD、llms 路径）。",
     verifyNoProxy:
-      "未配置 VITE_LICENSE_API_BASE 时，浏览器可能拦截跨域请求——live 显示失败不一定代表站点有问题。请手动打开路径或部署 Worker 代理。",
+      "浏览器可能会拦截对线上站点的直接读取，所以 live 检查失败不一定代表站点有问题。请手动打开这些路径确认。",
     liveVerifySkipped:
       "尚无发布 URL，已跳过 live 检查。请先发布站点或在 llms.txt 设置中填写基础 URL，再点重新扫描。",
     liveVerifySummary:
@@ -402,7 +402,7 @@ export const zhCN: Translations = {
     homepageOk: "已读取首页 HTML，HTTP {status}。",
     homepageBlocked: "无法读取首页。请手动打开 URL 并检查页面源码。",
     homepageBlockedNoProxy:
-      "插件无法跨域读取该站点。请在 .env 配置 VITE_LICENSE_API_BASE（部署 Worker 的 /verify-fetch）后重试，或手动在浏览器检查。",
+      "浏览器拦截了对该站点的读取。请在浏览器中打开该网址手动检查。",
     homepageHttpError: "首页返回 HTTP {status}，无法解析 HTML。",
     invalidUrl: "请输入以 https:// 开头的公开站点 URL。",
     schema: "JSON-LD 存在",
@@ -430,8 +430,8 @@ export const zhCN: Translations = {
     llmsMissing:
       "/llms.txt 返回 404。请在 Framer Static Files 上传并重新发布。",
     proxyHint:
-      "开发环境：将 VITE_LICENSE_API_BASE 设为 License Worker 地址，通过 /verify-fetch 拉取。否则插件在浏览器内无法读取线上站点——这是 CORS 限制，不能证明文件未部署。",
-    proxyHintTitle: "Worker 代理未配置",
+      "线上站点检查需要 Polyglot 验证服务，但当前版本无法连接。这里显示失败是浏览器限制，不能证明文件缺失。",
+    proxyHintTitle: "线上站点检查不可用",
   },
 
   schema: {
@@ -472,6 +472,7 @@ export const zhCN: Translations = {
         "为非默认语言生成地道的 headline、description、body，而不只改 inLanguage。会有一点 AI 费用，但能得到真正本地化的 JSON-LD。",
       aiNeeded: "请先在「设置」里激活 Pro，才能启用 AI 扫描。",
       scanButton: "扫描站点",
+      scanButtonPro: "升级 Pro 后扫描",
       rescan: "重新扫描",
       scanning: "正在扫描站点…",
       scanProgress: "{current} / {total}",

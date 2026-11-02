@@ -32,7 +32,7 @@ import { SettingsView } from "./views/SettingsView"
 
 framer.showUI({
   position: "top right",
-  width: 320,
+  width: 360,
   height: 580,
   resizable: true,
   minWidth: 300,

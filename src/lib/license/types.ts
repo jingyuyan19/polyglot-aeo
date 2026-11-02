@@ -24,6 +24,7 @@ export type Feature =
   | "schema_audit_persist"
   | "remote_schema_rules"
   | "custom_openai_endpoint"
+  | "managed_ai"
 
 export type UpgradeReason =
   | "multi_locale"

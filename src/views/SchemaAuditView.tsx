@@ -23,6 +23,7 @@ import {
   resolveInitialProvider,
   type ProviderId,
 } from "../lib/ai/client"
+import { isManagedProviderId } from "../lib/ai/managed"
 import {
   BUILTIN_PROVIDERS,
   materializeCustomProvider,
@@ -768,11 +769,16 @@ export function SchemaAuditView({
   // Actions
   // ────────────────────────────────────────────────────────────────────
 
+  // Free users would otherwise run a full scan that ends in 0%-confidence
+  // proposals because managed AI refuses them; ask for Pro up front instead.
+  const needsProForScan = isManagedProviderId(providerId) && !gate.isPro
+
   const handleScan = async () => {
     if (!hasApiKey) {
       framer.notify(t("schema.audit.aiNeeded"), { variant: "warning" })
       return
     }
+    if (needsProForScan && !gate.check("managed_ai")) return
     const apiKey = await readProviderKey(providerId)
     if (!apiKey) return
 
@@ -2258,7 +2264,9 @@ export function SchemaAuditView({
           >
             {phase.kind === "scanning-site" || phase.kind === "scanning-ai"
               ? t("schema.audit.scanning")
-              : t("schema.audit.scanButton")}
+              : needsProForScan
+                ? t("schema.audit.scanButtonPro")
+                : t("schema.audit.scanButton")}
           </button>
         ) : installState.kind === "disabled" ? (
           <div className="pa-footer-stack">

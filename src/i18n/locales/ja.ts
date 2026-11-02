@@ -205,7 +205,7 @@ export const ja: Translations = {
     verifyRescanNote:
       "再スキャンは公開 URL がある場合、live HTTP チェック（ホーム、JSON-LD、llms パス）を実行します。",
     verifyNoProxy:
-      "VITE_LICENSE_API_BASE 未設定時、ブラウザがクロスオリジン取得をブロックすることがあります — live の失敗が必ずしもサイト障害を意味しません。パスを手動で開くか Worker プロキシをデプロイしてください。",
+      "ブラウザが公開サイトの直接読み込みをブロックすることがあるため、live チェックの失敗が必ずしもサイトの不具合を意味するわけではありません。パスを手動で開いて確認してください。",
     liveVerifySkipped:
       "公開 URL がありません — live チェックをスキップしました。サイトを公開するか llms.txt 設定でベース URL を入力してから再スキャンしてください。",
     liveVerifySummary:
@@ -408,7 +408,7 @@ export const ja: Translations = {
     homepageBlocked:
       "ホームページを読み取れませんでした。URL を手動で開き、ソースを確認してください。",
     homepageBlockedNoProxy:
-      "クロスオリジンで取得できません。.env に VITE_LICENSE_API_BASE（Worker の /verify-fetch）を設定して再試行するか、ブラウザで手動確認してください。",
+      "ブラウザがこのサイトの読み込みをブロックしました。ブラウザで URL を開いて手動で確認してください。",
     homepageHttpError:
       "ホームページが HTTP {status} を返したため HTML を解析できません。",
     invalidUrl: "https:// で始まる公開サイト URL を入力してください。",
@@ -437,8 +437,8 @@ export const ja: Translations = {
     llmsMissing:
       "/llms.txt が 404 を返しました。Framer Static Files にアップロードして再公開してください。",
     proxyHint:
-      "開発ビルド：VITE_LICENSE_API_BASE に License Worker の URL を設定し、/verify-fetch 経由で取得してください。未設定時はブラウザから live サイトを読めません — CORS 制限であり、ファイル未配置の証明ではありません。",
-    proxyHintTitle: "Worker プロキシ未設定",
+      "公開サイトのチェックには Polyglot の検証サービスが必要ですが、このビルドからは接続できません。ここでの失敗はブラウザの制限によるもので、ファイルが存在しない証拠ではありません。",
+    proxyHintTitle: "公開サイトのチェックを利用できません",
   },
 
   schema: {
@@ -480,6 +480,7 @@ export const ja: Translations = {
         "デフォルト以外の言語でも headline・description・本文をネイティブに生成します。inLanguage だけでは足りない、本物のローカライズ JSON-LD を出力します（少額の AI 費用が発生）。",
       aiNeeded: "AI スキャンを使うには「設定」で Pro を有効化してください。",
       scanButton: "サイトをスキャン",
+      scanButtonPro: "Pro でスキャン",
       rescan: "再スキャン",
       scanning: "サイトをスキャン中…",
       scanProgress: "{current} / {total}",

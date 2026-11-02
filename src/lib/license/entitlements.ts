@@ -62,6 +62,10 @@ export function canUseFeature(
     case "custom_openai_endpoint":
       return false
 
+    case "managed_ai":
+      // Managed generation spends server-side model quota.
+      return false
+
     default:
       return false
   }

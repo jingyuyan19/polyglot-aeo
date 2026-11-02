@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { buildCheckoutUrl } from "./api"
+import { PRODUCTION_LICENSE_API_BASE, buildCheckoutUrl, licenseApiBase } from "./api"
 
 function parseBridge(url: string) {
   const bridge = new URL(url)
@@ -66,5 +66,29 @@ describe("license checkout URLs", () => {
     )
     expect(bridge.searchParams.get("test_mode")).toBe("true")
     expect(bridge.searchParams.get("utm_content")).toBe("llms_generate")
+  })
+})
+
+describe("licenseApiBase", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it("falls back to the production Worker in production builds", () => {
+    vi.stubEnv("PROD", true)
+    vi.stubEnv("VITE_LICENSE_API_BASE", "")
+    expect(licenseApiBase()).toBe(PRODUCTION_LICENSE_API_BASE)
+  })
+
+  it("stays unset in dev builds without an override", () => {
+    vi.stubEnv("PROD", false)
+    vi.stubEnv("VITE_LICENSE_API_BASE", "")
+    expect(licenseApiBase()).toBeNull()
+  })
+
+  it("prefers an explicit override without a trailing slash", () => {
+    vi.stubEnv("PROD", true)
+    vi.stubEnv("VITE_LICENSE_API_BASE", "https://worker.example/")
+    expect(licenseApiBase()).toBe("https://worker.example")
   })
 })
