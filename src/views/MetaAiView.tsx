@@ -909,7 +909,7 @@ export function MetaAiView({
       return
     }
     handleLeaveMeta()
-  }, [handleLeaveMeta, results.length, reviewCopiedLocaleCount, t])
+  }, [handleLeaveMeta, results.length, reviewCopiedLocaleCount])
 
   const handleDownloadLocale = useCallback(() => {
     const active =

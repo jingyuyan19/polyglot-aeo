@@ -4,13 +4,14 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import { auditPublicSite, renderReportFirstEmail } from "./public-audit-lib.mjs";
 import { scheduleCohorts } from "./lead-report-pilot.mjs";
 
 const execFileAsync = promisify(execFile);
-const toolDir = path.dirname(new URL(import.meta.url).pathname);
+const toolDir = path.dirname(fileURLToPath(import.meta.url));
 
 test("an approved 1-old/9-new pilot stays at two contacts across five business days", () => {
   const oldRows = [{ cohort: "old", source: { domain: "old.example" } }];

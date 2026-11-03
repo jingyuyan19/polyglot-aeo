@@ -197,7 +197,7 @@ export const en = {
     verifyRescanNote:
       "Rescan runs a live HTTP check (homepage, JSON-LD, llms paths) when a publish URL is available.",
     verifyNoProxy:
-      "Without VITE_LICENSE_API_BASE, the browser may block cross-origin fetches — a “failed” live check does not always mean the site is broken. Open paths manually or deploy the Worker proxy.",
+      "Your browser may block reading the live site directly, so a “failed” live check does not always mean the site is broken. Open the paths manually to confirm.",
     liveVerifySkipped:
       "No publish URL yet — live checks skipped. Publish the site or set the base URL in llms.txt setup, then Rescan.",
     liveVerifySummary:
@@ -400,7 +400,7 @@ export const en = {
     homepageBlocked:
       "Could not read the homepage. Open the URL manually and inspect source.",
     homepageBlockedNoProxy:
-      "Cross-origin fetch blocked. Set VITE_LICENSE_API_BASE (Worker /verify-fetch) and retry, or check manually in a browser.",
+      "The browser blocked reading this site. Open the URL in a browser to check it manually.",
     homepageHttpError: "Homepage returned HTTP {status}; HTML was not parsed.",
     invalidUrl: "Enter a public site URL starting with https://.",
     schema: "JSON-LD present",
@@ -428,8 +428,8 @@ export const en = {
     llmsMissing:
       "/llms.txt returned 404. Upload it in Framer Static Files and publish again.",
     proxyHint:
-      "Dev build: set VITE_LICENSE_API_BASE to your License Worker URL so fetches use /verify-fetch. Otherwise the plugin cannot read your live site from the browser — that is a CORS limit, not proof your files are missing.",
-    proxyHintTitle: "Worker proxy not configured",
+      "Live-site checks need the Polyglot verification service, which this build cannot reach. A failed check here is a browser limit, not proof your files are missing.",
+    proxyHintTitle: "Live-site checks unavailable",
   },
 
   schema: {
@@ -471,6 +471,7 @@ export const en = {
         "Generates a fully native headline, description, and body for each non-default locale instead of just changing the inLanguage tag. Adds a small AI cost but produces real localized JSON-LD.",
       aiNeeded: "Activate Pro in Settings to enable the AI scan.",
       scanButton: "Scan site",
+      scanButtonPro: "Scan with Pro",
       rescan: "Re-scan",
       scanning: "Scanning your site…",
       scanProgress: "{current} of {total}",
