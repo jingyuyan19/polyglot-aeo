@@ -53,19 +53,83 @@ function escapeRegex(literal: string): string {
 // `customCode.test.ts` because they are the safety-critical core.
 // ─────────────────────────────────────────────────────────────────────
 
+export interface JsonLdBlock {
+  language: string
+  jsonLd: string
+}
+
+const MAX_JSON_LD_LENGTH = 64_000
+const MAX_JSON_LD_DEPTH = 16
+// Framer locale codes ("en", "zh-CN", "default"): never quotes or brackets.
+const LANGUAGE_CODE = /^[A-Za-z0-9][A-Za-z0-9-]{0,34}$/
+const SCHEMA_TYPE = /^[A-Za-z][A-Za-z0-9]{0,63}$/
+const SCHEMA_CONTEXT = /^https?:\/\/schema\.org\/?$/
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+}
+
+function hasSchemaType(node: Record<string, unknown>): boolean {
+  const type = node["@type"]
+  if (typeof type === "string") return SCHEMA_TYPE.test(type)
+  return Array.isArray(type) && type.length > 0 &&
+    type.every((t) => typeof t === "string" && SCHEMA_TYPE.test(t))
+}
+
+function hasSchemaContext(node: Record<string, unknown>): boolean {
+  const context = node["@context"]
+  if (typeof context === "string") return SCHEMA_CONTEXT.test(context)
+  return Array.isArray(context) && typeof context[0] === "string" &&
+    SCHEMA_CONTEXT.test(context[0])
+}
+
+function depthOf(value: unknown): number {
+  if (Array.isArray(value)) return 1 + Math.max(0, ...value.map(depthOf))
+  if (isPlainObject(value)) return 1 + Math.max(0, ...Object.values(value).map(depthOf))
+  return 0
+}
+
+/**
+ * Central guard for everything Polyglot AEO writes into the page head: only a
+ * schema.org JSON-LD document (an object with a schema.org @context and either
+ * a @type or a non-empty @graph of typed objects) may pass.
+ */
+export function assertSchemaOrgJsonLd(
+  value: unknown,
+): asserts value is Record<string, unknown> {
+  if (!isPlainObject(value)) {
+    throw new Error("Polyglot AEO refused to install non-object JSON-LD.")
+  }
+  if (!hasSchemaContext(value)) {
+    throw new Error("Polyglot AEO refused to install JSON-LD without a schema.org @context.")
+  }
+  const graph = value["@graph"]
+  const typed = graph === undefined
+    ? hasSchemaType(value)
+    : Array.isArray(graph) && graph.length > 0 &&
+      graph.every((node) => isPlainObject(node) && hasSchemaType(node))
+  if (!typed) {
+    throw new Error("Polyglot AEO refused to install JSON-LD without a valid schema.org @type.")
+  }
+  if (depthOf(value) > MAX_JSON_LD_DEPTH) {
+    throw new Error("Polyglot AEO refused to install JSON-LD nested too deeply.")
+  }
+}
+
 /**
  * Wrap N JSON-LD blocks into one fenced HTML string ready to inject.
  * Returns an empty string when given no blocks (caller should treat that
  * as "do not write anything").
  */
-export function wrapJsonLdBlocks(
-  blocks: Array<{ language: string; jsonLd: string }>,
-): string {
+export function wrapJsonLdBlocks(blocks: JsonLdBlock[]): string {
   if (blocks.length === 0) return ""
 
   const inner = blocks
     .map(
       ({ language, jsonLd }) => {
+        if (!LANGUAGE_CODE.test(language)) {
+          throw new Error("Polyglot AEO refused to install JSON-LD for an invalid language code.")
+        }
         const normalized = normalizeJsonLdForScript(jsonLd)
         return `  <script type="application/ld+json" data-polyglot-aeo data-lang="${escapeAttr(
           language,
@@ -78,16 +142,22 @@ export function wrapJsonLdBlocks(
 }
 
 export function normalizeJsonLdForScript(jsonLd: string): string {
+  if (jsonLd.length > MAX_JSON_LD_LENGTH) {
+    throw new Error("Polyglot AEO refused to install oversized JSON-LD.")
+  }
   let parsed: unknown
   try {
     parsed = JSON.parse(jsonLd)
   } catch {
     throw new Error("Polyglot AEO refused to install invalid JSON-LD.")
   }
-  if (parsed === null || typeof parsed !== "object") {
-    throw new Error("Polyglot AEO refused to install non-object JSON-LD.")
-  }
-  return JSON.stringify(parsed, null, 2).replace(/<\/script/gi, "<\\/script")
+  assertSchemaOrgJsonLd(parsed)
+  // JSON unicode escapes keep the payload valid JSON-LD while making it
+  // impossible for any string value to open or close an HTML tag.
+  return JSON.stringify(parsed, null, 2)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
 }
 
 /**
@@ -183,14 +253,18 @@ async function writeHeadEnd(html: string | null): Promise<void> {
  * Install (or reinstall) our fenced block into Framer's `headEnd` slot,
  * preserving any user-authored code that's already there.
  *
+ * Takes structured blocks, never HTML: the fenced markup is built here from
+ * guarded JSON-LD, so no caller can route arbitrary HTML into the page head.
+ *
  * Returns metadata so the UI can show "preserved N bytes of your code".
  *
  * Throws {@link CustomCodePermissionError} when the plugin lacks
  * permission — UI layer should catch and render the recovery hint.
  */
-export async function injectIntoHeadEnd(fencedBlock: string): Promise<{
+export async function injectIntoHeadEnd(blocks: JsonLdBlock[]): Promise<{
   preservedUserBytes: number
 }> {
+  const fencedBlock = wrapJsonLdBlocks(blocks)
   const existing = await readSlot()
   const preservedUserBytes = userCodeSize(existing)
   const next = mergeForInstall(existing, fencedBlock)

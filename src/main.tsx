@@ -1,3 +1,4 @@
+import "@fontsource-variable/inter"
 import "framer-plugin/framer.css"
 import "./globals.css"
 

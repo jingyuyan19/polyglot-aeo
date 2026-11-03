@@ -9,7 +9,10 @@ import {
   userCodeSize,
   wrapJsonLdBlocks,
   normalizeJsonLdForScript,
+  assertSchemaOrgJsonLd,
 } from "./customCode"
+
+const WEBSITE = '{"@context":"https://schema.org","@type":"WebSite","name":"Acme"}'
 
 /**
  * These tests guard a SAFETY-CRITICAL path. The functions under test decide
@@ -42,7 +45,7 @@ describe("wrapJsonLdBlocks", () => {
   })
 
   it("wraps a single block in fences", () => {
-    const html = wrapJsonLdBlocks([{ language: "en-US", jsonLd: "{}" }])
+    const html = wrapJsonLdBlocks([{ language: "en-US", jsonLd: WEBSITE }])
     expect(html).toContain(FENCE_OPEN)
     expect(html).toContain(FENCE_CLOSE)
     expect(html).toContain('data-lang="en-US"')
@@ -50,9 +53,9 @@ describe("wrapJsonLdBlocks", () => {
 
   it("wraps multiple blocks under a single fence pair", () => {
     const html = wrapJsonLdBlocks([
-      { language: "en-US", jsonLd: "{}" },
-      { language: "zh-CN", jsonLd: "{}" },
-      { language: "ja-JP", jsonLd: "{}" },
+      { language: "en-US", jsonLd: WEBSITE },
+      { language: "zh-CN", jsonLd: WEBSITE },
+      { language: "ja-JP", jsonLd: WEBSITE },
     ])
     expect(html.match(new RegExp(FENCE_OPEN, "g"))?.length).toBe(1)
     expect(html.match(new RegExp(FENCE_CLOSE, "g"))?.length).toBe(1)
@@ -61,14 +64,10 @@ describe("wrapJsonLdBlocks", () => {
     expect(html).toContain('data-lang="ja-JP"')
   })
 
-  it("escapes attribute-breaking characters in language code", () => {
-    const html = wrapJsonLdBlocks([
-      { language: 'evil"<>', jsonLd: "{}" },
-    ])
-    expect(html).not.toContain('data-lang="evil"<>"')
-    expect(html).toContain("&quot;")
-    expect(html).toContain("&lt;")
-    expect(html).toContain("&gt;")
+  it("refuses language codes that could break the attribute", () => {
+    expect(() =>
+      wrapJsonLdBlocks([{ language: 'evil"<>', jsonLd: WEBSITE }]),
+    ).toThrow("invalid language code")
   })
 
   it("normalizes JSON-LD before injecting it into a script tag", () => {
@@ -85,12 +84,49 @@ describe("wrapJsonLdBlocks", () => {
     ).toThrow("invalid JSON-LD")
   })
 
-  it("escapes closing script tags inside JSON-LD strings", () => {
+  it("escapes every tag-forming character inside JSON-LD strings", () => {
     const normalized = normalizeJsonLdForScript(
-      JSON.stringify({ name: "</script><script>alert(1)</script>" }),
+      JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        name: "</script><script>alert(1)</script> & co",
+      }),
     )
-    expect(normalized).toContain("<\\/script>")
-    expect(normalized).not.toContain("</script>")
+    expect(normalized).not.toMatch(/[<>&]/)
+    expect(normalized).toContain("\\u003c/script\\u003e")
+    // Still valid JSON that round-trips to the original value.
+    expect(JSON.parse(normalized).name).toBe("</script><script>alert(1)</script> & co")
+  })
+})
+
+describe("assertSchemaOrgJsonLd", () => {
+  const check = (value: unknown) => () => assertSchemaOrgJsonLd(value)
+
+  it("accepts typed schema.org objects and @graph documents", () => {
+    expect(check(JSON.parse(WEBSITE))).not.toThrow()
+    expect(check({ "@context": "http://schema.org/", "@type": ["Organization", "Brand"] })).not.toThrow()
+    expect(check({
+      "@context": "https://schema.org",
+      "@graph": [{ "@type": "WebSite" }, { "@type": "Organization", name: "Acme" }],
+    })).not.toThrow()
+  })
+
+  it("refuses anything that is not a typed schema.org document", () => {
+    expect(check([JSON.parse(WEBSITE)])).toThrow("non-object")
+    expect(check({ "@type": "WebSite" })).toThrow("@context")
+    expect(check({ "@context": "https://evil.example", "@type": "WebSite" })).toThrow("@context")
+    expect(check({ "@context": "https://schema.org" })).toThrow("@type")
+    expect(check({ "@context": "https://schema.org", "@type": "<script>" })).toThrow("@type")
+    expect(check({ "@context": "https://schema.org", "@graph": [] })).toThrow("@type")
+    expect(check({ "@context": "https://schema.org", "@graph": [{ name: "untyped" }] })).toThrow("@type")
+  })
+
+  it("refuses deeply nested or oversized payloads", () => {
+    let nested: Record<string, unknown> = { "@type": "Thing" }
+    for (let i = 0; i < 20; i++) nested = { child: nested }
+    expect(check({ "@context": "https://schema.org", "@type": "WebSite", nested })).toThrow("nested")
+    const huge = JSON.stringify({ "@context": "https://schema.org", "@type": "WebSite", name: "x".repeat(70_000) })
+    expect(() => normalizeJsonLdForScript(huge)).toThrow("oversized")
   })
 })
 
