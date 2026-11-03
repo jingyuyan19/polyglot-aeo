@@ -7,7 +7,7 @@ export const FRAMER_MARKETPLACE_URL =
   process.env.NEXT_PUBLIC_FRAMER_MARKETPLACE_URL ??
   "https://www.framer.com/community/marketplace/plugins/polyglot-aeo/"
 
-const LICENSE_API_BASE = (
+export const LICENSE_API_BASE = (
   process.env.NEXT_PUBLIC_LICENSE_API_BASE ??
   process.env.VITE_LICENSE_API_BASE ??
   "https://license.polyglotaeo.com"
@@ -55,6 +55,7 @@ export function SiteNav() {
         <Link href="/#workflow">Workflow</Link>
         <Link href="/framer-aeo-benchmark/">Benchmark</Link>
         <Link href="/llms-txt/">llms.txt</Link>
+        <Link href="/check/">Free check</Link>
         <Link href="/audit/">Mini audit</Link>
         <Link href="/agency/">Agencies</Link>
         <Link href="/pricing">Pricing</Link>

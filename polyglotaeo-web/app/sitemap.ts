@@ -8,6 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/",
     "/framer-aeo-benchmark/",
     "/llms-txt/",
+    "/check/",
     "/audit/",
     "/audit/sample/",
     "/agency/",
