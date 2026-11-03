@@ -14,7 +14,6 @@ import {
   deactivateLicenseForProject,
   refreshLicenseTier,
   resolveBillingMode,
-  resolveProjectInstanceId,
   setLicenseBillingMode,
 } from "../lib/license/service"
 import { clearLicenseRecord } from "../lib/license/storage"
@@ -49,7 +48,6 @@ export function EntitlementProvider({
   const [loading, setLoading] = useState(true)
   const [validating, setValidating] = useState(false)
   const [lastError, setLastError] = useState<string | null>(null)
-  const [projectId, setProjectId] = useState<string | null>(null)
   const [billingMode, setBillingModeState] = useState<BillingMode>("production")
 
   const refresh = useCallback(async () => {
@@ -67,7 +65,6 @@ export function EntitlementProvider({
   }, [])
 
   useEffect(() => {
-    void resolveProjectInstanceId().then(setProjectId)
     void (async () => {
       const mode = await resolveBillingMode()
       setBillingModeState(mode)
@@ -151,11 +148,11 @@ export function EntitlementProvider({
   const requestUpgrade = useCallback(
     (reason: UpgradeReason) => {
       onUpgradeRequest(reason, {
-        monthly: buildCheckoutUrl("monthly", projectId, billingMode, reason),
-        yearly: buildCheckoutUrl("yearly", projectId, billingMode, reason),
+        monthly: buildCheckoutUrl("monthly", billingMode, reason),
+        yearly: buildCheckoutUrl("yearly", billingMode, reason),
       })
     },
-    [billingMode, onUpgradeRequest, projectId],
+    [billingMode, onUpgradeRequest],
   )
 
   const canUse = useCallback(
