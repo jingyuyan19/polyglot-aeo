@@ -22,15 +22,16 @@ describe("license checkout URLs", () => {
     vi.stubEnv("VITE_SHOW_BILLING_TEST_MODE", undefined)
 
     const { bridge, target } = parseBridge(
-      buildCheckoutUrl("monthly", "project-1", "test", "generic_pro"),
+      buildCheckoutUrl("monthly", "test", "generic_pro"),
     )
     expect(bridge.origin + bridge.pathname).toBe(
       "https://polyglotaeo.com/go/checkout/",
     )
     expect(target).toBe(
-      "https://worker.example/checkout?plan=monthly&project_id=project-1",
+      "https://worker.example/checkout?plan=monthly",
     )
     expect(bridge.searchParams.get("test_mode")).toBe(null)
+    expect(bridge.searchParams.get("project_id")).toBe(null)
     expect(bridge.searchParams.get("reason")).toBe("generic_pro")
     expect(bridge.searchParams.get("utm_source")).toBe("framer_plugin")
   })
@@ -40,16 +41,16 @@ describe("license checkout URLs", () => {
     vi.stubEnv("VITE_LICENSE_API_BASE", "https://worker.example")
 
     expect(
-      parseBridge(buildCheckoutUrl("monthly", "project-1", "production"))
+      parseBridge(buildCheckoutUrl("monthly", "production"))
         .target,
     ).toBe(
-      "https://worker.example/checkout?plan=monthly&project_id=project-1",
+      "https://worker.example/checkout?plan=monthly",
     )
     expect(
-      parseBridge(buildCheckoutUrl("yearly", "project-1", "production"))
+      parseBridge(buildCheckoutUrl("yearly", "production"))
         .target,
     ).toBe(
-      "https://worker.example/checkout?plan=yearly&project_id=project-1",
+      "https://worker.example/checkout?plan=yearly",
     )
   })
 
@@ -59,10 +60,10 @@ describe("license checkout URLs", () => {
     vi.stubEnv("VITE_SHOW_BILLING_TEST_MODE", "true")
 
     const { bridge, target } = parseBridge(
-      buildCheckoutUrl("yearly", "project-1", "test", "llms_generate"),
+      buildCheckoutUrl("yearly", "test", "llms_generate"),
     )
     expect(target).toBe(
-      "https://worker.example/checkout?plan=yearly&project_id=project-1&test_mode=true",
+      "https://worker.example/checkout?plan=yearly&test_mode=true",
     )
     expect(bridge.searchParams.get("test_mode")).toBe("true")
     expect(bridge.searchParams.get("utm_content")).toBe("llms_generate")

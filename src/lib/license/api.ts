@@ -51,13 +51,16 @@ export function checkoutUrls(): CheckoutPlanUrls {
   }
 }
 
+/**
+ * Checkout links carry no project or site identifiers (Marketplace review:
+ * send only what the flow strictly needs).
+ */
 export function buildCheckoutUrl(
   plan: BillingPlan,
-  projectId?: string | null,
   billingMode?: BillingMode,
   reason?: UpgradeReason,
 ): string {
-  const target = buildDirectCheckoutUrl(plan, projectId, billingMode)
+  const target = buildDirectCheckoutUrl(plan, billingMode)
   const bridge = new URL(POLYGLOT_CHECKOUT_BRIDGE)
   bridge.searchParams.set("target", target)
   bridge.searchParams.set("plan", plan)
@@ -66,21 +69,18 @@ export function buildCheckoutUrl(
   bridge.searchParams.set("utm_campaign", "plugin_upgrade")
   bridge.searchParams.set("utm_content", reason || plan)
   if (reason) bridge.searchParams.set("reason", reason)
-  if (projectId) bridge.searchParams.set("project_id", projectId)
   if (isTestMode(billingMode)) bridge.searchParams.set("test_mode", "true")
   return bridge.toString()
 }
 
 function buildDirectCheckoutUrl(
   plan: BillingPlan,
-  projectId?: string | null,
   billingMode?: BillingMode,
 ): string {
   const base =
     plan === "yearly" ? checkoutUrls().yearly : checkoutUrls().monthly
   const params = new URLSearchParams()
   if (base.includes("/checkout")) params.set("plan", plan)
-  if (projectId) params.set("project_id", projectId)
   if (isTestMode(billingMode)) params.set("test_mode", "true")
   const query = params.toString()
   if (!query) return base

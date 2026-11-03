@@ -116,19 +116,14 @@ export async function activateLicenseForProject(
   }
 
   const mode = await readBillingMode()
+  // Only Framer's hashed project id is sent (one activation per project);
+  // the project name stays in the editor (Marketplace data review).
   const instanceId = await resolveProjectInstanceId()
-  let instanceName = instanceId
-  try {
-    const info = await framer.getProjectInfo()
-    instanceName = info.name || instanceId
-  } catch {
-    // use id
-  }
 
   const result = await activateLicense({
     key: trimmed,
     projectId: instanceId,
-    instanceName,
+    instanceName: instanceId,
     billingMode: mode,
   })
 
