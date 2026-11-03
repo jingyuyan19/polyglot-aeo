@@ -15,13 +15,21 @@ export const metadata: Metadata = {
   },
   description:
     "Launch and maintain multilingual Framer sites with schema, metadata, locale QA, CMS gap checks, published-site verification, and optional llms.txt exports.",
+  // "./" resolves to each page's own URL, so every route gets a self canonical.
+  alternates: {
+    canonical: "./",
+  },
   openGraph: {
     title: "Polyglot AEO",
     description:
       "AEO quality control for multilingual Framer sites before and after launch.",
-    url: "/",
+    url: "./",
     siteName: "Polyglot AEO",
     type: "website",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Polyglot AEO" }],
+  },
+  twitter: {
+    card: "summary_large_image",
   },
   icons: {
     icon: "/icon.svg",
