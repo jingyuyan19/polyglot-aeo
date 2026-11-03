@@ -31,6 +31,15 @@ AI_GLOBAL_DAY_RMB_CAP = "80"
 AI_GLOBAL_MONTH_RMB_CAP = "500"
 AI_REQUESTS_PER_MINUTE = "6"
 
+# License -> subscription links and revocations (see worker.js header).
+[[kv_namespaces]]
+binding = "LICENSE_STATE"
+id = "a9edb289d0524232b1383ed0a14f1e5a"
+
+# Daily re-sync of every linked subscription, in case a webhook was missed.
+[triggers]
+crons = ["29 3 * * *"]
+
 [[durable_objects.bindings]]
 name = "AI_USAGE_LIMITER"
 class_name = "AiUsageLimiter"
