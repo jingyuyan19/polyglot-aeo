@@ -9,6 +9,12 @@
  * POST /deactivate { key, instance_id }
  * POST /ai/session { key, instance_id, project_id? }
  *
+ * Creem does not expire a license when its subscription ends, so
+ * POST /webhooks/creem (re-read from the Creem API, never trusted as sent)
+ * keeps license -> subscription links and revocations in the LICENSE_STATE KV
+ * namespace; a daily cron re-syncs every link. Revoked licenses fail
+ * /validate, /activate and managed-AI sessions.
+ *
  * Client-supplied test_mode is ignored. Creem test mode is used only when
  * CREEM_TEST_MODE=true and ENVIRONMENT is an explicit non-production value.
  * A missing ENVIRONMENT is treated as production.
@@ -521,6 +527,9 @@ async function validateActiveLicense({ key, instanceId, testMode, env }) {
   const apiKey = testMode ? env.CREEM_TEST_API_KEY : env.CREEM_API_KEY
   if (!apiKey) {
     return { ok: false, status: 500, error: "Server configuration error" }
+  }
+  if (await revokedLicense(env, key)) {
+    return { ok: false, status: 403, error: "Active Pro license required" }
   }
   const result = await callCreemAPI(
     `${creemBaseUrl(testMode)}/licenses/validate`,
@@ -1056,7 +1065,135 @@ export class AiUsageLimiter {
   }
 }
 
+async function getCreemAPI(endpoint, apiKey) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10000)
+  try {
+    const res = await fetch(endpoint, {
+      method: "GET",
+      headers: { "x-api-key": apiKey },
+      signal: controller.signal,
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { success: false, error: data.message || data.error || `Creem API error (${res.status})` }
+    return { success: true, data }
+  } catch (err) {
+    return { success: false, error: err?.name === "AbortError" ? "License server timeout" : err?.message }
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+// Statuses that still pay for (or are recovering payment for) the current period.
+const ENTITLED_SUBSCRIPTION_STATUSES = new Set(["active", "trialing", "past_due", "scheduled_cancel"])
+
+function readObjectId(value) {
+  if (typeof value === "string") return value.trim()
+  if (value && typeof value === "object" && typeof value.id === "string") return value.id.trim()
+  return ""
+}
+
+export async function revokedLicense(env, key) {
+  const kv = env?.LICENSE_STATE
+  if (!kv || typeof key !== "string") return null
+  const raw = await kv.get(`revoked:${key.trim()}`)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return { status: "canceled" }
+  }
+}
+
+/** Re-read one subscription from Creem and revoke or restore every license linked to it. */
+async function syncSubscription(env, subscriptionId, baseUrl, apiKey) {
+  const kv = env.LICENSE_STATE
+  const keys = JSON.parse((await kv.get(`sub:${subscriptionId}`)) || "[]")
+  if (keys.length === 0) return { status: 200, body: { synced: 0, unlinked: true } }
+
+  const result = await getCreemAPI(`${baseUrl}/subscriptions?subscription_id=${encodeURIComponent(subscriptionId)}`, apiKey)
+  if (!result.success) return { status: 502, body: { error: result.error } }
+
+  const status = typeof result.data?.status === "string" ? result.data.status : "unknown"
+  const entitled = ENTITLED_SUBSCRIPTION_STATUSES.has(status)
+  for (const key of keys) {
+    if (entitled) {
+      await kv.delete(`revoked:${key}`)
+    } else {
+      await kv.put(`revoked:${key}`, JSON.stringify({ subscription_id: subscriptionId, status, at: Date.now() }))
+    }
+  }
+  return { status: 200, body: { synced: keys.length, subscription_status: status, entitled } }
+}
+
+async function linkSubscription(env, subscriptionId, keys) {
+  const kv = env.LICENSE_STATE
+  const existing = JSON.parse((await kv.get(`sub:${subscriptionId}`)) || "[]")
+  const merged = [...new Set([...existing, ...keys])]
+  await kv.put(`sub:${subscriptionId}`, JSON.stringify(merged))
+  for (const key of keys) await kv.put(`key:${key}`, subscriptionId)
+}
+
+/**
+ * Handle a Creem webhook. The payload only names the object; its state is
+ * re-read with this Worker's own API key, so a forged event can at most
+ * trigger a resync with true data.
+ */
+export async function handleCreemEvent(event, env) {
+  if (!env?.LICENSE_STATE) return { status: 500, body: { error: "LICENSE_STATE KV binding is missing" } }
+  const testMode = serverTestModeEnabled(env)
+  const apiKey = testMode ? env.CREEM_TEST_API_KEY : env.CREEM_API_KEY
+  if (!apiKey) return { status: 500, body: { error: "Server configuration error: API key not set" } }
+  const baseUrl = creemBaseUrl(testMode)
+
+  const type = typeof event?.eventType === "string" ? event.eventType : event?.type
+  const objectId = readObjectId(event?.object)
+  if (typeof type !== "string" || !objectId) return { status: 400, body: { error: "Event type and object id are required" } }
+
+  if (type === "checkout.completed") {
+    const checkout = await getCreemAPI(`${baseUrl}/checkouts?checkout_id=${encodeURIComponent(objectId)}`, apiKey)
+    if (!checkout.success) return { status: 502, body: { error: checkout.error } }
+    const subscriptionId = readObjectId(checkout.data?.subscription)
+    const keys = (Array.isArray(checkout.data?.license_keys) ? checkout.data.license_keys : [])
+      .map((license) => (typeof license?.key === "string" ? license.key.trim() : ""))
+      .filter(Boolean)
+    if (!subscriptionId || keys.length === 0) return { status: 200, body: { linked: 0 } }
+    await linkSubscription(env, subscriptionId, keys)
+    return syncSubscription(env, subscriptionId, baseUrl, apiKey)
+  }
+
+  if (type.startsWith("subscription.")) {
+    return syncSubscription(env, objectId, baseUrl, apiKey)
+  }
+
+  return { status: 200, body: { ignored: type } }
+}
+
+/** Daily safety net for missed webhooks: re-sync every linked subscription. */
+export async function syncAllSubscriptions(env) {
+  if (!env?.LICENSE_STATE) return { synced: 0 }
+  const testMode = serverTestModeEnabled(env)
+  const apiKey = testMode ? env.CREEM_TEST_API_KEY : env.CREEM_API_KEY
+  if (!apiKey) return { synced: 0 }
+  const baseUrl = creemBaseUrl(testMode)
+  let cursor
+  let synced = 0
+  do {
+    const page = await env.LICENSE_STATE.list({ prefix: "sub:", cursor })
+    for (const { name } of page.keys) {
+      await syncSubscription(env, name.slice("sub:".length), baseUrl, apiKey)
+      synced += 1
+    }
+    cursor = page.list_complete ? undefined : page.cursor
+  } while (cursor)
+  return { synced }
+}
+
 export default {
+  async scheduled(_event, env, ctx) {
+    ctx.waitUntil(syncAllSubscriptions(env))
+  },
+
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS_HEADERS })
@@ -1086,6 +1223,17 @@ export default {
 
     if (path === "/verify-fetch" && request.method === "GET") {
       return verifyFetchPublished(url)
+    }
+
+    if (path === "/webhooks/creem" && request.method === "POST") {
+      let event
+      try {
+        event = await request.json()
+      } catch {
+        return errorResponse("Invalid JSON body")
+      }
+      const result = await handleCreemEvent(event, env)
+      return jsonResponse({ success: result.status < 400, ...result.body }, result.status)
     }
 
     if (request.method !== "POST") {
@@ -1127,6 +1275,9 @@ export default {
       const configurationError = licenseProductConfigurationError(env, testMode)
       if (configurationError) {
         return errorResponse(configurationError.error, configurationError.status)
+      }
+      if (await revokedLicense(env, key)) {
+        return errorResponse("This license's Polyglot AEO Pro subscription has ended. Renew to keep using Pro.", 403)
       }
       const creemBody = {
         key: key.trim(),
@@ -1185,6 +1336,11 @@ export default {
       const productError = licenseProductError(result.data, env, testMode)
       if (productError) {
         return errorResponse(productError.error, productError.status)
+      }
+
+      const revoked = await revokedLicense(env, key)
+      if (revoked) {
+        return jsonResponse({ ok: false, tier: "free", status: revoked.status || "canceled" })
       }
 
       const active = licenseActive(result.data)
