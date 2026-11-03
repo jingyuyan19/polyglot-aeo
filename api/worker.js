@@ -12,7 +12,7 @@
  * Creem does not expire a license when its subscription ends, so
  * POST /webhooks/creem (re-read from the Creem API, never trusted as sent)
  * keeps license -> subscription links and revocations in the LICENSE_STATE KV
- * namespace; a daily cron re-syncs every link. Revoked licenses fail
+ * namespace; a linked subscription is re-read at most daily when validated. Revoked licenses fail
  * /validate, /activate and managed-AI sessions.
  *
  * Client-supplied test_mode is ignored. Creem test mode is used only when
@@ -528,6 +528,7 @@ async function validateActiveLicense({ key, instanceId, testMode, env }) {
   if (!apiKey) {
     return { ok: false, status: 500, error: "Server configuration error" }
   }
+  await refreshLinkedSubscription(env, key, creemBaseUrl(testMode), apiKey)
   if (await revokedLicense(env, key)) {
     return { ok: false, status: 403, error: "Active Pro license required" }
   }
@@ -1123,6 +1124,7 @@ async function syncSubscription(env, subscriptionId, baseUrl, apiKey) {
       await kv.put(`revoked:${key}`, JSON.stringify({ subscription_id: subscriptionId, status, at: Date.now() }))
     }
   }
+  await kv.put(`synced:${subscriptionId}`, String(Date.now()))
   return { status: 200, body: { synced: keys.length, subscription_status: status, entitled } }
 }
 
@@ -1169,7 +1171,23 @@ export async function handleCreemEvent(event, env) {
   return { status: 200, body: { ignored: type } }
 }
 
-/** Daily safety net for missed webhooks: re-sync every linked subscription. */
+const RESYNC_AFTER_MS = 24 * 60 * 60 * 1000
+
+/**
+ * Safety net for missed webhooks without a cron slot: when a linked license is
+ * validated, re-read its subscription from Creem if the last sync is over a day old.
+ */
+export async function refreshLinkedSubscription(env, key, baseUrl, apiKey) {
+  const kv = env?.LICENSE_STATE
+  if (!kv || typeof key !== "string" || !apiKey) return
+  const subscriptionId = await kv.get(`key:${key.trim()}`)
+  if (!subscriptionId) return
+  const last = Number(await kv.get(`synced:${subscriptionId}`)) || 0
+  if (Date.now() - last < RESYNC_AFTER_MS) return
+  await syncSubscription(env, subscriptionId, baseUrl, apiKey)
+}
+
+/** Re-sync every linked subscription (scheduled handler, if a cron slot is configured). */
 export async function syncAllSubscriptions(env) {
   if (!env?.LICENSE_STATE) return { synced: 0 }
   const testMode = serverTestModeEnabled(env)
@@ -1319,6 +1337,7 @@ export default {
         return errorResponse("instance_id is required")
       }
 
+      await refreshLinkedSubscription(env, key, baseUrl, apiKey)
       const result = await callCreemAPI(
         `${baseUrl}/licenses/validate`,
         apiKey,

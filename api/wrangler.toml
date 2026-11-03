@@ -36,10 +36,6 @@ AI_REQUESTS_PER_MINUTE = "6"
 binding = "LICENSE_STATE"
 id = "a9edb289d0524232b1383ed0a14f1e5a"
 
-# Daily re-sync of every linked subscription, in case a webhook was missed.
-[triggers]
-crons = ["29 3 * * *"]
-
 [[durable_objects.bindings]]
 name = "AI_USAGE_LIMITER"
 class_name = "AiUsageLimiter"
