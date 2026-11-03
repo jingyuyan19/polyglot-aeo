@@ -19,6 +19,8 @@
  */
 
 :root {
+  /* Bundled Inter (see vite.config.ts): no runtime font request to Google. */
+  --framer-font-family: "Inter Variable", "Inter", system-ui, Avenir, Helvetica, Arial, sans-serif;
   --pa-accent: #7c5cff;
   --pa-radius-card: 10px;
   --pa-radius-control: 8px;

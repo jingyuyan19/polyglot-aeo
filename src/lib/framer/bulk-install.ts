@@ -1,5 +1,5 @@
 import type { LocaleInfo } from "./locales"
-import { injectIntoHeadEnd, wrapJsonLdBlocks } from "./customCode"
+import { injectIntoHeadEnd } from "./customCode"
 import {
   buildSchema,
   localizeSchemaInput,
@@ -260,8 +260,7 @@ export async function bulkInstall(
     // do nothing rather than zeroing out the slot.
     return { preservedUserBytes: 0, installedBlocks: 0, enabledProposalCount: 0 }
   }
-  const wrapped = wrapJsonLdBlocks(blocks)
-  const { preservedUserBytes } = await injectIntoHeadEnd(wrapped)
+  const { preservedUserBytes } = await injectIntoHeadEnd(blocks)
   return {
     preservedUserBytes,
     installedBlocks: blocks.length,

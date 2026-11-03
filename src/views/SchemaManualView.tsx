@@ -7,7 +7,7 @@ import { useFormDraft } from "../hooks/useFormDraft"
 import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut"
 import { useLocales } from "../hooks/useLocales"
 import { useI18n, type TranslationKey } from "../i18n"
-import { injectIntoHeadEnd, wrapJsonLdBlocks } from "../lib/framer/customCode"
+import { injectIntoHeadEnd } from "../lib/framer/customCode"
 import { toSchemaLanguage } from "../lib/framer/locales"
 import {
   buildSchema,
@@ -154,10 +154,9 @@ export function SchemaManualView({
     }
     setInstalling(true)
     try {
-      const html = wrapJsonLdBlocks(
+      const { preservedUserBytes } = await injectIntoHeadEnd(
         previews.map((p) => ({ language: p.language, jsonLd: p.json })),
       )
-      const { preservedUserBytes } = await injectIntoHeadEnd(html)
       const message =
         preservedUserBytes > 0
           ? t("schema.installSuccessWithPreserved", {
